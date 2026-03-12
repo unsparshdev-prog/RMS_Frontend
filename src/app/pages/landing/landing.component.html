@@ -1,0 +1,367 @@
+<!-- ========== NAVBAR ========== -->
+<nav id="navbar" class="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border/50">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <!-- Logo -->
+        <a routerLink="/" class="flex items-center gap-3 group">
+            <div
+                class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="white"
+                    class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
+                </svg>
+            </div>
+            <span class="text-xl font-bold tracking-tight text-foreground">RMS</span>
+        </a>
+
+        <!-- Nav Links -->
+        <div class="hidden md:flex items-center gap-8">
+            <a href="#features"
+                class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200">Features</a>
+            <a href="#stats"
+                class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200">About</a>
+            <a href="#testimonials"
+                class="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200">Testimonials</a>
+        </div>
+
+        <!-- Auth Buttons -->
+        <div class="flex items-center gap-3">
+            <a routerLink="/login" id="nav-login-btn"
+                class="px-5 py-2.5 text-sm font-semibold text-foreground hover:text-primary border border-border rounded-xl hover:border-primary/50 transition-all duration-300 hover:shadow-md">
+                Log In
+            </a>
+            <a routerLink="/signup" id="nav-signup-btn"
+                class="px-5 py-2.5 text-sm font-semibold text-primary-foreground bg-primary rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]">
+                Sign Up Free
+            </a>
+        </div>
+    </div>
+</nav>
+
+<!-- ========== HERO SECTION ========== -->
+<section id="hero" class="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+    <!-- Background decorations -->
+    <div class="absolute inset-0 -z-10">
+        <div class="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-[100px] animate-float"></div>
+        <div
+            class="absolute bottom-20 right-10 w-96 h-96 bg-accent/8 rounded-full blur-[120px] animate-float animation-delay-400">
+        </div>
+        <div
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-secondary/30 rounded-full blur-[150px]">
+        </div>
+    </div>
+    <!-- Grid pattern overlay -->
+    <div class="absolute inset-0 -z-10 opacity-[0.03]"
+        style="background-image: radial-gradient(circle, var(--foreground) 1px, transparent 1px); background-size: 32px 32px;">
+    </div>
+
+    <div class="max-w-6xl mx-auto px-6 text-center">
+        <!-- Badge -->
+        <div
+            class="animate-fade-in-up inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8">
+            <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+            <span class="text-sm font-medium text-primary">Now with AI-powered screening</span>
+        </div>
+
+        <!-- Heading -->
+        <h1
+            class="animate-fade-in-up animation-delay-200 text-5xl md:text-7xl font-extrabold tracking-tighter leading-[1.08] mb-6">
+            Hire Smarter.<br />
+            <span
+                class="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-gradient">
+                Grow Faster.
+            </span>
+        </h1>
+
+        <!-- Subheading -->
+        <p
+            class="animate-fade-in-up animation-delay-400 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
+            The all-in-one recruitment management system that helps teams source, track, and hire the best talent — 3×
+            faster than traditional methods.
+        </p>
+
+        <!-- CTA Buttons -->
+        <div class="animate-fade-in-up animation-delay-600 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a routerLink="/signup" id="hero-get-started-btn"
+                class="group px-8 py-4 text-base font-semibold text-primary-foreground bg-primary rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] flex items-center gap-2">
+                Get Started Free
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                    stroke="currentColor" class="w-5 h-5 group-hover:translate-x-1 transition-transform">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                </svg>
+            </a>
+            <a href="#features" id="hero-learn-more-btn"
+                class="px-8 py-4 text-base font-semibold text-foreground border border-border rounded-2xl hover:border-primary/40 hover:bg-card transition-all duration-300 hover:shadow-lg">
+                Learn More
+            </a>
+        </div>
+
+        <!-- Hero illustration / dashboard preview -->
+        <div class="animate-fade-in-up animation-delay-800 mt-16 relative">
+            <div
+                class="relative bg-card rounded-3xl border border-border shadow-2xl p-2 md:p-3 max-w-4xl mx-auto overflow-hidden">
+                <div class="bg-muted/50 rounded-2xl p-6 md:p-8 space-y-4">
+                    <!-- Mock dashboard top bar -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-3 h-3 rounded-full bg-destructive/60"></div>
+                            <div class="w-3 h-3 rounded-full bg-primary/60"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-400/60"></div>
+                        </div>
+                        <div class="h-6 w-48 bg-border/60 rounded-lg"></div>
+                        <div class="flex gap-2">
+                            <div class="h-6 w-16 bg-primary/20 rounded-md"></div>
+                            <div class="h-6 w-16 bg-border/60 rounded-md"></div>
+                        </div>
+                    </div>
+                    <!-- Mock cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                        <div class="bg-card rounded-xl p-5 shadow-md border border-border/50">
+                            <div class="text-xs font-medium text-muted-foreground mb-2">Open Positions</div>
+                            <div class="text-2xl font-bold text-foreground">47</div>
+                            <div class="text-xs text-primary mt-1">↑ 12% from last month</div>
+                        </div>
+                        <div class="bg-card rounded-xl p-5 shadow-md border border-border/50">
+                            <div class="text-xs font-medium text-muted-foreground mb-2">Active Candidates</div>
+                            <div class="text-2xl font-bold text-foreground">1,284</div>
+                            <div class="text-xs text-primary mt-1">↑ 23% from last month</div>
+                        </div>
+                        <div class="bg-card rounded-xl p-5 shadow-md border border-border/50">
+                            <div class="text-xs font-medium text-muted-foreground mb-2">Avg. Time to Hire</div>
+                            <div class="text-2xl font-bold text-foreground">18 days</div>
+                            <div class="text-xs text-primary mt-1">↓ 5 days improvement</div>
+                        </div>
+                    </div>
+                    <!-- Mock pipeline -->
+                    <div class="flex gap-2 mt-4">
+                        @for (stage of ['Applied', 'Screening', 'Interview', 'Offer', 'Hired']; track stage) {
+                        <div class="flex-1 h-3 rounded-full bg-primary/20 overflow-hidden">
+                            <div class="h-full rounded-full bg-primary" [style.width.%]="90 - $index * 15"></div>
+                        </div>
+                        }
+                    </div>
+                    <div class="flex justify-between text-[10px] text-muted-foreground mt-1 px-1">
+                        <span>Applied</span>
+                        <span>Screening</span>
+                        <span>Interview</span>
+                        <span>Offer</span>
+                        <span>Hired</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Glow effect behind dashboard -->
+            <div
+                class="absolute -bottom-10 left-1/2 -translate-x-1/2 w-3/4 h-20 bg-primary/20 rounded-full blur-[60px]">
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ========== STATS SECTION ========== -->
+<section id="stats" class="py-24 relative overflow-hidden">
+    <div class="absolute inset-0 -z-10 bg-gradient-to-b from-background via-secondary/20 to-background"></div>
+    <div class="max-w-6xl mx-auto px-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+            @for (stat of stats; track stat.label) {
+            <div class="text-center group">
+                <div
+                    class="text-4xl md:text-5xl font-extrabold text-primary tracking-tight mb-2 group-hover:scale-110 transition-transform duration-300">
+                    {{ stat.value }}
+                </div>
+                <div class="text-sm font-medium text-muted-foreground">{{ stat.label }}</div>
+            </div>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- ========== FEATURES SECTION ========== -->
+<section id="features" class="py-24 relative">
+    <div class="max-w-6xl mx-auto px-6">
+        <!-- Section header -->
+        <div class="text-center mb-16">
+            <div
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6">
+                <span class="text-sm font-medium text-primary">Features</span>
+            </div>
+            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight mb-4">
+                Everything you need to<br />
+                <span class="text-primary">hire with confidence</span>
+            </h2>
+            <p class="text-muted-foreground text-lg max-w-2xl mx-auto">
+                From sourcing to onboarding, RMS provides the tools to build and manage your dream team.
+            </p>
+        </div>
+
+        <!-- Feature cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            @for (feature of features; track feature.title) {
+            <div
+                class="group relative bg-card rounded-2xl border border-border p-7 shadow-sm hover:shadow-xl transition-all duration-500 hover:-translate-y-1 hover:border-primary/30">
+                <!-- Icon -->
+                <div
+                    class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-5 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300 group-hover:shadow-lg group-hover:scale-105">
+                    <span [innerHTML]="feature.icon"></span>
+                </div>
+                <h3 class="text-lg font-bold text-foreground mb-2">{{ feature.title }}</h3>
+                <p class="text-sm text-muted-foreground leading-relaxed">{{ feature.description }}</p>
+                <!-- Hover glow effect -->
+                <div
+                    class="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10">
+                </div>
+            </div>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- ========== TESTIMONIALS SECTION ========== -->
+<section id="testimonials" class="py-24 relative overflow-hidden">
+    <div class="absolute inset-0 -z-10 bg-gradient-to-b from-background via-secondary/20 to-background"></div>
+    <div class="max-w-6xl mx-auto px-6">
+        <!-- Section header -->
+        <div class="text-center mb-16">
+            <div
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6">
+                <span class="text-sm font-medium text-primary">Testimonials</span>
+            </div>
+            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight mb-4">
+                Loved by <span class="text-primary">hiring teams</span>
+            </h2>
+            <p class="text-muted-foreground text-lg max-w-2xl mx-auto">
+                See what HR leaders and recruiters are saying about RMS.
+            </p>
+        </div>
+
+        <!-- Testimonial cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            @for (t of testimonials; track t.name) {
+            <div
+                class="bg-card rounded-2xl border border-border p-7 shadow-sm hover:shadow-xl transition-all duration-500 hover:-translate-y-1">
+                <!-- Stars -->
+                <div class="flex gap-1 mb-4">
+                    @for (_ of [1,2,3,4,5]; track _) {
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
+                        class="w-5 h-5 text-primary">
+                        <path fill-rule="evenodd"
+                            d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.006 5.404.434c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.434 2.082-5.005Z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    }
+                </div>
+                <p class="text-foreground mb-6 leading-relaxed">"{{ t.quote }}"</p>
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center text-sm font-bold text-primary">
+                        {{ t.avatar }}
+                    </div>
+                    <div>
+                        <div class="text-sm font-semibold text-foreground">{{ t.name }}</div>
+                        <div class="text-xs text-muted-foreground">{{ t.role }}</div>
+                    </div>
+                </div>
+            </div>
+            }
+        </div>
+    </div>
+</section>
+
+<!-- ========== CTA SECTION ========== -->
+<section id="cta" class="py-24 relative overflow-hidden">
+    <div class="max-w-4xl mx-auto px-6">
+        <div class="relative bg-primary rounded-3xl p-12 md:p-16 text-center shadow-2xl overflow-hidden">
+            <!-- Background pattern -->
+            <div class="absolute inset-0 opacity-10"
+                style="background-image: radial-gradient(circle, white 1px, transparent 1px); background-size: 24px 24px;">
+            </div>
+            <h2 class="relative text-3xl md:text-5xl font-extrabold text-primary-foreground tracking-tight mb-4">
+                Ready to transform your hiring?
+            </h2>
+            <p class="relative text-lg text-primary-foreground/80 max-w-xl mx-auto mb-8">
+                Join 10,000+ companies that trust RMS to find and hire exceptional talent.
+            </p>
+            <div class="relative flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a routerLink="/signup" id="cta-signup-btn"
+                    class="px-8 py-4 text-base font-semibold text-primary bg-primary-foreground rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.03] active:scale-[0.98]">
+                    Start Free Trial
+                </a>
+                <a href="#features"
+                    class="px-8 py-4 text-base font-semibold text-primary-foreground border-2 border-primary-foreground/30 rounded-2xl hover:bg-primary-foreground/10 transition-all duration-300">
+                    See All Features
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ========== FOOTER ========== -->
+<footer id="footer" class="py-12 border-t border-border">
+    <div class="max-w-6xl mx-auto px-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+            <!-- Brand -->
+            <div class="col-span-2 md:col-span-1">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                            stroke="white" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
+                        </svg>
+                    </div>
+                    <span class="text-lg font-bold text-foreground">RMS</span>
+                </div>
+                <p class="text-sm text-muted-foreground">The modern way to recruit, hire, and grow your team.</p>
+            </div>
+            <!-- Links -->
+            <div>
+                <h4 class="text-sm font-semibold text-foreground mb-4">Product</h4>
+                <ul class="space-y-2 text-sm text-muted-foreground">
+                    <li><a href="#features" class="hover:text-primary transition-colors">Features</a></li>
+                    <li><a href="#" class="hover:text-primary transition-colors">Pricing</a></li>
+                    <li><a href="#" class="hover:text-primary transition-colors">Integrations</a></li>
+                    <li><a href="#" class="hover:text-primary transition-colors">Changelog</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-sm font-semibold text-foreground mb-4">Company</h4>
+                <ul class="space-y-2 text-sm text-muted-foreground">
+                    <li><a href="#" class="hover:text-primary transition-colors">About</a></li>
+                    <li><a href="#" class="hover:text-primary transition-colors">Blog</a></li>
+                    <li><a href="#" class="hover:text-primary transition-colors">Careers</a></li>
+                    <li><a href="#" class="hover:text-primary transition-colors">Contact</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-sm font-semibold text-foreground mb-4">Legal</h4>
+                <ul class="space-y-2 text-sm text-muted-foreground">
+                    <li><a href="#" class="hover:text-primary transition-colors">Privacy</a></li>
+                    <li><a href="#" class="hover:text-primary transition-colors">Terms</a></li>
+                    <li><a href="#" class="hover:text-primary transition-colors">Security</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="border-t border-border pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+            <p class="text-sm text-muted-foreground">© {{ currentYear }} RMS. All rights reserved.</p>
+            <div class="flex items-center gap-4">
+                <a href="#" class="text-muted-foreground hover:text-primary transition-colors">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path
+                            d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z" />
+                    </svg>
+                </a>
+                <a href="#" class="text-muted-foreground hover:text-primary transition-colors">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path
+                            d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                    </svg>
+                </a>
+                <a href="#" class="text-muted-foreground hover:text-primary transition-colors">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path
+                            d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </div>
+</footer>
