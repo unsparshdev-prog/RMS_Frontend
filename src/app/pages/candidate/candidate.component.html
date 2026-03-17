@@ -1,0 +1,100 @@
+<!-- ========== CANDIDATE LAYOUT ========== -->
+<div class="min-h-screen flex bg-background">
+
+    <!-- ========== SIDEBAR ========== -->
+    <!-- Mobile overlay -->
+    <div *ngIf="sidebarOpen" (click)="toggleSidebar()"
+        class="fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity"></div>
+
+    <aside [class.-translate-x-full]="!sidebarOpen" [class.translate-x-0]="sidebarOpen"
+        class="fixed lg:sticky top-0 left-0 z-50 lg:z-0 h-screen flex flex-col transition-all duration-300 lg:translate-x-0"
+        [ngClass]="sidebarCollapsed ? 'w-[72px]' : 'w-72'"
+        style="background: linear-gradient(180deg, #0B2265 0%, #0E3A7D 50%, #0B2265 100%);">
+
+        <!-- Logo + Hamburger -->
+        <div class="px-4 py-4 border-b border-white/10 flex items-center"
+            [ngClass]="sidebarCollapsed ? 'justify-center' : 'justify-between'">
+            <a routerLink="/" class="flex items-center gap-2" *ngIf="!sidebarCollapsed">
+                <div class="bg-white rounded-xl px-3 py-1.5">
+                    <img src="assets/images/adnate-logo.png" alt="Adnate IT Solutions"
+                        class="h-8 w-auto object-contain" />
+                </div>
+            </a>
+            <button (click)="toggleCollapse()"
+                class="hidden lg:flex p-2 rounded-lg hover:bg-white/10 text-white/70 hover:text-white transition-all duration-200"
+                [title]="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                    stroke="currentColor" class="w-5 h-5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 py-6 overflow-y-auto overflow-x-hidden"
+            [ngClass]="sidebarCollapsed ? 'px-2' : 'px-4'">
+            <div class="space-y-1">
+                <a *ngFor="let item of navItems" [routerLink]="item.route"
+                    routerLinkActive="!bg-white/20 !text-white !border-cyan-400/50"
+                    [routerLinkActiveOptions]="{exact: false}"
+                    class="flex items-center gap-3 py-3 rounded-xl text-sm font-medium text-white/70 hover:bg-white/10 hover:text-white border border-transparent transition-all duration-200 group"
+                    [ngClass]="sidebarCollapsed ? 'justify-center px-0' : 'px-4'"
+                    [title]="sidebarCollapsed ? item.label : ''">
+                    <span [innerHTML]="item.icon"
+                        class="shrink-0 group-hover:scale-110 transition-transform duration-200"></span>
+                    <span *ngIf="!sidebarCollapsed" class="truncate">{{ item.label }}</span>
+                </a>
+            </div>
+        </nav>
+
+        <!-- Bottom section -->
+        <div class="py-4 border-t border-white/10" [ngClass]="sidebarCollapsed ? 'px-2' : 'px-4'">
+            <div class="flex items-center gap-3 py-3" [ngClass]="sidebarCollapsed ? 'justify-center px-0' : 'px-4'">
+                <div
+                    class="w-9 h-9 shrink-0 rounded-full bg-cyan-400/20 flex items-center justify-center text-sm font-bold text-cyan-300">
+                    C
+                </div>
+                <div *ngIf="!sidebarCollapsed" class="flex-1 min-w-0">
+                    <div class="text-sm font-semibold text-white truncate">Candidate</div>
+                    <div class="text-xs text-white/50 truncate">candidate&#64;example.com</div>
+                </div>
+            </div>
+            <a routerLink="/login"
+                class="flex items-center gap-3 py-3 rounded-xl text-sm font-medium text-white/60 hover:bg-red-500/20 hover:text-red-300 transition-all duration-200 mt-1"
+                [ngClass]="sidebarCollapsed ? 'justify-center px-0' : 'px-4'"
+                [title]="sidebarCollapsed ? 'Log Out' : ''">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                    stroke="currentColor" class="w-5 h-5 shrink-0">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
+                </svg>
+                <span *ngIf="!sidebarCollapsed">Log Out</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- ========== MAIN CONTENT ========== -->
+    <div class="flex-1 flex flex-col min-h-screen">
+        <!-- Top bar (mobile) -->
+        <header class="lg:hidden sticky top-0 z-30 bg-card/80 backdrop-blur-xl border-b border-border px-4 py-3">
+            <div class="flex items-center justify-between">
+                <button (click)="toggleSidebar()" class="p-2 rounded-lg hover:bg-muted transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                        stroke="currentColor" class="w-5 h-5 text-foreground">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                    </svg>
+                </button>
+                <img src="assets/images/adnate-logo.png" alt="Adnate IT Solutions"
+                    class="h-8 w-auto object-contain" />
+                <div class="w-9"></div>
+            </div>
+        </header>
+
+        <!-- Page content -->
+        <main class="flex-1 p-6 lg:p-8 overflow-y-auto">
+            <router-outlet></router-outlet>
+        </main>
+    </div>
+</div>

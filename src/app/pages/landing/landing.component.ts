@@ -66,7 +66,7 @@ export class LandingComponent {
 
   testimonials = [
     {
-      quote: "RMS transformed our hiring process. We cut our time-to-hire by 40% in the first quarter.",
+      quote: "ADNATE IT transformed our hiring process. We cut our time-to-hire by 40% in the first quarter.",
       name: "Sarah Chen",
       role: "VP of People, TechCorp",
       avatar: "SC"
