@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
 import { EChartsOption } from 'echarts';
 
@@ -57,7 +57,7 @@ interface Candidate {
 @Component({
   selector: 'app-leadership-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgxEchartsDirective],
+  imports: [CommonModule, FormsModule, RouterLink, NgxEchartsDirective],
   providers: [provideEchartsCore({ echarts: () => import('echarts') })],
   templateUrl: './leadership-dashboard.component.html',
   styleUrls: ['./leadership-dashboard.component.css']
