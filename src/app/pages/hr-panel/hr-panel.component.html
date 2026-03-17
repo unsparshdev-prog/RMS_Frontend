@@ -1,0 +1,313 @@
+<div class="peoplify-layout">
+  <!-- Sidebar -->
+  <aside class="peoplify-sidebar" [class.collapsed]="isSidebarCollapsed">
+    <div class="sidebar-logo">
+      <div class="logo-bg-wrapper" *ngIf="!isSidebarCollapsed">
+        <img src="assets/adnate-logo.png" alt="Adnate IT Solutions" class="adnate-img-logo">
+      </div>
+      <div class="logo-bg-wrapper-small" *ngIf="isSidebarCollapsed">
+        <img src="assets/adnate-logo.png" alt="Adnate IT Solutions" class="adnate-img-logo-small">
+      </div>
+      <button class="hamburger-toggle" (click)="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+      </button>
+    </div>
+
+    <div class="sidebar-menu">
+      <ng-container *ngFor="let section of sidebarSections">
+        <div class="menu-section" *ngIf="!isSidebarCollapsed && section.title">
+          <span class="section-title">{{ section.title }}</span>
+        </div>
+        <ul class="menu-list">
+          <li *ngFor="let item of section.items" 
+              class="menu-item" 
+              [class.active]="activeTab === item.name"
+              (click)="setActiveTab(item.name)">
+            <i [class]="item.icon" *ngIf="isSidebarCollapsed"></i>
+            <span class="item-name" *ngIf="!isSidebarCollapsed">{{ item.name }}</span>
+            <div class="tooltip" *ngIf="isSidebarCollapsed">{{ item.name }}</div>
+          </li>
+        </ul>
+      </ng-container>
+    </div>
+
+    <div class="sidebar-user-footer">
+      
+      <!-- Expanded Footer -->
+      <div class="footer-expanded" *ngIf="!isSidebarCollapsed">
+        <div class="candidate-profile">
+          <div class="candidate-initial">S</div>
+          <div class="candidate-text">
+            <div class="candidate-name" style="color: #FFFFFF; font-weight: 600;">Sarah Lindqvist</div>
+            <div class="candidate-email" style="color: #94A3B8;">HR Admin</div>
+          </div>
+        </div>
+        <div class="logout-action" style="color: #CBD5E1;">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Log Out</span>
+        </div>
+      </div>
+
+      <!-- Collapsed Footer -->
+      <div class="footer-expanded collapsed-state" *ngIf="isSidebarCollapsed">
+        <div class="candidate-profile menu-item-internal" style="padding:0; margin-bottom: 15px; justify-content: center; background:transparent;">
+           <div class="candidate-initial">S</div>
+           <div class="tooltip" style="left: 60px;">Sarah Lindqvist</div>
+        </div>
+        <div class="logout-action menu-item-internal" style="padding:0; justify-content: center; color: #CBD5E1; background:transparent;">
+           <i class="fas fa-sign-out-alt"></i>
+           <div class="tooltip" style="left: 60px;">Log Out</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main class="peoplify-main">
+    <!-- Top Nav -->
+    <header class="peoplify-top-nav">
+      <div class="nav-breadcrumbs">
+        <span class="text-muted">Main</span>
+        <i class="fas fa-chevron-right separator"></i>
+        <span class="text-active">{{ activeTab }}</span>
+      </div>
+      <div class="nav-actions">
+        <button class="icon-btn"><i class="far fa-bell"></i></button>
+      </div>
+    </header>
+
+    <!-- Scrollable Content -->
+    <div class="peoplify-content">
+      <ng-container *ngIf="activeTab === 'Dashboard'">
+        
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+          <div class="greeting-area">
+            <h1>Good Morning, Sarah 👋</h1>
+            <p class="date-subtitle">Thursday, 5 March 2026</p>
+          </div>
+          <div class="header-actions">
+            <div class="search-bar">
+              <i class="fas fa-search"></i>
+              <input type="text" placeholder="Search people, roles, tasks">
+            </div>
+            <button class="btn btn-primary-blue">
+              <i class="far fa-file-alt"></i> Generate Report
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title"><i class="fas fa-briefcase"></i> Open Positions</span>
+            </div>
+            <div class="kpi-value">24</div>
+            <div class="kpi-trend positive"><i class="fas fa-arrow-up"></i> +3 this month</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title"><i class="fas fa-users"></i> Active Candidates</span>
+            </div>
+            <div class="kpi-value">142</div>
+            <div class="kpi-trend positive"><i class="fas fa-arrow-up"></i> +28 new this week</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title"><i class="fas fa-check-circle"></i> Pending Approvals</span>
+            </div>
+            <div class="kpi-value">7</div>
+            <div class="kpi-trend negative"><i class="fas fa-clock"></i> 3 overdue</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title"><i class="fas fa-tachometer-alt"></i> Time-to-Hire</span>
+            </div>
+            <div class="kpi-value">18d</div>
+            <div class="kpi-trend positive"><i class="fas fa-arrow-down"></i> -2 days avg</div>
+          </div>
+        </div>
+
+        <!-- Dashboard Widgets -->
+        <div class="dashboard-grid">
+          <!-- Funnel Chart -->
+          <div class="dashboard-card panel-funnel">
+            <div class="card-header flex-between mb-3">
+              <div class="title-with-badge">
+                <h3 style="margin:0;"><i class="fas fa-filter text-blue"></i> Recruitment Pipeline Funnel</h3>
+              </div>
+            </div>
+            <div class="funnel-container">
+              <div class="funnel-stage" style="width: 100%; background: #0B2265; color: white;">
+                <span class="stage-name">Applied</span>
+                <span class="stage-count">840</span>
+              </div>
+              <i class="fas fa-caret-down funnel-arrow text-muted"></i>
+              <div class="funnel-stage" style="width: 80%; background: #2F4B8F; color: white;">
+                <span class="stage-name">Screened</span>
+                <span class="stage-count">210</span>
+              </div>
+              <i class="fas fa-caret-down funnel-arrow text-muted"></i>
+              <div class="funnel-stage" style="width: 60%; background: #0088A8; color: white;">
+                <span class="stage-name">Interviewing</span>
+                <span class="stage-count">56</span>
+              </div>
+              <i class="fas fa-caret-down funnel-arrow text-muted"></i>
+              <div class="funnel-stage" style="width: 40%; background: #00C4F0; color: white;">
+                <span class="stage-name">Offered</span>
+                <span class="stage-count">12</span>
+              </div>
+              <i class="fas fa-caret-down funnel-arrow text-muted"></i>
+              <div class="funnel-stage" style="width: 25%; background: #10B981; color: white;">
+                <span class="stage-name">Joined</span>
+                <span class="stage-count">8</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Health Indicators -->
+          <div class="dashboard-card panel-health">
+            <div class="card-header flex-between mb-3">
+              <div class="title-with-badge">
+                <h3 style="margin:0;"><i class="fas fa-heartbeat text-blue"></i> Health Indicators</h3>
+              </div>
+            </div>
+            <div class="health-list">
+              <div class="health-item bg-light-gray rounded-lg p-3 mb-2 flex-between">
+                <div class="flex-row items-center gap-3">
+                  <div class="avatar circle" style="background: #FEE2E2; color: #EF4444;"><i class="fas fa-exclamation-triangle"></i></div>
+                  <div>
+                    <div class="health-title font-bold text-sm">Overdue Interviews</div>
+                    <div class="text-xs text-muted">3 candidates waiting > 48h</div>
+                  </div>
+                </div>
+                <button class="badge-btn badge-red-soft text-xs border-none cursor-pointer p-1">Resolve</button>
+              </div>
+
+              <div class="health-item bg-light-gray rounded-lg p-3 mb-2 flex-between">
+                <div class="flex-row items-center gap-3">
+                  <div class="avatar circle" style="background: #FFEDD5; color: #F59E0B;"><i class="fas fa-clock"></i></div>
+                  <div>
+                    <div class="health-title font-bold text-sm">Pending Offers</div>
+                    <div class="text-xs text-muted">2 offers awaiting MD approval</div>
+                  </div>
+                </div>
+                <button class="badge-btn badge-orange-soft text-xs border-none cursor-pointer p-1">Nudge</button>
+              </div>
+
+              <div class="health-item bg-light-gray rounded-lg p-3 mb-2 flex-between">
+                <div class="flex-row items-center gap-3">
+                  <div class="avatar circle" style="background: #E0F7FB; color: #00C4F0;"><i class="fas fa-robot"></i></div>
+                  <div>
+                    <div class="health-title font-bold text-sm">AI Screening Ready</div>
+                    <div class="text-xs text-muted">45 new resumes parsed</div>
+                  </div>
+                </div>
+                <button class="badge-btn badge-blue-light text-xs border-none cursor-pointer p-1">Review</button>
+              </div>
+              
+              <div class="health-item bg-light-gray rounded-lg p-3 mb-2 flex-between">
+                <div class="flex-row items-center gap-3">
+                  <div class="avatar circle" style="background: #D1FAE5; color: #10B981;"><i class="fas fa-check"></i></div>
+                  <div>
+                    <div class="health-title font-bold text-sm">Pipeline Flow</div>
+                    <div class="text-xs text-muted">Healthy conversion this week</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>      </ng-container>
+
+      <ng-container *ngIf="activeTab === 'Job Requisition'">
+        <div style="display: flex; flex-direction: column; flex-grow: 1; height: 100%;">
+          <div class="dashboard-header mb-3">
+            <div>
+              <h1 style="font-size: 1.5rem;">Create Job Requisition</h1>
+              <p class="text-muted">Fill out the form below to create a new role requirement.</p>
+            </div>
+          </div>
+          
+          <!-- Job Form -->
+          <div class="bg-white rounded-lg p-5" style="border: 1px solid #E2E8F0; max-width: 800px;">
+            <form class="req-form">
+              <div class="form-row">
+                <div class="form-group half-width">
+                  <label>Job Title <span class="req-star">*</span></label>
+                  <input type="text" placeholder="e.g. Senior Software Engineer" class="form-input">
+                </div>
+                <div class="form-group half-width">
+                  <label>Department <span class="req-star">*</span></label>
+                  <select class="form-input">
+                    <option>Engineering</option>
+                    <option>Design</option>
+                    <option>Product</option>
+                    <option>HR & Ops</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-group half-width">
+                  <label>Location</label>
+                  <select class="form-input">
+                    <option>Remote</option>
+                    <option>London, UK</option>
+                    <option>New York, USA</option>
+                  </select>
+                </div>
+                <div class="form-group half-width">
+                  <label>Employment Type</label>
+                  <select class="form-input">
+                    <option>Full-time</option>
+                    <option>Part-time</option>
+                    <option>Contract</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-group half-width">
+                  <label>Number of Openings</label>
+                  <input type="number" min="1" value="1" class="form-input">
+                </div>
+                <div class="form-group half-width">
+                  <label>Salary Range (Annual)</label>
+                  <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="text" placeholder="Min" class="form-input" style="flex:1"> 
+                    <span class="text-muted">-</span> 
+                    <input type="text" placeholder="Max" class="form-input" style="flex:1">
+                  </div>
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label>Job Description</label>
+                <textarea rows="5" class="form-input" placeholder="Outline responsibilities, requirements, and qualifications..."></textarea>
+              </div>
+              
+              <div class="form-actions mt-4" style="display: flex; gap: 15px; justify-content: flex-end;">
+                <button type="button" class="btn btn-outline-sm">Cancel</button>
+                <button type="button" class="btn btn-primary-blue">Submit Requisition</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="activeTab !== 'Dashboard' && activeTab !== 'Job Requisition'">
+        <div style="display: flex; flex-direction: column; flex-grow: 1; height: 100%;">
+          <div class="dashboard-header">
+            <h1>{{ activeTab }}</h1>
+            <p class="text-muted">This page is currently under construction for the {{ activeTab }} module.</p>
+          </div>
+          <!-- Placeholder structure to maintain height proportion -->
+          <div class="bg-white rounded-lg p-5" style="border: 1px solid #E2E8F0; flex-grow: 1;">
+            <p class="text-muted">Content for {{ activeTab }} will be securely loaded here.</p>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+  </main>
+</div>

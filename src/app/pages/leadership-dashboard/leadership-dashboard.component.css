@@ -143,29 +143,80 @@
 .sidebar-footer {
   padding: 16px 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.back-link {
+.sidebar-user-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.user-initial {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--cyan), var(--navy-light));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.user-name {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-role {
+  color: #94A3B8;
+  font-size: 0.75rem;
+  margin-top: 1px;
+}
+
+.logout-btn {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 10px 16px;
   border-radius: 10px;
-  color: rgba(255, 255, 255, 0.4);
-  text-decoration: none;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.45);
   font-size: 0.85rem;
   font-weight: 500;
+  cursor: pointer;
   transition: all 0.2s ease;
+  width: 100%;
 }
 
-.back-link:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.7);
+.logout-btn:hover {
+  background: rgba(220, 53, 69, 0.12);
+  color: #f87171;
 }
 
-.back-link svg {
+.logout-btn svg {
   width: 18px;
   height: 18px;
+  flex-shrink: 0;
 }
 
 /* ========== MAIN CONTENT ========== */

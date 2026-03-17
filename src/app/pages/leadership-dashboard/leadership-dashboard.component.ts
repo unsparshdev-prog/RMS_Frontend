@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
 import { EChartsOption } from 'echarts';
 
@@ -57,13 +57,15 @@ interface Candidate {
 @Component({
   selector: 'app-leadership-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, NgxEchartsDirective],
+  imports: [CommonModule, FormsModule, NgxEchartsDirective],
   providers: [provideEchartsCore({ echarts: () => import('echarts') })],
   templateUrl: './leadership-dashboard.component.html',
   styleUrls: ['./leadership-dashboard.component.css']
 })
 export class LeadershipDashboardComponent {
   activeTab: 'overview' | 'jobs' | 'employees' | 'approvals' | 'candidates' = 'overview';
+
+  constructor(private router: Router) {}
 
   // Chart options
   deptChartOptions: EChartsOption = {
@@ -389,5 +391,10 @@ export class LeadershipDashboardComponent {
 
   getCandidateCountForJob(jrId: string): number {
     return this.candidates.filter(c => c.jr_id === jrId).length;
+  }
+
+  logout() {
+    localStorage.clear();
+    this.router.navigate(['/login']);
   }
 }

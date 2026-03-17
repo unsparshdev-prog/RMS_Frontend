@@ -4,7 +4,7 @@
   <aside class="dashboard-sidebar">
     <div class="sidebar-logo">
       <a routerLink="/" class="logo-link">
-        <img src="assets/adnate-logo.png" alt="Adnate IT Solutions" class="logo-img" />
+        <img src="Adnate IT Solutions.png" alt="Adnate IT Solutions" class="logo-img" />
       </a>
     </div>
 
@@ -33,10 +33,17 @@
     </nav>
 
     <div class="sidebar-footer">
-      <a routerLink="/" class="back-link">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" /></svg>
-        <span>Back to Home</span>
-      </a>
+      <div class="sidebar-user-profile">
+        <div class="user-initial">L</div>
+        <div class="user-info">
+          <span class="user-name">Leadership User</span>
+          <span class="user-role">Admin</span>
+        </div>
+      </div>
+      <button class="logout-btn" (click)="logout()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" /></svg>
+        <span>Log Out</span>
+      </button>
     </div>
   </aside>
 
