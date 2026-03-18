@@ -26,8 +26,31 @@
 
         <!-- Login Card -->
         <div class="animate-fade-in-up animation-delay-200 bg-card rounded-3xl border border-border shadow-xl p-8">
-            <!-- Social Login -->
-            <div class="space-y-3 mb-6">
+            <!-- Login Type Toggle -->
+            <div class="flex p-1 mb-6 bg-muted/50 rounded-xl border border-border">
+                <button type="button" 
+                    (click)="loginType = 'candidate'"
+                    [class.bg-background]="loginType === 'candidate'"
+                    [class.shadow-sm]="loginType === 'candidate'"
+                    [class.text-foreground]="loginType === 'candidate'"
+                    [class.text-muted-foreground]="loginType !== 'candidate'"
+                    class="flex-1 py-2.5 px-4 text-sm font-medium rounded-lg transition-all duration-200">
+                    Candidate
+                </button>
+                <button type="button" 
+                    (click)="loginType = 'employee'"
+                    [class.bg-background]="loginType === 'employee'"
+                    [class.shadow-sm]="loginType === 'employee'"
+                    [class.text-foreground]="loginType === 'employee'"
+                    [class.text-muted-foreground]="loginType !== 'employee'"
+                    class="flex-1 py-2.5 px-4 text-sm font-medium rounded-lg transition-all duration-200">
+                    Employee
+                </button>
+            </div>
+
+            <!-- Social Login (Candidate Only) -->
+            <ng-container *ngIf="loginType === 'candidate'">
+                <div class="space-y-3 mb-6">
                 <button id="google-login-btn" type="button"
                     class="w-full flex items-center justify-center gap-3 px-4 py-3 text-sm font-medium text-foreground bg-background border border-border rounded-xl hover:bg-muted hover:shadow-md transition-all duration-300 hover:border-primary/30">
                     <svg class="w-5 h-5" viewBox="0 0 24 24">
@@ -56,32 +79,44 @@
                     </svg>
                     Continue with Microsoft
                 </button>
-            </div>
+                </div>
 
-            <!-- Divider -->
-            <div class="flex items-center gap-4 my-6">
-                <div class="flex-1 h-px bg-border"></div>
-                <span class="text-xs font-medium text-muted-foreground uppercase tracking-wider">or continue with
-                    email</span>
-                <div class="flex-1 h-px bg-border"></div>
-            </div>
+                <!-- Divider -->
+                <div class="flex items-center gap-4 my-6">
+                    <div class="flex-1 h-px bg-border"></div>
+                    <span class="text-xs font-medium text-muted-foreground uppercase tracking-wider">or continue with email</span>
+                    <div class="flex-1 h-px bg-border"></div>
+                </div>
+            </ng-container>
 
             <!-- Login Form -->
             <form (ngSubmit)="onLogin()" class="space-y-5">
-                <!-- Email -->
-                <div>
-                    <label for="login-email" class="block text-sm font-medium text-foreground mb-2">Email
-                        address</label>
+                <!-- Email (Candidate Only) -->
+                <div *ngIf="loginType === 'candidate'">
+                    <label for="login-email" class="block text-sm font-medium text-foreground mb-2">Email address</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
-                                stroke="currentColor" class="w-5 h-5 text-muted-foreground">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-muted-foreground">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
                             </svg>
                         </div>
                         <input type="email" id="login-email" [(ngModel)]="email" name="email"
-                            placeholder="you@company.com" required
+                            placeholder="you@company.com" [required]="loginType === 'candidate'"
+                            class="w-full pl-12 pr-4 py-3 text-sm text-foreground bg-background border border-input rounded-xl placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all duration-200" />
+                    </div>
+                </div>
+
+                <!-- Employee ID (Employee Only) -->
+                <div *ngIf="loginType === 'employee'">
+                    <label for="login-empid" class="block text-sm font-medium text-foreground mb-2">Employee ID</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-muted-foreground">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z" />
+                            </svg>
+                        </div>
+                        <input type="text" id="login-empid" [(ngModel)]="empId" name="empId"
+                            placeholder="e.g. EMP12345" [required]="loginType === 'employee'"
                             class="w-full pl-12 pr-4 py-3 text-sm text-foreground bg-background border border-input rounded-xl placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all duration-200" />
                     </div>
                 </div>
@@ -128,11 +163,11 @@
                 </div>
 
                 <!-- Remember me -->
-                <div class="flex items-center gap-2">
+                <!-- <div class="flex items-center gap-2">
                     <input type="checkbox" id="remember-me" [(ngModel)]="rememberMe" name="rememberMe"
                         class="w-4 h-4 rounded border-input text-primary focus:ring-ring accent-primary" />
                     <label for="remember-me" class="text-sm text-muted-foreground">Remember me for 30 days</label>
-                </div>
+                </div> -->
 
                 <!-- Submit -->
                 <button type="submit" id="login-submit-btn"
@@ -143,7 +178,7 @@
         </div>
 
         <!-- Sign up link -->
-        <p class="animate-fade-in-up animation-delay-400 text-center text-sm text-muted-foreground mt-6">
+        <p *ngIf="loginType === 'candidate'" class="animate-fade-in-up animation-delay-400 text-center text-sm text-muted-foreground mt-6">
             Don't have an account?
             <a routerLink="/signup"
                 class="font-semibold text-primary hover:text-primary/80 transition-colors ml-1">Create one free</a>

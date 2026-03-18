@@ -99,4 +99,48 @@ export class HeroService {
 
     return this.ajax('SendMail', 'http://schemas.cordys.com/1.0/email', payload);
   }
+
+  /**
+   * Create a Job Requisition by calling the UpdateJob_requisition SOAP service.
+   * Maps to: <UpdateJob_requisition xmlns="http://schemas.cordys.com/RMS_DB_Metadata">
+   */
+  createJobRequisition(data: {
+    job_title: string;
+    department: string;
+    location: string;
+    job_description: string;
+    required_skills: string;
+    min_experience: string;
+    max_experience: string;
+    salary_range: string;
+    no_of_positions: string;
+    priority: string;
+    status: string;
+    approval_status: string;
+    closing_date: string;
+  }): Promise<any> {
+    const payload: any = {
+      tuple: {
+        new: {
+          job_requisition: {
+            job_title: data.job_title || '',
+            department: data.department || '',
+            location: data.location || '',
+            job_description: data.job_description || '',
+            required_skills: data.required_skills || '',
+            min_experience: data.min_experience || '',
+            max_experience: data.max_experience || '',
+            salary_range: data.salary_range || '',
+            no_of_positions: data.no_of_positions || '',
+            priority: data.priority || '',
+            status: data.status || '',
+            approval_status: data.approval_status || '',
+            closing_date: data.closing_date || ''
+          }
+        }
+      }
+    };
+
+    return this.ajax('UpdateJob_requisition', 'http://schemas.cordys.com/RMS_DB_Metadata', payload);
+  }
 }
