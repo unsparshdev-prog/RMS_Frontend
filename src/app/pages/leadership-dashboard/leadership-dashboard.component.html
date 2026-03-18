@@ -1,0 +1,453 @@
+<!-- ========== SIDEBAR + MAIN LAYOUT ========== -->
+<div class="dashboard-wrapper">
+  <!-- Sidebar -->
+  <aside class="dashboard-sidebar">
+    <div class="sidebar-logo">
+      <a routerLink="/" class="logo-link">
+        <img src="assets/images/adnate-logo.png" alt="Adnate IT Solutions" class="logo-img" />
+      </a>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-item" [class.active]="activeTab === 'overview'" (click)="setTab('overview')">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25a2.25 2.25 0 0 1-2.25-2.25v-2.25Z" /></svg>
+        <span>Overview</span>
+      </button>
+      <button class="nav-item" [class.active]="activeTab === 'jobs'" (click)="setTab('jobs')">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 0 0-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0 1 12 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 0 1-.673-.38m0 0A2.18 2.18 0 0 1 3 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 0 1 3.413-.387m7.5 0V5.25A2.25 2.25 0 0 0 13.5 3h-3a2.25 2.25 0 0 0-2.25 2.25v.894m7.5 0a48.667 48.667 0 0 0-7.5 0M12 12.75h.008v.008H12v-.008Z" /></svg>
+        <span>Active Jobs</span>
+      </button>
+      <button class="nav-item" [class.active]="activeTab === 'employees'" (click)="setTab('employees')">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" /></svg>
+        <span>Employees</span>
+      </button>
+      <button class="nav-item" [class.active]="activeTab === 'approvals'" (click)="setTab('approvals')">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+        <span>Approvals</span>
+        <span class="badge" *ngIf="pendingApprovals.length > 0">{{ pendingApprovals.length }}</span>
+      </button>
+      <button class="nav-item" [class.active]="activeTab === 'candidates'" (click)="setTab('candidates')">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" /></svg>
+        <span>Candidates</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user-profile">
+        <div class="user-initial">L</div>
+        <div class="user-info">
+          <span class="user-name">Leadership User</span>
+          <span class="user-role">Admin</span>
+        </div>
+      </div>
+      <button class="logout-btn" (click)="logout()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" /></svg>
+        <span>Log Out</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="dashboard-main">
+    <!-- Top Header Bar -->
+    <header class="dashboard-header">
+      <div>
+        <h1 class="page-title">Leadership Dashboard</h1>
+        <p class="page-subtitle">Adnate IT Solutions — Organization Overview</p>
+      </div>
+      <div class="header-actions">
+        <div class="user-avatar">
+          <span>LD</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ==================== OVERVIEW TAB ==================== -->
+    <section *ngIf="activeTab === 'overview'" class="tab-content animate-fade-in">
+      <!-- KPI Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card kpi-jobs" (click)="setTab('jobs')">
+          <div class="kpi-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 0 0-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0 1 12 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 0 1-.673-.38m0 0A2.18 2.18 0 0 1 3 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 0 1 3.413-.387m7.5 0V5.25A2.25 2.25 0 0 0 13.5 3h-3a2.25 2.25 0 0 0-2.25 2.25v.894m7.5 0a48.667 48.667 0 0 0-7.5 0M12 12.75h.008v.008H12v-.008Z" /></svg>
+          </div>
+          <div class="kpi-content">
+            <span class="kpi-value">{{ jobs.length }}</span>
+            <span class="kpi-label">Active Jobs</span>
+            <span class="kpi-sub">{{ totalPositions }} open positions</span>
+          </div>
+        </div>
+
+        <div class="kpi-card kpi-employees" (click)="setTab('employees')">
+          <div class="kpi-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" /></svg>
+          </div>
+          <div class="kpi-content">
+            <span class="kpi-value">{{ activeEmployeeCount }}</span>
+            <span class="kpi-label">Active Employees</span>
+            <span class="kpi-sub">{{ employees.length }} total</span>
+          </div>
+        </div>
+
+        <div class="kpi-card kpi-approvals" (click)="setTab('approvals')">
+          <div class="kpi-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+          </div>
+          <div class="kpi-content">
+            <span class="kpi-value">{{ pendingApprovals.length }}</span>
+            <span class="kpi-label">Pending Approvals</span>
+            <span class="kpi-sub">Awaiting your review</span>
+          </div>
+        </div>
+
+        <div class="kpi-card kpi-candidates" (click)="setTab('candidates')">
+          <div class="kpi-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" /></svg>
+          </div>
+          <div class="kpi-content">
+            <span class="kpi-value">{{ candidates.length }}</span>
+            <span class="kpi-label">Total Candidates</span>
+            <span class="kpi-sub">Across all positions</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Section -->
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3>Department-wise Open Positions</h3>
+          <div class="chart-container" echarts [options]="deptChartOptions"></div>
+        </div>
+        <div class="chart-card">
+          <h3>Candidate Pipeline Status</h3>
+          <div class="chart-container" echarts [options]="pipelineChartOptions"></div>
+        </div>
+        <div class="chart-card">
+          <h3>Jobs by Priority</h3>
+          <div class="chart-container" echarts [options]="priorityChartOptions"></div>
+        </div>
+        <div class="chart-card">
+          <h3>Hiring Trend (Monthly)</h3>
+          <div class="chart-container" echarts [options]="hiringTrendOptions"></div>
+        </div>
+      </div>
+
+      <!-- Recent Job Requisitions -->
+      <div class="section-card">
+        <div class="section-header">
+          <h2>Recent Job Requisitions</h2>
+          <button class="link-btn" (click)="setTab('jobs')">View All →</button>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>JR ID</th>
+                <th>Job Title</th>
+                <th>Department</th>
+                <th>Positions</th>
+                <th>Priority</th>
+                <th>Candidates</th>
+                <th>Closing Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let job of jobs | slice:0:5">
+                <td><span class="id-badge">{{ job.jr_id }}</span></td>
+                <td class="font-semibold">{{ job.job_title }}</td>
+                <td>{{ job.department }}</td>
+                <td class="text-center">{{ job.no_of_positions }}</td>
+                <td><span class="priority-badge" [ngClass]="getPriorityClass(job.priority)">{{ job.priority }}</span></td>
+                <td class="text-center">{{ getCandidateCountForJob(job.jr_id) }}</td>
+                <td>{{ job.closing_date }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Quick Stats Row -->
+      <div class="quick-stats-grid">
+        <div class="quick-stat-card">
+          <div class="quick-stat-header">
+            <span class="quick-stat-label">High Priority Jobs</span>
+            <span class="priority-badge priority-high">HIGH</span>
+          </div>
+          <span class="quick-stat-value">{{ highPriorityJobCount }}</span>
+        </div>
+        <div class="quick-stat-card">
+          <div class="quick-stat-header">
+            <span class="quick-stat-label">Interviews In Progress</span>
+          </div>
+          <span class="quick-stat-value">{{ interviewsInProgressCount }}</span>
+        </div>
+        <div class="quick-stat-card">
+          <div class="quick-stat-header">
+            <span class="quick-stat-label">Departments Hiring</span>
+          </div>
+          <span class="quick-stat-value">{{ departments.length - 1 }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== ACTIVE JOBS TAB ==================== -->
+    <section *ngIf="activeTab === 'jobs'" class="tab-content animate-fade-in">
+      <div class="tab-toolbar">
+        <h2 class="tab-title">Active Job Requisitions</h2>
+        <div class="search-box">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
+          <input type="text" [(ngModel)]="jobSearch" placeholder="Search by title, department, location…" />
+        </div>
+      </div>
+
+      <div class="cards-grid">
+        <div *ngFor="let job of filteredJobs" class="job-card">
+          <div class="job-card-header">
+            <div>
+              <span class="id-badge">{{ job.jr_id }}</span>
+              <h3 class="job-card-title">{{ job.job_title }}</h3>
+            </div>
+            <span class="priority-badge" [ngClass]="getPriorityClass(job.priority)">{{ job.priority }}</span>
+          </div>
+          <p class="job-card-desc">{{ job.job_description }}</p>
+          <div class="job-card-meta">
+            <div class="meta-item">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008Z" /></svg>
+              <span>{{ job.department }}</span>
+            </div>
+            <div class="meta-item">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" /></svg>
+              <span>{{ job.location }}</span>
+            </div>
+          </div>
+          <div class="job-card-details">
+            <div class="detail-chip">
+              <span class="detail-label">Experience</span>
+              <span class="detail-value">{{ job.min_experience }}–{{ job.max_experience }} yrs</span>
+            </div>
+            <div class="detail-chip">
+              <span class="detail-label">Salary</span>
+              <span class="detail-value">{{ job.salary_range }}</span>
+            </div>
+            <div class="detail-chip">
+              <span class="detail-label">Positions</span>
+              <span class="detail-value">{{ job.no_of_positions }}</span>
+            </div>
+            <div class="detail-chip">
+              <span class="detail-label">Candidates</span>
+              <span class="detail-value">{{ getCandidateCountForJob(job.jr_id) }}</span>
+            </div>
+          </div>
+          <div class="job-card-footer">
+            <span class="job-skills">{{ job.required_skills }}</span>
+            <span class="closing-date">Closes: {{ job.closing_date }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="filteredJobs.length === 0" class="empty-state">
+        <h3>No matching jobs found</h3>
+        <p>Try adjusting your search criteria</p>
+      </div>
+    </section>
+
+    <!-- ==================== EMPLOYEES TAB ==================== -->
+    <section *ngIf="activeTab === 'employees'" class="tab-content animate-fade-in">
+      <div class="tab-toolbar">
+        <h2 class="tab-title">Company Employees</h2>
+        <div class="toolbar-controls">
+          <select [(ngModel)]="departmentFilter" class="filter-select">
+            <option *ngFor="let dept of departments" [value]="dept">{{ dept }}</option>
+          </select>
+          <div class="search-box">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
+            <input type="text" [(ngModel)]="employeeSearch" placeholder="Search employees…" />
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Employee ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Department</th>
+                <th>Designation</th>
+                <th>Role</th>
+                <th>Joining Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let emp of filteredEmployees">
+                <td><span class="id-badge">{{ emp.employee_id }}</span></td>
+                <td class="font-semibold">{{ emp.employee_name }}</td>
+                <td class="text-muted">{{ emp.email }}</td>
+                <td>{{ emp.department }}</td>
+                <td>{{ emp.designation }}</td>
+                <td><span class="role-badge">{{ emp.role }}</span></td>
+                <td>{{ emp.joining_date }}</td>
+                <td><span class="status-badge" [ngClass]="getStatusClass(emp.status)">{{ emp.status }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-footer">
+          <span>Showing {{ filteredEmployees.length }} of {{ employees.length }} employees</span>
+        </div>
+      </div>
+
+      <div *ngIf="filteredEmployees.length === 0" class="empty-state">
+        <h3>No employees found</h3>
+        <p>Try adjusting your filters or search</p>
+      </div>
+    </section>
+
+    <!-- ==================== APPROVALS TAB ==================== -->
+    <section *ngIf="activeTab === 'approvals'" class="tab-content animate-fade-in">
+      <div class="tab-toolbar">
+        <h2 class="tab-title">Pending Approvals</h2>
+        <div class="approval-count">
+          <span>{{ pendingApprovals.length }} requisition{{ pendingApprovals.length !== 1 ? 's' : '' }} awaiting review</span>
+        </div>
+      </div>
+
+      <div class="approval-list">
+        <div *ngFor="let req of pendingApprovals" class="approval-card">
+          <div class="approval-card-top">
+            <div class="approval-info">
+              <div class="approval-title-row">
+                <span class="id-badge">{{ req.jr_id }}</span>
+                <h3 class="approval-job-title">{{ req.job_title }}</h3>
+                <span class="priority-badge" [ngClass]="getPriorityClass(req.priority)">{{ req.priority }}</span>
+              </div>
+              <p class="approval-desc">{{ req.job_description }}</p>
+            </div>
+          </div>
+          <div class="approval-details-grid">
+            <div class="approval-detail">
+              <span class="detail-label">Department</span>
+              <span class="detail-value">{{ req.department }}</span>
+            </div>
+            <div class="approval-detail">
+              <span class="detail-label">Location</span>
+              <span class="detail-value">{{ req.location }}</span>
+            </div>
+            <div class="approval-detail">
+              <span class="detail-label">Positions</span>
+              <span class="detail-value">{{ req.no_of_positions }}</span>
+            </div>
+            <div class="approval-detail">
+              <span class="detail-label">Salary Range</span>
+              <span class="detail-value">{{ req.salary_range }}</span>
+            </div>
+            <div class="approval-detail">
+              <span class="detail-label">Experience</span>
+              <span class="detail-value">{{ req.min_experience }}–{{ req.max_experience }} yrs</span>
+            </div>
+            <div class="approval-detail">
+              <span class="detail-label">Required Skills</span>
+              <span class="detail-value">{{ req.required_skills }}</span>
+            </div>
+            <div class="approval-detail">
+              <span class="detail-label">Requested By</span>
+              <span class="detail-value">{{ req.created_by }}</span>
+            </div>
+            <div class="approval-detail">
+              <span class="detail-label">Closing Date</span>
+              <span class="detail-value">{{ req.closing_date }}</span>
+            </div>
+          </div>
+          <div class="approval-actions">
+            <button class="btn-approve" (click)="approveRequisition(req)">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+              Approve
+            </button>
+            <button class="btn-reject" (click)="rejectRequisition(req)">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+              Reject
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="pendingApprovals.length === 0" class="empty-state success-empty">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="empty-icon"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+        <h3>All caught up!</h3>
+        <p>No pending requisitions need your approval</p>
+      </div>
+    </section>
+
+    <!-- ==================== CANDIDATES TAB ==================== -->
+    <section *ngIf="activeTab === 'candidates'" class="tab-content animate-fade-in">
+      <div class="tab-toolbar">
+        <h2 class="tab-title">Candidates Pipeline</h2>
+        <div class="toolbar-controls">
+          <select [(ngModel)]="selectedJobForCandidates" class="filter-select">
+            <option value="">All Jobs</option>
+            <option *ngFor="let job of uniqueJobsForFilter" [value]="job.jr_id">{{ job.jr_id }} — {{ job.job_title }}</option>
+          </select>
+          <div class="search-box">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
+            <input type="text" [(ngModel)]="candidateSearch" placeholder="Search candidates…" />
+          </div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Applied For</th>
+                <th>Experience</th>
+                <th>Skills</th>
+                <th>Notice Period</th>
+                <th>Expected Salary</th>
+                <th>Source</th>
+                <th>Interview Stage</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let c of filteredCandidates">
+                <td><span class="id-badge">{{ c.candidate_id }}</span></td>
+                <td>
+                  <div class="candidate-name-cell">
+                    <span class="font-semibold">{{ c.name }}</span>
+                    <span class="text-muted text-sm">{{ c.email }}</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="candidate-name-cell">
+                    <span class="font-semibold">{{ c.job_title }}</span>
+                    <span class="text-muted text-sm">{{ c.jr_id }}</span>
+                  </div>
+                </td>
+                <td class="text-center">{{ c.experience }} yrs</td>
+                <td><span class="skills-text">{{ c.skills }}</span></td>
+                <td class="text-center">{{ c.notice_period }} days</td>
+                <td class="text-center">${{ c.expected_salary | number }}</td>
+                <td>{{ c.source }}</td>
+                <td><span class="round-badge">{{ c.interview_round }}</span></td>
+                <td><span class="status-badge" [ngClass]="getStatusClass(c.interview_status)">{{ c.interview_status }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-footer">
+          <span>Showing {{ filteredCandidates.length }} of {{ candidates.length }} candidates</span>
+        </div>
+      </div>
+
+      <div *ngIf="filteredCandidates.length === 0" class="empty-state">
+        <h3>No candidates found</h3>
+        <p>Try adjusting your filters or search</p>
+      </div>
+    </section>
+  </main>
+</div>

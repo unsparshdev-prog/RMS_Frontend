@@ -3,6 +3,7 @@ import { LandingComponent } from './pages/landing/landing.component';
 import { LoginComponent } from './pages/login/login.component';
 import { SignupComponent } from './pages/signup/signup.component';
 import { CareerComponent } from './pages/career/career.component';
+import { LeadershipDashboardComponent } from './pages/leadership-dashboard/leadership-dashboard.component';
 import { HrPanelComponent } from './pages/hr-panel/hr-panel.component';
 import { CandidateComponent } from './pages/candidate/candidate.component';
 import { ResumeUploadComponent } from './pages/candidate/resume-upload/resume-upload.component';
