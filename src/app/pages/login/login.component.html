@@ -95,12 +95,6 @@
                 {{ errorMsg }}
             </div>
 
-            <!-- Error message -->
-            <div *ngIf="errorMsg"
-                class="mb-4 p-3 text-sm font-medium text-destructive bg-destructive/10 border border-destructive/30 rounded-xl">
-                {{ errorMsg }}
-            </div>
-
             <!-- Login Form -->
             <form (ngSubmit)="onLogin()" class="space-y-5">
                 <!-- Email (Candidate Only) -->

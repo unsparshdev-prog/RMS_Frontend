@@ -186,45 +186,4 @@ export class HeroService {
     });
   }
 
-  showAllJobRequisition(): Promise<any> {
-    return this.ajax('ShowAllJobRequisition', 'http://schemas.cordys.com/RMS_DB_Metadata', {
-      preserveSpace: 'no',
-      qAccess: '0',
-      qValues: ''
-    });
-  }
-
-  updateCandidate(candidateId: string, updatedFields: any): Promise<any> {
-    const payload = {
-      tuple: {
-        old: {
-          candidate: {
-            candidate_id: candidateId
-          }
-        },
-        new: {
-          candidate: {
-            ...updatedFields
-          }
-        }
-      }
-    };
-    return this.ajax('UpdateCandidate', 'http://schemas.cordys.com/RMS_DB_Metadata', payload);
-  }
-
-  getAppliedJobsByCandidate(candidateId: string): Promise<any> {
-    return this.ajax('GetAppliedJobsByCandidate', 'http://schemas.cordys.com/RMS_DB_Metadata', {
-      candidate_id: candidateId,
-      preserveSpace: 'no',
-      qAccess: '0',
-      qValues: '',
-      cursor: {
-        '@id': '0',
-        '@position': '0',
-        '@numRows': '5',
-        '@maxRows': '99999',
-        '@sameConnection': 'false'
-      }
-    });
-  }
 }
