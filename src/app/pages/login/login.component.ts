@@ -11,7 +11,9 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./login.component.css']
 })
 export class LoginComponent {
+  loginType: 'candidate' | 'employee' = 'candidate';
   email = '';
+  empId = '';
   password = '';
   showPassword = false;
   rememberMe = false;
@@ -21,7 +23,11 @@ export class LoginComponent {
   }
 
   onLogin(): void {
-    console.log('Login attempt:', { email: this.email, rememberMe: this.rememberMe });
+    if (this.loginType === 'candidate') {
+      console.log('Candidate Login attempt:', { email: this.email, rememberMe: this.rememberMe });
+    } else {
+      console.log('Employee Login attempt:', { empId: this.empId, rememberMe: this.rememberMe });
+    }
     // TODO: Implement actual login logic
   }
 }
