@@ -30,5 +30,6 @@ export const routes: Routes = [
       { path: 'selected-jobs', component: SelectedJobsComponent }
     ]
   },
+  { path: 'leadership-dashboard', component: LeadershipDashboardComponent },
   { path: '**', redirectTo: '' }
 ];

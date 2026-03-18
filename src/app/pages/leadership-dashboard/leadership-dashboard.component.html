@@ -34,10 +34,10 @@
 
     <div class="sidebar-footer">
       <div class="sidebar-user-profile">
-        <div class="user-initial">L</div>
+        <div class="user-initial">{{ loggedInUserInitial }}</div>
         <div class="user-info">
-          <span class="user-name">Leadership User</span>
-          <span class="user-role">Admin</span>
+          <span class="user-name">{{ loggedInUserName }}</span>
+          <span class="user-role">{{ loggedInUserRole }}</span>
         </div>
       </div>
       <button class="logout-btn" (click)="logout()">
@@ -57,13 +57,32 @@
       </div>
       <div class="header-actions">
         <div class="user-avatar">
-          <span>LD</span>
+          <span>{{ loggedInUserInitial }}</span>
         </div>
       </div>
     </header>
 
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="loading-overlay animate-fade-in">
+      <div class="loading-spinner">
+        <div class="spinner-ring"></div>
+        <p class="loading-text">Loading dashboard data…</p>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="!isLoading && errorMessage" class="error-state animate-fade-in">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="error-icon"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
+      <h3>Unable to Load Data</h3>
+      <p>{{ errorMessage }}</p>
+      <button class="btn-approve" (click)="loadAllData()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:16px;height:16px"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" /></svg>
+        Retry
+      </button>
+    </div>
+
     <!-- ==================== OVERVIEW TAB ==================== -->
-    <section *ngIf="activeTab === 'overview'" class="tab-content animate-fade-in">
+    <section *ngIf="!isLoading && !errorMessage && activeTab === 'overview'" class="tab-content animate-fade-in">
       <!-- KPI Cards -->
       <div class="kpi-grid">
         <div class="kpi-card kpi-jobs" (click)="setTab('jobs')">
@@ -190,7 +209,7 @@
     </section>
 
     <!-- ==================== ACTIVE JOBS TAB ==================== -->
-    <section *ngIf="activeTab === 'jobs'" class="tab-content animate-fade-in">
+    <section *ngIf="!isLoading && !errorMessage && activeTab === 'jobs'" class="tab-content animate-fade-in">
       <div class="tab-toolbar">
         <h2 class="tab-title">Active Job Requisitions</h2>
         <div class="search-box">
@@ -200,7 +219,7 @@
       </div>
 
       <div class="cards-grid">
-        <div *ngFor="let job of filteredJobs" class="job-card">
+        <div *ngFor="let job of filteredJobs" class="job-card" (click)="openJobDetail(job)" style="cursor: pointer;">
           <div class="job-card-header">
             <div>
               <span class="id-badge">{{ job.jr_id }}</span>
@@ -251,7 +270,7 @@
     </section>
 
     <!-- ==================== EMPLOYEES TAB ==================== -->
-    <section *ngIf="activeTab === 'employees'" class="tab-content animate-fade-in">
+    <section *ngIf="!isLoading && !errorMessage && activeTab === 'employees'" class="tab-content animate-fade-in">
       <div class="tab-toolbar">
         <h2 class="tab-title">Company Employees</h2>
         <div class="toolbar-controls">
@@ -306,7 +325,7 @@
     </section>
 
     <!-- ==================== APPROVALS TAB ==================== -->
-    <section *ngIf="activeTab === 'approvals'" class="tab-content animate-fade-in">
+    <section *ngIf="!isLoading && !errorMessage && activeTab === 'approvals'" class="tab-content animate-fade-in">
       <div class="tab-toolbar">
         <h2 class="tab-title">Pending Approvals</h2>
         <div class="approval-count">
@@ -381,7 +400,7 @@
     </section>
 
     <!-- ==================== CANDIDATES TAB ==================== -->
-    <section *ngIf="activeTab === 'candidates'" class="tab-content animate-fade-in">
+    <section *ngIf="!isLoading && !errorMessage && activeTab === 'candidates'" class="tab-content animate-fade-in">
       <div class="tab-toolbar">
         <h2 class="tab-title">Candidates Pipeline</h2>
         <div class="toolbar-controls">
@@ -450,4 +469,95 @@
       </div>
     </section>
   </main>
+
+  <!-- ==================== JOB DETAIL SLIDE-OUT PANEL ==================== -->
+  <div class="detail-backdrop" *ngIf="selectedJob" (click)="closeJobDetail()"></div>
+  <aside class="detail-panel" [class.open]="selectedJob">
+    <div class="detail-panel-header">
+      <div>
+        <span class="id-badge">{{ selectedJob?.jr_id }}</span>
+        <h2 class="detail-panel-title">{{ selectedJob?.job_title }}</h2>
+        <p class="detail-panel-subtitle">{{ selectedJob?.department }} · {{ selectedJob?.location }}</p>
+      </div>
+      <button class="detail-close-btn" (click)="closeJobDetail()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+      </button>
+    </div>
+
+    <div class="detail-panel-info">
+      <div class="detail-chip">
+        <span class="detail-label">Positions</span>
+        <span class="detail-value">{{ selectedJob?.no_of_positions }}</span>
+      </div>
+      <div class="detail-chip">
+        <span class="detail-label">Experience</span>
+        <span class="detail-value">{{ selectedJob?.min_experience }}–{{ selectedJob?.max_experience }} yrs</span>
+      </div>
+      <div class="detail-chip">
+        <span class="detail-label">Priority</span>
+        <span class="priority-badge" [ngClass]="getPriorityClass(selectedJob?.priority || '')">{{ selectedJob?.priority }}</span>
+      </div>
+      <div class="detail-chip">
+        <span class="detail-label">Status</span>
+        <span class="status-badge" [ngClass]="getStatusClass(selectedJob?.status || '')">{{ selectedJob?.status }}</span>
+      </div>
+    </div>
+
+    <div class="detail-panel-section">
+      <h3>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width:18px;height:18px;vertical-align:middle;margin-right:6px;color:var(--cyan)"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" /></svg>
+        Applied Candidates
+        <span class="badge" style="margin-left:8px" *ngIf="jobApplicants.length > 0">{{ jobApplicants.length }}</span>
+      </h3>
+
+      <!-- Loading -->
+      <div *ngIf="isLoadingApplicants" style="text-align:center;padding:32px 0">
+        <div class="spinner-ring" style="margin:0 auto"></div>
+        <p class="loading-text" style="margin-top:12px">Loading applicants…</p>
+      </div>
+
+      <!-- Empty state -->
+      <div *ngIf="!isLoadingApplicants && jobApplicants.length === 0" class="empty-state" style="padding:32px 0">
+        <h3>No applications yet</h3>
+        <p>No candidates have applied for this position</p>
+      </div>
+
+      <!-- Applicant Cards -->
+      <div *ngIf="!isLoadingApplicants && jobApplicants.length > 0" class="applicant-cards">
+        <div *ngFor="let app of jobApplicants" class="applicant-card">
+          <div class="applicant-card-top">
+            <div class="applicant-avatar">{{ app.name?.charAt(0) || '?' }}</div>
+            <div class="applicant-identity">
+              <div class="applicant-name">{{ app.name }}</div>
+              <div class="applicant-id">{{ app.candidate_id }}</div>
+            </div>
+            <span class="status-badge" [ngClass]="getApplicationStatusClass(app.application_status)">{{ app.application_status }}</span>
+          </div>
+
+          <div class="applicant-details">
+            <div class="applicant-detail-row">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" /></svg>
+              <span>{{ app.email }}</span>
+            </div>
+            <div class="applicant-detail-row" *ngIf="app.experience">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 0 0-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0 1 12 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 0 1-.673-.38m0 0A2.18 2.18 0 0 1 3 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 0 1 3.413-.387m7.5 0V5.25A2.25 2.25 0 0 0 13.5 3h-3a2.25 2.25 0 0 0-2.25 2.25v.894m7.5 0a48.667 48.667 0 0 0-7.5 0M12 12.75h.008v.008H12v-.008Z" /></svg>
+              <span>{{ app.experience }} yrs experience</span>
+            </div>
+            <div class="applicant-detail-row" *ngIf="app.education">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.62 48.62 0 0 1 12 20.904a48.62 48.62 0 0 1 8.232-4.41 60.46 60.46 0 0 0-.491-6.347m-15.482 0a50.636 50.636 0 0 0-2.658-.813A59.906 59.906 0 0 1 12 3.493a59.903 59.903 0 0 1 10.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0 1 12 13.489a50.702 50.702 0 0 1 7.74-3.342M6.75 15v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V15" /></svg>
+              <span>{{ app.education }}</span>
+            </div>
+          </div>
+
+          <div class="applicant-skills" *ngIf="app.skills">
+            <span class="skill-chip" *ngFor="let skill of app.skills.split(',')">{{ skill.trim() }}</span>
+          </div>
+
+          <div class="applicant-card-footer" *ngIf="app.applied_at">
+            <span class="text-muted text-sm">Applied {{ app.applied_at | date:'mediumDate' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
 </div>
