@@ -17,6 +17,8 @@ export class LoginComponent {
   password = '';
   showPassword = false;
   rememberMe = false;
+  errorMsg = '';
+  loading = false;
 
   togglePasswordVisibility(): void {
     this.showPassword = !this.showPassword;
