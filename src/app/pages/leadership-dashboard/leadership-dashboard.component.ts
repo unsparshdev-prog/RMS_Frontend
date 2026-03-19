@@ -147,7 +147,7 @@ export class LeadershipDashboardComponent implements OnInit {
       console.log('[Dashboard] All jobs parsed:', allJobs.length, allJobs);
       console.log('[Dashboard] Job statuses:', allJobs.map(j => ({ jr_id: j.jr_id, status: j.status, approval_status: j.approval_status })));
 
-      // Active jobs: status is OPEN/ACTIVE or approval_status is APPROVED
+      // Active jobs: approval_status is APPROVED or status is OPEN/ACTIVE
       this.jobs = allJobs.filter(j => j.approval_status === 'APPROVED' || j.status === 'OPEN' || j.status === 'ACTIVE');
       this.pendingApprovals = allJobs.filter(j => j.approval_status === 'PENDING');
 
@@ -477,11 +477,11 @@ export class LeadershipDashboardComponent implements OnInit {
   async approveRequisition(jr: JobRequisition): Promise<void> {
     try {
       const oldData = { ...jr };
-      const newData = { ...jr, status: 'OPEN', approval_status: 'APPROVED' };
+      const newData = { ...jr, status: 'ACTIVE', approval_status: 'APPROVED' };
       await this.dashboardService.updateJobRequisition(oldData, newData);
 
       // Update local state immediately
-      jr.status = 'OPEN';
+      jr.status = 'ACTIVE';
       jr.approval_status = 'APPROVED';
       this.jobs.push({ ...jr });
       this.pendingApprovals = this.pendingApprovals.filter(a => a.jr_id !== jr.jr_id);
@@ -495,11 +495,11 @@ export class LeadershipDashboardComponent implements OnInit {
   async rejectRequisition(jr: JobRequisition): Promise<void> {
     try {
       const oldData = { ...jr };
-      const newData = { ...jr, status: 'CLOSED', approval_status: 'REJECTED' };
+      const newData = { ...jr, status: 'INACTIVE', approval_status: 'REJECTED' };
       await this.dashboardService.updateJobRequisition(oldData, newData);
 
       // Update local state immediately
-      jr.status = 'CLOSED';
+      jr.status = 'INACTIVE';
       jr.approval_status = 'REJECTED';
       this.pendingApprovals = this.pendingApprovals.filter(a => a.jr_id !== jr.jr_id);
     } catch (error) {
