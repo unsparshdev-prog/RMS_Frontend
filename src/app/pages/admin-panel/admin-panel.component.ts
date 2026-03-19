@@ -28,6 +28,20 @@ export class AdminPanelComponent implements OnInit {
   // Loading state for employees
   isLoadingEmployees = false;
 
+  // Regex patterns for validation
+  private emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  private phoneRegex = /^[+]?[\d\s\-()]{10,15}$/;
+
+  private validateEmailAndPhone(email: string, phone: string): string | null {
+    if (email && !this.emailRegex.test(email)) {
+      return 'Please enter a valid email address (e.g. user@domain.com).';
+    }
+    if (phone && !this.phoneRegex.test(phone)) {
+      return 'Please enter a valid phone number (10-15 digits, e.g. +91 98765 43210).';
+    }
+    return null;
+  }
+
   constructor(
     private heroService: HeroService,
     private auth: AuthService,
@@ -207,6 +221,12 @@ export class AdminPanelComponent implements OnInit {
       return;
     }
 
+    const validationError = this.validateEmailAndPhone(this.newEmployee.email, this.newEmployee.phone);
+    if (validationError) {
+      this.showToast(validationError, 'error');
+      return;
+    }
+
     this.isCreating = true;
     try {
       // Step 1: Create employee record in DB via UpdateEmployee
@@ -250,8 +270,8 @@ export class AdminPanelComponent implements OnInit {
     email: '',
     phone: '',
     department: 'HR & Ops',
-    designation: '',
-    role: '',
+    designation: 'HR',
+    role: 'HR_RMS',
     joining_date: ''
   };
 
@@ -262,8 +282,8 @@ export class AdminPanelComponent implements OnInit {
       email: '',
       phone: '',
       department: 'HR & Ops',
-      designation: '',
-      role: '',
+      designation: 'HR',
+      role: 'HR_RMS',
       joining_date: ''
     };
   }
@@ -275,6 +295,12 @@ export class AdminPanelComponent implements OnInit {
   async createHR(): Promise<void> {
     if (!this.newHR.employee_name || !this.newHR.email) {
       this.showToast('Please fill in all required fields.', 'error');
+      return;
+    }
+
+    const validationError = this.validateEmailAndPhone(this.newHR.email, this.newHR.phone);
+    if (validationError) {
+      this.showToast(validationError, 'error');
       return;
     }
 
@@ -333,9 +359,9 @@ export class AdminPanelComponent implements OnInit {
     employee_name: '',
     email: '',
     phone: '',
-    department: 'Engineering',
+    department: 'Product',
     designation: '',
-    role: '',
+    role: 'Leadership_RMS',
     joining_date: ''
   };
 
@@ -345,9 +371,9 @@ export class AdminPanelComponent implements OnInit {
       employee_name: '',
       email: '',
       phone: '',
-      department: 'Engineering',
+      department: 'Product',
       designation: '',
-      role: '',
+      role: 'Leadership_RMS',
       joining_date: ''
     };
   }
@@ -359,6 +385,12 @@ export class AdminPanelComponent implements OnInit {
   async createLeadership(): Promise<void> {
     if (!this.newLeader.employee_name || !this.newLeader.email || !this.newLeader.designation) {
       this.showToast('Please fill in all required fields.', 'error');
+      return;
+    }
+
+    const validationError = this.validateEmailAndPhone(this.newLeader.email, this.newLeader.phone);
+    if (validationError) {
+      this.showToast(validationError, 'error');
       return;
     }
 

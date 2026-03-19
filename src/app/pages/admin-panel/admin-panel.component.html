@@ -269,12 +269,14 @@
               </div>
               <div class="form-group">
                 <label>Email <span class="req-star">*</span></label>
-                <input type="email" class="form-input" placeholder="e.g. rajesh.k@adnate.com" [(ngModel)]="newEmployee.email" name="empEmail">
+                <input type="email" class="form-input" placeholder="e.g. rajesh.k@adnate.com" [(ngModel)]="newEmployee.email" name="empEmail" pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}">
+                <small style="color: #94A3B8; font-size: 0.75rem;">Format: user@domain.com</small>
               </div>
               <div class="form-row">
                 <div class="form-group half-width">
                   <label>Phone</label>
-                  <input type="text" class="form-input" placeholder="+91 98765 43210" [(ngModel)]="newEmployee.phone" name="empPhone">
+                  <input type="tel" class="form-input" placeholder="+91 98765 43210" [(ngModel)]="newEmployee.phone" name="empPhone" pattern="[+]?[\d\s\-()]{10,15}">
+                  <small style="color: #94A3B8; font-size: 0.75rem;">10-15 digits</small>
                 </div>
                 <div class="form-group half-width">
                   <label>Department <span class="req-star">*</span></label>
@@ -377,12 +379,14 @@
               </div>
               <div class="form-group">
                 <label>Email <span class="req-star">*</span></label>
-                <input type="email" class="form-input" placeholder="e.g. sneha.p@adnate.com" [(ngModel)]="newHR.email" name="hrEmail">
+                <input type="email" class="form-input" placeholder="e.g. sneha.p@adnate.com" [(ngModel)]="newHR.email" name="hrEmail" pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}">
+                <small style="color: #94A3B8; font-size: 0.75rem;">Format: user@domain.com</small>
               </div>
               <div class="form-row">
                 <div class="form-group half-width">
                   <label>Phone</label>
-                  <input type="text" class="form-input" placeholder="+91 98765 43210" [(ngModel)]="newHR.phone" name="hrPhone">
+                  <input type="tel" class="form-input" placeholder="+91 98765 43210" [(ngModel)]="newHR.phone" name="hrPhone" pattern="[+]?[\d\s\-()]{10,15}">
+                  <small style="color: #94A3B8; font-size: 0.75rem;">10-15 digits</small>
                 </div>
                 <div class="form-group half-width">
                   <label>Department</label>
@@ -392,11 +396,11 @@
               <div class="form-row">
                 <div class="form-group half-width">
                   <label>Designation</label>
-                  <input type="text" class="form-input" placeholder="e.g. HR Manager" [(ngModel)]="newHR.designation" name="hrDesignation">
+                  <input type="text" class="form-input" [(ngModel)]="newHR.designation" name="hrDesignation" readonly style="background: #F1F5F9; cursor: default;">
                 </div>
                 <div class="form-group half-width">
                   <label>Role</label>
-                  <input type="text" class="form-input" placeholder="e.g. HR" [(ngModel)]="newHR.role" name="hrRole">
+                  <input type="text" class="form-input" [(ngModel)]="newHR.role" name="hrRole" readonly style="background: #F1F5F9; cursor: default;">
                 </div>
               </div>
               <div class="form-group">
@@ -475,24 +479,18 @@
               </div>
               <div class="form-group">
                 <label>Email <span class="req-star">*</span></label>
-                <input type="email" class="form-input" placeholder="e.g. vikram.j@adnate.com" [(ngModel)]="newLeader.email" name="leaderEmail">
+                <input type="email" class="form-input" placeholder="e.g. vikram.j@adnate.com" [(ngModel)]="newLeader.email" name="leaderEmail" pattern="[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}">
+                <small style="color: #94A3B8; font-size: 0.75rem;">Format: user@domain.com</small>
               </div>
               <div class="form-row">
                 <div class="form-group half-width">
                   <label>Phone</label>
-                  <input type="text" class="form-input" placeholder="+91 98765 43210" [(ngModel)]="newLeader.phone" name="leaderPhone">
+                  <input type="tel" class="form-input" placeholder="+91 98765 43210" [(ngModel)]="newLeader.phone" name="leaderPhone" pattern="[+]?[\d\s\-()]{10,15}">
+                  <small style="color: #94A3B8; font-size: 0.75rem;">10-15 digits</small>
                 </div>
                 <div class="form-group half-width">
                   <label>Department</label>
-                  <select class="form-input" [(ngModel)]="newLeader.department" name="leaderDept">
-                    <option>Engineering</option>
-                    <option>Product</option>
-                    <option>Design</option>
-                    <option>HR &amp; Ops</option>
-                    <option>Marketing</option>
-                    <option>Sales</option>
-                    <option>Finance</option>
-                  </select>
+                  <input type="text" class="form-input" [(ngModel)]="newLeader.department" name="leaderDept" readonly style="background: #F1F5F9; cursor: default;">
                 </div>
               </div>
               <div class="form-row">
@@ -502,7 +500,7 @@
                 </div>
                 <div class="form-group half-width">
                   <label>Role</label>
-                  <input type="text" class="form-input" placeholder="e.g. Leadership" [(ngModel)]="newLeader.role" name="leaderRole">
+                  <input type="text" class="form-input" [(ngModel)]="newLeader.role" name="leaderRole" readonly style="background: #F1F5F9; cursor: default;">
                 </div>
               </div>
               <div class="form-group">

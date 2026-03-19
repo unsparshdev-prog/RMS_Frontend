@@ -144,6 +144,52 @@ export class HeroService {
     return this.ajax('UpdateJob_requisition', 'http://schemas.cordys.com/RMS_DB_Metadata', payload);
   }
 
+  /**
+   * Update a Job Requisition
+   * Maps to: <UpdateJob_requisition xmlns="http://schemas.cordys.com/RMS_DB_Metadata">
+   */
+  updateJobRequisition(jr_id: string, data: any): Promise<any> {
+    const payload = {
+      reply: 'yes',
+      commandUpdate: 'no',
+      preserveSpace: 'no',
+      batchUpdate: 'no',
+      tuple: {
+        old: {
+          job_requisition: {
+            qConstraint: '0',
+            jr_id: jr_id,
+            modified_by: sessionStorage.getItem('displayName') || 'HR'
+          }
+        },
+        new: {
+          job_requisition: {
+            qAccess: '0',
+            qConstraint: '0',
+            qInit: '0',
+            qValues: '',
+            job_title: data.job_title || '',
+            department: data.department || '',
+            location: data.location || '',
+            job_description: data.job_description || '',
+            required_skills: data.required_skills || '',
+            min_experience: data.min_experience || '',
+            max_experience: data.max_experience || '',
+            salary_range: data.salary_range || '',
+            no_of_positions: data.no_of_positions || '',
+            priority: data.priority || '',
+            status: data.status || '',
+            approval_status: data.approval_status || '',
+            closing_date: data.closing_date || '',
+            modified_at: data.modified_at || '',
+            modified_by: sessionStorage.getItem('displayName') || 'HR'
+          }
+        }
+      }
+    };
+    return this.ajax('UpdateJob_requisition', 'http://schemas.cordys.com/RMS_DB_Metadata', payload);
+  }
+
   showAllJobRequisition(): Promise<any> {
     return this.ajax('ShowAllJobRequisition', 'http://schemas.cordys.com/RMS_DB_Metadata', {
       preserveSpace: 'no',

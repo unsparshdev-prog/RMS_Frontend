@@ -33,6 +33,11 @@ export class LoginComponent {
   loading = false;
   errorMessage = '';
 
+  // Toast
+  showToastMsg = false;
+  toastMessage = '';
+  toastType: 'success' | 'error' = 'success';
+
   constructor(
     private router: Router,
     private auth: AuthService,
@@ -41,6 +46,15 @@ export class LoginComponent {
 
   togglePasswordVisibility(): void {
     this.showPassword = !this.showPassword;
+  }
+
+  showToast(message: string, type: 'success' | 'error') {
+    this.toastMessage = message;
+    this.toastType = type;
+    this.showToastMsg = true;
+    setTimeout(() => {
+      this.showToastMsg = false;
+    }, 4000);
   }
 
   // Get the redirect route for an employee based on their roles
@@ -101,12 +115,14 @@ export class LoginComponent {
         .fail((err: any) => {
           console.error('[EmployeeLogin] Cordys SSO auth failed:', err);
           this.loading = false;
-          this.errorMessage = 'Authentication failed. Please check your Employee ID and password.';
+          this.errorMessage = 'The username or password you entered is incorrect.';
+          this.showToast(this.errorMessage, 'error');
         });
     } catch (e) {
       console.error('[EmployeeLogin] Cordys SSO error:', e);
       this.loading = false;
       this.errorMessage = 'Authentication service is not available. Please try again later.';
+      this.showToast(this.errorMessage, 'error');
     }
   }
 
@@ -119,12 +135,12 @@ export class LoginComponent {
         { UserName: empId }
       );
 
-      console.log('[EmployeeLogin] GetUserDetails response received');
+      console.log('[EmployeeLogin] GetUserDetails response received. Raw response:', resp);
 
       // Extract roles from response
       let roles: string[] = [];
       const roleData = this.heroService.xmltojson(resp, 'Role');
-      console.log('[EmployeeLogin] GetUserDetails roleData:', roleData);
+      console.log('[EmployeeLogin] GetUserDetails parsed Role data object:', roleData);
 
       // Helper to extract the text content from a role object
       const extractRoleText = (r: any): string => {
@@ -138,11 +154,23 @@ export class LoginComponent {
 
       if (roleData) {
         if (Array.isArray(roleData)) {
-          roles = roleData.map((r: any) => extractRoleText(r));
+          console.log(`[EmployeeLogin] Found ${roleData.length} role(s) to process.`);
+          roles = roleData.map((r: any, index: number) => {
+            const text = extractRoleText(r);
+            console.log(`[EmployeeLogin] Role extracted at index ${index}: '${text}' (from object: ${JSON.stringify(r)})`);
+            return text;
+          });
         } else {
-          roles = [extractRoleText(roleData)];
+          console.log('[EmployeeLogin] Found single role object to process.');
+          const text = extractRoleText(roleData);
+          console.log(`[EmployeeLogin] Single Role extracted: '${text}' (from object: ${JSON.stringify(roleData)})`);
+          roles = [text];
         }
+      } else {
+        console.log('[EmployeeLogin] No "Role" property extracted by xmltojson block.');
       }
+
+      console.log('[EmployeeLogin] Roles after extraction:', roles);
 
       // Fallback: if roles are empty or just [object Object], scan the full response string
       if (roles.length === 0 || roles.every(r => r === '[object Object]')) {
@@ -150,9 +178,12 @@ export class LoginComponent {
         const fullStr = JSON.stringify(resp);
         const knownRoles = Object.keys(ROLE_ROUTES);
         roles = knownRoles.filter(role => fullStr.includes(role));
+        console.log('[EmployeeLogin] Roles retrieved via fallback substring scan:', roles);
+      } else {
+        console.log('[EmployeeLogin] Successfully extracted role values via xmltojson.');
       }
 
-      console.log('[EmployeeLogin] User roles:', roles);
+      console.log('[EmployeeLogin] Final matched User roles:', roles);
 
       // Store user info
       sessionStorage.setItem('displayName', empId);
@@ -202,12 +233,14 @@ export class LoginComponent {
         .fail((err: any) => {
           console.error('[CandidateLogin] Cordys SSO auth failed:', err);
           this.loading = false;
-          this.errorMessage = 'Authentication failed. Please check your credentials.';
+          this.errorMessage = 'The username or password you entered is incorrect.';
+          this.showToast(this.errorMessage, 'error');
         });
     } catch (e) {
       console.error('[CandidateLogin] Cordys SSO error:', e);
       this.loading = false;
       this.errorMessage = 'Authentication service is not available. Please try again later.';
+      this.showToast(this.errorMessage, 'error');
     }
   }
 
@@ -222,6 +255,7 @@ export class LoginComponent {
       if (!empId || !this.password.trim()) {
         this.loading = false;
         this.errorMessage = 'Please enter both Employee ID and password.';
+        this.showToast(this.errorMessage, 'error');
         return;
       }
       this.employeeLogin(empId, this.password);
@@ -231,6 +265,7 @@ export class LoginComponent {
       if (!email || !this.password.trim()) {
         this.loading = false;
         this.errorMessage = 'Please enter both email and password.';
+        this.showToast(this.errorMessage, 'error');
         return;
       }
       this.candidateLogin(email, this.password);
