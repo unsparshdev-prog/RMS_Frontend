@@ -196,10 +196,21 @@
                 <i class="fas fa-search"></i>
                 <input type="text" placeholder="Search employees..." [(ngModel)]="employeeSearchQuery">
               </div>
+              <button class="btn btn-primary-blue" (click)="openAddEmployeeModal()">
+                <i class="fas fa-plus"></i> Add Employee
+              </button>
             </div>
           </div>
 
-          <div class="panel-table-wrapper bg-white rounded-lg" style="border: 1px solid #E2E8F0;">
+          <!-- Loading State -->
+          <div *ngIf="isLoadingEmployees" style="display: flex; align-items: center; justify-content: center; padding: 60px 20px; background: white; border-radius: 12px; border: 1px solid #E2E8F0;">
+            <div style="text-align: center;">
+              <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #0B2265; margin-bottom: 12px;"></i>
+              <p style="color: #64748B; margin: 0;">Loading employees...</p>
+            </div>
+          </div>
+
+          <div class="panel-table-wrapper bg-white rounded-lg" style="border: 1px solid #E2E8F0;" *ngIf="!isLoadingEmployees">
             <table class="panel-table">
               <thead>
                 <tr>
@@ -226,9 +237,9 @@
                   <td>{{ emp.role }}</td>
                   <td>
                     <span class="status-pill"
-                      [class.active]="emp.status === 'Active'"
-                      [class.inactive]="emp.status === 'Inactive'"
-                      [class.on-leave]="emp.status === 'On Leave'">
+                      [class.active]="emp.status === 'ACTIVE' || emp.status === 'Active'"
+                      [class.inactive]="emp.status === 'INACTIVE' || emp.status === 'Inactive'"
+                      [class.on-leave]="emp.status === 'ON_LEAVE' || emp.status === 'On Leave'">
                       {{ emp.status }}
                     </span>
                   </td>
@@ -241,6 +252,67 @@
               <i class="fas fa-users-slash"></i>
               <p>No employees found matching your search.</p>
             </div>
+          </div>
+        </div>
+
+        <!-- Add Employee Modal -->
+        <div class="modal-backdrop" *ngIf="showAddEmployeeModal" (click)="closeAddEmployeeModal()">
+          <div class="modal-dialog" (click)="$event.stopPropagation()" style="max-width: 560px;">
+            <div class="modal-header-row">
+              <h3><i class="fas fa-user-plus text-blue"></i> Add New Employee</h3>
+              <button class="modal-close-btn" (click)="closeAddEmployeeModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <form class="req-form" (ngSubmit)="createEmployee()">
+              <div class="form-group">
+                <label>Employee Name <span class="req-star">*</span></label>
+                <input type="text" class="form-input" placeholder="e.g. Rajesh Kumar" [(ngModel)]="newEmployee.employee_name" name="empName">
+              </div>
+              <div class="form-group">
+                <label>Email <span class="req-star">*</span></label>
+                <input type="email" class="form-input" placeholder="e.g. rajesh.k@adnate.com" [(ngModel)]="newEmployee.email" name="empEmail">
+              </div>
+              <div class="form-row">
+                <div class="form-group half-width">
+                  <label>Phone</label>
+                  <input type="text" class="form-input" placeholder="+91 98765 43210" [(ngModel)]="newEmployee.phone" name="empPhone">
+                </div>
+                <div class="form-group half-width">
+                  <label>Department <span class="req-star">*</span></label>
+                  <select class="form-input" [(ngModel)]="newEmployee.department" name="empDept">
+                    <option value="">Select Department</option>
+                    <option>Engineering</option>
+                    <option>Product</option>
+                    <option>Design</option>
+                    <option>HR & Ops</option>
+                    <option>Marketing</option>
+                    <option>Sales</option>
+                    <option>Finance</option>
+                    <option>Legal</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group half-width">
+                  <label>Designation</label>
+                  <input type="text" class="form-input" placeholder="e.g. Senior Developer" [(ngModel)]="newEmployee.designation" name="empDesignation">
+                </div>
+                <div class="form-group half-width">
+                  <label>Role</label>
+                  <input type="text" class="form-input" placeholder="e.g. Developer" [(ngModel)]="newEmployee.role" name="empRole">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Joining Date</label>
+                <input type="date" class="form-input" [(ngModel)]="newEmployee.joining_date" name="empJoiningDate">
+              </div>
+              <div class="form-actions mt-4" style="display: flex; gap: 15px; justify-content: flex-end;">
+                <button type="button" class="btn btn-outline-sm" (click)="closeAddEmployeeModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary-blue" [disabled]="isCreating">
+                  <i class="fas fa-spinner fa-spin" *ngIf="isCreating"></i>
+                  {{ isCreating ? 'Adding...' : 'Add Employee' }}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </ng-container>
@@ -291,18 +363,17 @@
             </div>
           </div>
         </div>
-
         <!-- Create HR Modal -->
         <div class="modal-backdrop" *ngIf="showCreateHRModal" (click)="closeCreateHRModal()">
-          <div class="modal-dialog" (click)="$event.stopPropagation()">
+          <div class="modal-dialog" (click)="$event.stopPropagation()" style="max-width: 560px;">
             <div class="modal-header-row">
               <h3><i class="fas fa-user-shield text-blue"></i> Create HR Account</h3>
               <button class="modal-close-btn" (click)="closeCreateHRModal()"><i class="fas fa-times"></i></button>
             </div>
             <form class="req-form" (ngSubmit)="createHR()">
               <div class="form-group">
-                <label>Full Name <span class="req-star">*</span></label>
-                <input type="text" class="form-input" placeholder="e.g. Sneha Patel" [(ngModel)]="newHR.name" name="hrName">
+                <label>Employee Name <span class="req-star">*</span></label>
+                <input type="text" class="form-input" placeholder="e.g. Sneha Patel" [(ngModel)]="newHR.employee_name" name="hrName">
               </div>
               <div class="form-group">
                 <label>Email <span class="req-star">*</span></label>
@@ -310,17 +381,34 @@
               </div>
               <div class="form-row">
                 <div class="form-group half-width">
-                  <label>Department</label>
-                  <input type="text" class="form-input" value="HR & Ops" readonly style="background: #F1F5F9; cursor: default;">
-                </div>
-                <div class="form-group half-width">
                   <label>Phone</label>
                   <input type="text" class="form-input" placeholder="+91 98765 43210" [(ngModel)]="newHR.phone" name="hrPhone">
                 </div>
+                <div class="form-group half-width">
+                  <label>Department</label>
+                  <input type="text" class="form-input" [(ngModel)]="newHR.department" name="hrDept" readonly style="background: #F1F5F9; cursor: default;">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group half-width">
+                  <label>Designation</label>
+                  <input type="text" class="form-input" placeholder="e.g. HR Manager" [(ngModel)]="newHR.designation" name="hrDesignation">
+                </div>
+                <div class="form-group half-width">
+                  <label>Role</label>
+                  <input type="text" class="form-input" placeholder="e.g. HR" [(ngModel)]="newHR.role" name="hrRole">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Joining Date</label>
+                <input type="date" class="form-input" [(ngModel)]="newHR.joining_date" name="hrJoiningDate">
               </div>
               <div class="form-actions mt-4" style="display: flex; gap: 15px; justify-content: flex-end;">
                 <button type="button" class="btn btn-outline-sm" (click)="closeCreateHRModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary-blue">Create HR Account</button>
+                <button type="submit" class="btn btn-primary-blue" [disabled]="isCreating">
+                  <i class="fas fa-spinner fa-spin" *ngIf="isCreating"></i>
+                  {{ isCreating ? 'Creating...' : 'Create HR Account' }}
+                </button>
               </div>
             </form>
           </div>
@@ -373,18 +461,17 @@
             </div>
           </div>
         </div>
-
         <!-- Create Leadership Modal -->
         <div class="modal-backdrop" *ngIf="showCreateLeadershipModal" (click)="closeCreateLeadershipModal()">
-          <div class="modal-dialog" (click)="$event.stopPropagation()">
+          <div class="modal-dialog" (click)="$event.stopPropagation()" style="max-width: 560px;">
             <div class="modal-header-row">
               <h3><i class="fas fa-crown text-blue"></i> Create Leadership Role</h3>
               <button class="modal-close-btn" (click)="closeCreateLeadershipModal()"><i class="fas fa-times"></i></button>
             </div>
             <form class="req-form" (ngSubmit)="createLeadership()">
               <div class="form-group">
-                <label>Full Name <span class="req-star">*</span></label>
-                <input type="text" class="form-input" placeholder="e.g. Vikram Joshi" [(ngModel)]="newLeader.name" name="leaderName">
+                <label>Employee Name <span class="req-star">*</span></label>
+                <input type="text" class="form-input" placeholder="e.g. Vikram Joshi" [(ngModel)]="newLeader.employee_name" name="leaderName">
               </div>
               <div class="form-group">
                 <label>Email <span class="req-star">*</span></label>
@@ -392,8 +479,8 @@
               </div>
               <div class="form-row">
                 <div class="form-group half-width">
-                  <label>Role Title <span class="req-star">*</span></label>
-                  <input type="text" class="form-input" placeholder="e.g. VP Engineering" [(ngModel)]="newLeader.role" name="leaderRole">
+                  <label>Phone</label>
+                  <input type="text" class="form-input" placeholder="+91 98765 43210" [(ngModel)]="newLeader.phone" name="leaderPhone">
                 </div>
                 <div class="form-group half-width">
                   <label>Department</label>
@@ -401,20 +488,33 @@
                     <option>Engineering</option>
                     <option>Product</option>
                     <option>Design</option>
-                    <option>HR & Ops</option>
+                    <option>HR &amp; Ops</option>
                     <option>Marketing</option>
                     <option>Sales</option>
                     <option>Finance</option>
                   </select>
                 </div>
               </div>
+              <div class="form-row">
+                <div class="form-group half-width">
+                  <label>Designation <span class="req-star">*</span></label>
+                  <input type="text" class="form-input" placeholder="e.g. VP Engineering" [(ngModel)]="newLeader.designation" name="leaderDesignation">
+                </div>
+                <div class="form-group half-width">
+                  <label>Role</label>
+                  <input type="text" class="form-input" placeholder="e.g. Leadership" [(ngModel)]="newLeader.role" name="leaderRole">
+                </div>
+              </div>
               <div class="form-group">
-                <label>Phone</label>
-                <input type="text" class="form-input" placeholder="+91 98765 43210" [(ngModel)]="newLeader.phone" name="leaderPhone">
+                <label>Joining Date</label>
+                <input type="date" class="form-input" [(ngModel)]="newLeader.joining_date" name="leaderJoiningDate">
               </div>
               <div class="form-actions mt-4" style="display: flex; gap: 15px; justify-content: flex-end;">
                 <button type="button" class="btn btn-outline-sm" (click)="closeCreateLeadershipModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary-blue">Create Leadership Role</button>
+                <button type="submit" class="btn btn-primary-blue" [disabled]="isCreating">
+                  <i class="fas fa-spinner fa-spin" *ngIf="isCreating"></i>
+                  {{ isCreating ? 'Creating...' : 'Create Leadership Role' }}
+                </button>
               </div>
             </form>
           </div>

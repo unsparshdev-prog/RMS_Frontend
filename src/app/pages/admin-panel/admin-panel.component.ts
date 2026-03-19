@@ -1,9 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HeroService } from '../../hero.service';
 import { AuthService } from '../../auth.service';
+import { LeadershipDashboardService } from '../leadership-dashboard/leadership-dashboard.service';
 
 @Component({
   selector: 'app-admin-panel',
@@ -12,7 +13,7 @@ import { AuthService } from '../../auth.service';
   templateUrl: './admin-panel.component.html',
   styleUrls: ['./admin-panel.component.css']
 })
-export class AdminPanelComponent {
+export class AdminPanelComponent implements OnInit {
   isSidebarCollapsed = false;
   activeTab = 'Dashboard';
 
@@ -24,7 +25,69 @@ export class AdminPanelComponent {
   // Loading for create actions
   isCreating = false;
 
-  constructor(private heroService: HeroService, private auth: AuthService, private router: Router) {}
+  // Loading state for employees
+  isLoadingEmployees = false;
+
+  constructor(
+    private heroService: HeroService,
+    private auth: AuthService,
+    private router: Router,
+    private dashboardService: LeadershipDashboardService
+  ) {}
+
+  ngOnInit(): void {
+    this.loadEmployees();
+  }
+
+  async loadEmployees(): Promise<void> {
+    this.isLoadingEmployees = true;
+    try {
+      const employeesResp = await this.dashboardService.getEmployees();
+      this.employees = (employeesResp || []).map((e: any) => {
+        const name = e.employee_name || '';
+        const initials = name.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2);
+        return {
+          id: e.employee_id || '',
+          name: name,
+          department: e.department || '',
+          role: e.role || e.designation || '',
+          avatar: initials || '??',
+          status: e.status || 'Active',
+          joinDate: e.joining_date || '',
+          email: e.email || ''
+        };
+      });
+
+      // Update dashboard stats from real data
+      this.dashboardStats.totalEmployees = this.employees.length;
+      this.dashboardStats.activeHRs = this.employees.filter(e => e.role?.toLowerCase().includes('hr')).length;
+      this.dashboardStats.leadershipRoles = this.employees.filter(e => e.role?.toLowerCase().includes('lead') || e.role?.toLowerCase().includes('director') || e.role?.toLowerCase().includes('manager') || e.role?.toLowerCase().includes('vp') || e.role?.toLowerCase().includes('head')).length;
+
+      // Count unique departments
+      const depts = new Set(this.employees.map(e => e.department).filter(d => d));
+      this.dashboardStats.departments = depts.size;
+
+      // Build department distribution from real data
+      const deptCount: Record<string, number> = {};
+      this.employees.forEach(e => {
+        const dept = e.department || 'Unknown';
+        deptCount[dept] = (deptCount[dept] || 0) + 1;
+      });
+      const colors = ['#0B2265', '#8B5CF6', '#0088A8', '#F59E0B', '#EF4444', '#10B981', '#00C4F0', '#EC4899'];
+      this.departmentDistribution = Object.entries(deptCount).map(([name, count], i) => ({
+        name,
+        count,
+        color: colors[i % colors.length],
+        percentage: this.employees.length > 0 ? Math.round((count / this.employees.length) * 1000) / 10 : 0
+      }));
+
+      console.log('[AdminPanel] Loaded', this.employees.length, 'employees from API');
+    } catch (error) {
+      console.error('[AdminPanel] Failed to load employees:', error);
+    } finally {
+      this.isLoadingEmployees = false;
+    }
+  }
 
   logout(): void {
     this.auth.logout();
@@ -96,18 +159,7 @@ export class AdminPanelComponent {
 
   // --- Employees ---
   employeeSearchQuery = '';
-  employees = [
-    { id: 'E001', name: 'Rajesh Kumar', department: 'Engineering', role: 'Engineering Manager', avatar: 'RK', status: 'Active', joinDate: '2024-03-15', email: 'rajesh.k@adnate.com' },
-    { id: 'E002', name: 'Priya Sharma', department: 'Engineering', role: 'Senior Developer', avatar: 'PS', status: 'Active', joinDate: '2024-06-20', email: 'priya.s@adnate.com' },
-    { id: 'E003', name: 'Amit Verma', department: 'Engineering', role: 'Tech Lead', avatar: 'AV', status: 'Active', joinDate: '2023-01-10', email: 'amit.v@adnate.com' },
-    { id: 'E004', name: 'Sneha Patel', department: 'HR & Ops', role: 'HR Business Partner', avatar: 'SP', status: 'Active', joinDate: '2023-08-01', email: 'sneha.p@adnate.com' },
-    { id: 'E005', name: 'Vikram Joshi', department: 'Product', role: 'Product Manager', avatar: 'VJ', status: 'On Leave', joinDate: '2024-01-05', email: 'vikram.j@adnate.com' },
-    { id: 'E006', name: 'Neha Gupta', department: 'Design', role: 'Design Lead', avatar: 'NG', status: 'Active', joinDate: '2024-02-14', email: 'neha.g@adnate.com' },
-    { id: 'E007', name: 'Ravi Singh', department: 'Marketing', role: 'Marketing Head', avatar: 'RS', status: 'Active', joinDate: '2023-11-20', email: 'ravi.s@adnate.com' },
-    { id: 'E008', name: 'Kavita Menon', department: 'Sales', role: 'Sales Executive', avatar: 'KM', status: 'Active', joinDate: '2025-01-08', email: 'kavita.m@adnate.com' },
-    { id: 'E009', name: 'Arjun Reddy', department: 'Finance', role: 'Finance Analyst', avatar: 'AR', status: 'Inactive', joinDate: '2023-05-15', email: 'arjun.r@adnate.com' },
-    { id: 'E010', name: 'Meera Joshi', department: 'Engineering', role: 'Full Stack Developer', avatar: 'MJ', status: 'Active', joinDate: '2025-03-01', email: 'meera.j@adnate.com' }
-  ];
+  employees: { id: string; name: string; department: string; role: string; avatar: string; status: string; joinDate: string; email: string }[] = [];
 
   get filteredEmployees() {
     if (!this.employeeSearchQuery.trim()) return this.employees;
@@ -120,120 +172,243 @@ export class AdminPanelComponent {
     );
   }
 
+  // --- Add Employee ---
+  showAddEmployeeModal = false;
+  newEmployee = {
+    employee_name: '',
+    email: '',
+    phone: '',
+    department: '',
+    designation: '',
+    role: '',
+    joining_date: ''
+  };
+
+  openAddEmployeeModal() {
+    this.showAddEmployeeModal = true;
+    this.newEmployee = {
+      employee_name: '',
+      email: '',
+      phone: '',
+      department: '',
+      designation: '',
+      role: '',
+      joining_date: ''
+    };
+  }
+
+  closeAddEmployeeModal() {
+    this.showAddEmployeeModal = false;
+  }
+
+  async createEmployee(): Promise<void> {
+    if (!this.newEmployee.employee_name || !this.newEmployee.email || !this.newEmployee.department) {
+      this.showToast('Please fill in all required fields.', 'error');
+      return;
+    }
+
+    this.isCreating = true;
+    try {
+      // Step 1: Create employee record in DB via UpdateEmployee
+      const resp = await this.dashboardService.createEmployee(this.newEmployee);
+      console.log('[AdminPanel] Employee created in DB:', resp);
+
+      // Step 2: Create user in Cordys organization for login access
+      try {
+        const userResp = await this.heroService.createUserInOrganization({
+          userName: this.newEmployee.email,
+          description: this.newEmployee.employee_name,
+          userId: this.newEmployee.email,
+          password: 'a1b2c3',
+          role: 'Employee_RMS'
+        });
+        console.log('[AdminPanel] User created in organization:', userResp);
+      } catch (orgError) {
+        console.error('[AdminPanel] Failed to create user in organization:', orgError);
+        // Employee DB record was created, but org user creation failed
+        this.showToast('Employee added but login account creation failed. Please create login manually.', 'error');
+        await this.loadEmployees();
+        return;
+      }
+
+      this.closeAddEmployeeModal();
+      this.showToast('Employee added and login account created successfully!', 'success');
+      // Refresh employees from API
+      await this.loadEmployees();
+    } catch (error) {
+      console.error('[AdminPanel] Failed to create employee:', error);
+      this.showToast('Failed to add employee. Please try again.', 'error');
+    } finally {
+      this.isCreating = false;
+    }
+  }
+
   // --- Create HR ---
   showCreateHRModal = false;
-  newHR = { name: '', email: '', department: 'HR & Ops', phone: '' };
+  newHR = {
+    employee_name: '',
+    email: '',
+    phone: '',
+    department: 'HR & Ops',
+    designation: '',
+    role: '',
+    joining_date: ''
+  };
 
   openCreateHRModal() {
     this.showCreateHRModal = true;
-    this.newHR = { name: '', email: '', department: 'HR & Ops', phone: '' };
+    this.newHR = {
+      employee_name: '',
+      email: '',
+      phone: '',
+      department: 'HR & Ops',
+      designation: '',
+      role: '',
+      joining_date: ''
+    };
   }
 
   closeCreateHRModal() {
     this.showCreateHRModal = false;
   }
 
-  createHR() {
-    if (!this.newHR.name || !this.newHR.email) {
+  async createHR(): Promise<void> {
+    if (!this.newHR.employee_name || !this.newHR.email) {
       this.showToast('Please fill in all required fields.', 'error');
       return;
     }
 
     this.isCreating = true;
-    this.heroService.createUserInOrganization({
-      userName: this.newHR.email,
-      description: this.newHR.name,
-      userId: this.newHR.email,
-      password: 'a1b2c3',
-      role: 'HR_RMS'
-    }).then((resp: any) => {
-      console.log('HR user created in Cordys:', resp);
-      const initials = this.newHR.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2);
-      this.employees.push({
-        id: 'E0' + (this.employees.length + 1),
-        name: this.newHR.name,
+    try {
+      // Step 1: Create employee record in DB via UpdateEmployee
+      await this.dashboardService.createEmployee({
+        employee_name: this.newHR.employee_name,
+        email: this.newHR.email,
+        phone: this.newHR.phone,
         department: this.newHR.department,
-        role: 'HR Manager',
-        avatar: initials,
-        status: 'Active',
-        joinDate: new Date().toISOString().split('T')[0],
-        email: this.newHR.email
+        designation: this.newHR.designation,
+        role: this.newHR.role || 'HR',
+        joining_date: this.newHR.joining_date
       });
+      console.log('[AdminPanel] HR employee created in DB');
+
+      // Step 2: Create Cordys user with HR_RMS role
+      try {
+        await this.heroService.createUserInOrganization({
+          userName: this.newHR.email,
+          description: this.newHR.employee_name,
+          userId: this.newHR.email,
+          password: 'a1b2c3',
+          role: 'HR_RMS'
+        });
+        console.log('[AdminPanel] HR user created in organization with HR_RMS role');
+      } catch (orgError) {
+        console.error('[AdminPanel] Failed to create HR user in organization:', orgError);
+        this.showToast('HR employee added but login account creation failed. Please create login manually.', 'error');
+        await this.loadEmployees();
+        return;
+      }
+
       this.recentActivity.unshift({
         action: 'New HR account created',
-        user: this.newHR.name,
+        user: this.newHR.employee_name,
         time: 'Just now',
         icon: 'fas fa-user-shield',
         color: '#0B2265'
       });
-      this.dashboardStats.activeHRs++;
-      this.dashboardStats.totalEmployees++;
-      this.isCreating = false;
       this.closeCreateHRModal();
       this.showToast('HR account created successfully!', 'success');
-    }).catch((err: any) => {
-      console.error('Failed to create HR user in Cordys:', err);
-      this.isCreating = false;
+      await this.loadEmployees();
+    } catch (error) {
+      console.error('[AdminPanel] Failed to create HR employee:', error);
       this.showToast('Failed to create HR account. Please try again.', 'error');
-    });
+    } finally {
+      this.isCreating = false;
+    }
   }
 
   // --- Create Leadership ---
   showCreateLeadershipModal = false;
-  newLeader = { name: '', email: '', department: 'Engineering', role: '', phone: '' };
+  newLeader = {
+    employee_name: '',
+    email: '',
+    phone: '',
+    department: 'Engineering',
+    designation: '',
+    role: '',
+    joining_date: ''
+  };
 
   openCreateLeadershipModal() {
     this.showCreateLeadershipModal = true;
-    this.newLeader = { name: '', email: '', department: 'Engineering', role: '', phone: '' };
+    this.newLeader = {
+      employee_name: '',
+      email: '',
+      phone: '',
+      department: 'Engineering',
+      designation: '',
+      role: '',
+      joining_date: ''
+    };
   }
 
   closeCreateLeadershipModal() {
     this.showCreateLeadershipModal = false;
   }
 
-  createLeadership() {
-    if (!this.newLeader.name || !this.newLeader.email || !this.newLeader.role) {
+  async createLeadership(): Promise<void> {
+    if (!this.newLeader.employee_name || !this.newLeader.email || !this.newLeader.designation) {
       this.showToast('Please fill in all required fields.', 'error');
       return;
     }
 
     this.isCreating = true;
-    this.heroService.createUserInOrganization({
-      userName: this.newLeader.email,
-      description: this.newLeader.name,
-      userId: this.newLeader.email,
-      password: 'a1b2c3',
-      role: 'Leadership_RMS'
-    }).then((resp: any) => {
-      console.log('Leadership user created in Cordys:', resp);
-      const initials = this.newLeader.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2);
-      this.employees.push({
-        id: 'E0' + (this.employees.length + 1),
-        name: this.newLeader.name,
+    try {
+      // Step 1: Create employee record in DB via UpdateEmployee
+      await this.dashboardService.createEmployee({
+        employee_name: this.newLeader.employee_name,
+        email: this.newLeader.email,
+        phone: this.newLeader.phone,
         department: this.newLeader.department,
-        role: this.newLeader.role,
-        avatar: initials,
-        status: 'Active',
-        joinDate: new Date().toISOString().split('T')[0],
-        email: this.newLeader.email
+        designation: this.newLeader.designation,
+        role: this.newLeader.role || 'Leadership',
+        joining_date: this.newLeader.joining_date
       });
+      console.log('[AdminPanel] Leadership employee created in DB');
+
+      // Step 2: Create Cordys user with Leadership_RMS role
+      try {
+        await this.heroService.createUserInOrganization({
+          userName: this.newLeader.email,
+          description: this.newLeader.employee_name,
+          userId: this.newLeader.email,
+          password: 'a1b2c3',
+          role: 'Leadership_RMS'
+        });
+        console.log('[AdminPanel] Leadership user created in organization with Leadership_RMS role');
+      } catch (orgError) {
+        console.error('[AdminPanel] Failed to create Leadership user in organization:', orgError);
+        this.showToast('Leadership employee added but login account creation failed. Please create login manually.', 'error');
+        await this.loadEmployees();
+        return;
+      }
+
       this.recentActivity.unshift({
         action: 'Leadership role assigned',
-        user: this.newLeader.name,
+        user: this.newLeader.employee_name,
         time: 'Just now',
         icon: 'fas fa-crown',
         color: '#F59E0B'
       });
-      this.dashboardStats.leadershipRoles++;
-      this.dashboardStats.totalEmployees++;
-      this.isCreating = false;
       this.closeCreateLeadershipModal();
       this.showToast('Leadership role created successfully!', 'success');
-    }).catch((err: any) => {
-      console.error('Failed to create Leadership user in Cordys:', err);
-      this.isCreating = false;
+      await this.loadEmployees();
+    } catch (error) {
+      console.error('[AdminPanel] Failed to create Leadership employee:', error);
       this.showToast('Failed to create leadership role. Please try again.', 'error');
-    });
+    } finally {
+      this.isCreating = false;
+    }
   }
 
   get maxHires() {

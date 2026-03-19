@@ -102,6 +102,35 @@ export class LeadershipDashboardService {
     }
   }
 
+  async createEmployee(employeeData: {
+    employee_name: string;
+    email: string;
+    phone: string;
+    department: string;
+    designation: string;
+    role: string;
+    joining_date: string;
+  }): Promise<any> {
+    return this.hero.ajax('UpdateEmployee', NAMESPACE, {
+      tuple: {
+        new: {
+          employee: {
+            '@qConstraint': '0',
+            employee_name: employeeData.employee_name,
+            email: employeeData.email,
+            phone: employeeData.phone,
+            department: employeeData.department,
+            designation: employeeData.designation,
+            role: employeeData.role,
+            joining_date: employeeData.joining_date,
+            status: 'ACTIVE',
+            created_by: 'ADMIN'
+          }
+        }
+      }
+    });
+  }
+
   // ─── Candidates ───
   async getCandidates(): Promise<any[]> {
     try {
