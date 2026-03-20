@@ -276,4 +276,145 @@ export class HeroService {
     });
   }
 
+  getInterviewPanels(): Promise<any> {
+    return this.ajax('GetInterview_panelObjects', 'http://schemas.cordys.com/RMS_DB_Metadata', {
+      preserveSpace: 'no',
+      qAccess: '0',
+      qValues: '',
+      cursor: {
+        '@id': '0',
+        '@position': '0',
+        '@numRows': '5',
+        '@maxRows': '99999',
+        '@sameConnection': 'false'
+      },
+      fromPanel_id: '1',
+      toPanel_id: 'zzzzzzzzz'
+    });
+  }
+
+  createInterviewPanel(data: {
+    panel_id: string;
+    interview_id: string;
+    interviewer_id: string;
+    interviewer_name: string;
+    feedback: string;
+    rating: string;
+    task_id: string;
+    temp1: string;
+    temp2: string;
+    temp3: string;
+    temp4: string;
+    temp5: string;
+    created_at: string;
+    created_by: string;
+  }): Promise<any> {
+    const payload = {
+      tuple: {
+        new: {
+          interview_panel: {
+            '@qAccess': '0',
+            '@qConstraint': '0',
+            '@qInit': '0',
+            '@qValues': '',
+            panel_id: data.panel_id || '',
+            interview_id: data.interview_id || '',
+            interviewer_id: data.interviewer_id || '',
+            interviewer_name: data.interviewer_name || '',
+            feedback: data.feedback || '',
+            rating: data.rating || '',
+            task_id: data.task_id || '',
+            temp1: data.temp1 || '',
+            temp2: data.temp2 || '',
+            temp3: data.temp3 || '',
+            temp4: data.temp4 || '',
+            temp5: data.temp5 || '',
+            created_at: data.created_at || '',
+            created_by: data.created_by || ''
+          }
+        }
+      }
+    };
+    return this.ajax('UpdateInterview_panel', 'http://schemas.cordys.com/RMS_DB_Metadata', payload);
+  }
+
+  updateInterviewPanel(oldData: any, newData: any): Promise<any> {
+    const ext = (field: any) => field?.text || field?.['#text'] || field || '';
+    const payload = {
+      reply: 'yes',
+      commandUpdate: 'no',
+      preserveSpace: 'no',
+      batchUpdate: 'no',
+      tuple: {
+        old: {
+          interview_panel: {
+            qConstraint: '0',
+            panel_id: ext(oldData.panel_id),
+            interview_id: ext(oldData.interview_id),
+            interviewer_id: ext(oldData.interviewer_id)
+          }
+        },
+        new: {
+          interview_panel: {
+            '@qAccess': '0',
+            '@qConstraint': '0',
+            '@qInit': '0',
+            '@qValues': '',
+            panel_id: ext(newData.panel_id),
+            interview_id: ext(newData.interview_id),
+            interviewer_id: ext(newData.interviewer_id),
+            interviewer_name: ext(newData.interviewer_name),
+            feedback: ext(newData.feedback),
+            rating: ext(newData.rating),
+            task_id: ext(newData.task_id),
+            temp1: ext(newData.temp1),
+            temp2: ext(newData.temp2),
+            temp3: ext(newData.temp3),
+            temp4: ext(newData.temp4),
+            temp5: ext(newData.temp5),
+            created_at: ext(newData.created_at),
+            created_by: ext(newData.created_by),
+            modified_at: new Date().toISOString(),
+            modified_by: sessionStorage.getItem('displayName') || 'HR'
+          }
+        }
+      }
+    };
+    return this.ajax('UpdateInterview_panel', 'http://schemas.cordys.com/RMS_DB_Metadata', payload);
+  }
+
+  deleteInterviewPanel(oldData: any): Promise<any> {
+    const ext = (field: any) => field?.text || field?.['#text'] || field || '';
+    const payload = {
+      reply: 'yes',
+      commandUpdate: 'no',
+      preserveSpace: 'no',
+      batchUpdate: 'no',
+      tuple: {
+        old: {
+          interview_panel: {
+            qConstraint: '0',
+            panel_id: ext(oldData.panel_id),
+            interview_id: ext(oldData.interview_id),
+            interviewer_id: ext(oldData.interviewer_id),
+            interviewer_name: ext(oldData.interviewer_name),
+            feedback: ext(oldData.feedback),
+            rating: ext(oldData.rating),
+            task_id: ext(oldData.task_id),
+            temp1: ext(oldData.temp1),
+            temp2: ext(oldData.temp2),
+            temp3: ext(oldData.temp3),
+            temp4: ext(oldData.temp4),
+            temp5: ext(oldData.temp5),
+            created_at: ext(oldData.created_at),
+            created_by: ext(oldData.created_by),
+            modified_at: ext(oldData.modified_at),
+            modified_by: ext(oldData.modified_by)
+          }
+        }
+      }
+    };
+    return this.ajax('UpdateInterview_panel', 'http://schemas.cordys.com/RMS_DB_Metadata', payload);
+  }
+
 }

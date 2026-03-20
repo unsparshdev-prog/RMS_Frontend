@@ -332,7 +332,7 @@
             <div class="header-actions">
               <div class="search-bar">
                 <i class="fas fa-search"></i>
-                <input type="text" placeholder="Search jobs..." [(ngModel)]="jobsSearchQuery">
+                <input type="text" placeholder="Search jobs..." [(ngModel)]="jobsSearchQuery" (ngModelChange)="onJobsSearchChange()">
               </div>
             </div>
           </div>
@@ -346,7 +346,7 @@
             </div>
           </div>
           <div class="panel-table-wrapper bg-white rounded-lg" style="border: 1px solid #E2E8F0;" *ngIf="!isLoadingJobs">
-            <table class="panel-table flex-table w-full mb-0 text-sm">
+            <table class="panel-table flex-table w-full mb-0 text-sm" *ngIf="filteredJobs.length > 0">
               <thead class="bg-gray-50 border-b border-gray-200 text-gray-700 text-xs font-semibold uppercase tracking-wider">
                 <tr>
                   <th class="px-6 py-4 text-left font-medium">Job Role</th>
@@ -359,7 +359,7 @@
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-100">
-                <tr *ngFor="let job of filteredJobs" class="hover:bg-gray-50/50 transition duration-150 ease-in-out group" [class.opacity-50]="job.status === 'INACTIVE'">
+                <tr *ngFor="let job of paginatedJobs" class="hover:bg-gray-50/50 transition duration-150 ease-in-out group" [class.opacity-50]="job.status === 'INACTIVE'">
                   <td class="px-6 py-4 align-middle">
                     <div class="font-semibold text-gray-900">{{ job.title }}</div>
                     
@@ -371,23 +371,22 @@
                     <i class="fas fa-map-marker-alt text-gray-400 mr-1.5"></i>{{ job.location }}
                   </td>
                   <td class="px-6 py-4 align-middle">
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm"
-                          [class.bg-emerald-100]="job.status === 'Open'"
-                          [class.text-emerald-700]="job.status === 'Open'"
-                          [class.border]="job.status === 'Open'"
-                          [class.border-emerald-200]="job.status === 'Open'"
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm border"
+                          [class.bg-emerald-100]="job.status === 'Open' || job.status === 'APPROVED' || job.status === 'ACTIVE'"
+                          [class.text-emerald-700]="job.status === 'Open' || job.status === 'APPROVED' || job.status === 'ACTIVE'"
+                          [class.border-emerald-200]="job.status === 'Open' || job.status === 'APPROVED' || job.status === 'ACTIVE'"
                           
-                          [class.bg-rose-100]="job.status === 'Closed'"
-                          [class.text-rose-700]="job.status === 'Closed'"
-                          [class.border-rose-200]="job.status === 'Closed'"
+                          [class.bg-rose-100]="job.status === 'Closed' || job.status === 'INACTIVE' || job.status === 'REJECTED'"
+                          [class.text-rose-700]="job.status === 'Closed' || job.status === 'INACTIVE' || job.status === 'REJECTED'"
+                          [class.border-rose-200]="job.status === 'Closed' || job.status === 'INACTIVE' || job.status === 'REJECTED'"
                           
-                          [class.bg-amber-100]="job.status === 'On Hold'"
-                          [class.text-amber-700]="job.status === 'On Hold'"
-                          [class.border-amber-200]="job.status === 'On Hold'">
+                          [class.bg-amber-100]="job.status === 'On Hold' || job.status === 'PENDING'"
+                          [class.text-amber-700]="job.status === 'On Hold' || job.status === 'PENDING'"
+                          [class.border-amber-200]="job.status === 'On Hold' || job.status === 'PENDING'">
                       <span class="w-1.5 h-1.5 rounded-full"
-                            [class.bg-emerald-500]="job.status === 'Open'"
-                            [class.bg-rose-500]="job.status === 'Closed'"
-                            [class.bg-amber-500]="job.status === 'On Hold'"></span>
+                            [class.bg-emerald-500]="job.status === 'Open' || job.status === 'APPROVED' || job.status === 'ACTIVE'"
+                            [class.bg-rose-500]="job.status === 'Closed' || job.status === 'INACTIVE' || job.status === 'REJECTED'"
+                            [class.bg-amber-500]="job.status === 'On Hold' || job.status === 'PENDING'"></span>
                       {{ job.status }}
                     </span>
                   </td>
@@ -420,6 +419,32 @@
               <i class="fas fa-briefcase text-4xl mb-4 text-gray-300"></i>
               <p class="text-base text-gray-500">No jobs found matching your search.</p>
             </div>
+            
+            <!-- Pagination Controls -->
+            <div class="pagination-controls" style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border-top: 1px solid #E2E8F0;" *ngIf="filteredJobs.length > 0">
+              <div style="color: #64748B; font-size: 0.85rem;">
+                Showing <span style="font-weight: 600; color: #1E293B;">{{ (jobsCurrentPage - 1) * jobsPageSize + 1 }}</span> 
+                to <span style="font-weight: 600; color: #1E293B;">{{ jobsCurrentPage * jobsPageSize > filteredJobs.length ? filteredJobs.length : jobsCurrentPage * jobsPageSize }}</span> 
+                of <span style="font-weight: 600; color: #1E293B;">{{ filteredJobs.length }}</span> jobs
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-outline-sm" 
+                        [disabled]="jobsCurrentPage === 1" 
+                        (click)="changeJobsPage(-1)"
+                        style="padding: 4px 12px;">
+                  <i class="fas fa-chevron-left" style="font-size: 0.75rem;"></i> Prev
+                </button>
+                <div style="display: flex; align-items: center; padding: 0 10px; font-size: 0.9rem; font-weight: 600; color: #1E293B; background: #F1F5F9; border-radius: 6px;">
+                  {{ jobsCurrentPage }} / {{ jobsTotalPages }}
+                </div>
+                <button class="btn btn-outline-sm" 
+                        [disabled]="jobsCurrentPage === jobsTotalPages" 
+                        (click)="changeJobsPage(1)"
+                        style="padding: 4px 12px;">
+                  Next <i class="fas fa-chevron-right" style="font-size: 0.75rem;"></i>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </ng-container>
@@ -435,7 +460,7 @@
             <div class="header-actions">
               <div class="search-bar">
                 <i class="fas fa-search"></i>
-                <input type="text" placeholder="Search panelists..." [(ngModel)]="panelSearchQuery">
+                <input type="text" placeholder="Search panelists..." [(ngModel)]="panelSearchQuery" (ngModelChange)="onPanelSearchChange()">
               </div>
               <button class="btn btn-primary-blue" (click)="openAddPanelModal()">
                 <i class="fas fa-plus"></i> Add Panelist
@@ -448,7 +473,7 @@
             <div class="panel-stat-card">
               <div class="panel-stat-icon" style="background: #E0F7FB; color: #00C4F0;"><i class="fas fa-users"></i></div>
               <div>
-                <div class="panel-stat-value">{{ panelMembers.length }}</div>
+                <div class="panel-stat-value">{{ interviewPanels.length }}</div>
                 <div class="panel-stat-label">Total Panelists</div>
               </div>
             </div>
@@ -468,87 +493,165 @@
             </div>
           </div>
 
+          <!-- Loading State -->
+          <div *ngIf="isLoadingPanels" style="display: flex; align-items: center; justify-content: center; padding: 60px 20px; background: white; border-radius: 12px; border: 1px solid #E2E8F0;">
+            <div style="text-align: center;">
+              <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #0B2265; margin-bottom: 12px;"></i>
+              <p style="color: #64748B; margin: 0;">Loading interview panels...</p>
+            </div>
+          </div>
+
           <!-- Panel Members Table -->
-          <div class="panel-table-wrapper bg-white rounded-lg" style="border: 1px solid #E2E8F0;">
-            <table class="panel-table">
-              <thead>
+          <div class="panel-table-wrapper bg-white rounded-lg" style="border: 1px solid #E2E8F0; overflow-x: auto;" *ngIf="!isLoadingPanels">
+            <table class="panel-table" style="min-width: max-content;" *ngIf="filteredInterviewPanels.length > 0">
+              <thead class="bg-gray-50 border-b border-gray-200 text-gray-700 text-xs font-semibold uppercase tracking-wider">
                 <tr>
-                  <th>Panelist</th>
-                  <th>Role</th>
-                  <th>Department</th>
-                  <th>Expertise</th>
-                  <th>Interviews</th>
-                  <th>Status</th>
+                  <th>Panel ID</th>
+                  <th>Interview ID</th>
+                  <th>Interviewer ID</th>
+                  <th>Interviewer Name</th>
+                  <th>Feedback</th>
+                  <th>Rating</th>
+                  <th>Task ID</th>
+                  <th>Temp1</th>
+                  <th>Temp2</th>
+                  <th>Temp3</th>
+                  <th>Temp4</th>
+                  <th>Temp5</th>
+                  <th>Created By</th>
+                  <th>Modified By</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let member of filteredPanelMembers" class="panel-row">
+                <tr *ngFor="let panel of paginatedInterviewPanels" class="panel-row">
+                  <td><span class="dept-badge">{{ getExt(panel.raw?.panel_id) }}</span></td>
+                  <td>{{ getExt(panel.raw?.interview_id) }}</td>
+                  <td>{{ getExt(panel.raw?.interviewer_id) }}</td>
                   <td>
                     <div class="panel-member-cell">
-                      <div class="panel-avatar" [style.background]="member.status === 'active' ? '#0088A8' : '#94A3B8'">{{ member.avatar }}</div>
-                      <span class="panel-member-name">{{ member.name }}</span>
+                      <div class="panel-avatar" [style.background]="getExt(panel.raw?.temp1) === 'active' ? '#0088A8' : '#94A3B8'">
+                        {{ getExt(panel.raw?.interviewer_name).substring(0, 2).toUpperCase() }}
+                      </div>
+                      <span class="panel-member-name">{{ getExt(panel.raw?.interviewer_name) }}</span>
                     </div>
                   </td>
-                  <td>{{ member.role }}</td>
-                  <td><span class="dept-badge">{{ member.department }}</span></td>
-                  <td><span class="expertise-text">{{ member.expertise }}</span></td>
-                  <td><span class="interview-count">{{ member.interviewsConducted }}</span></td>
-                  <td>
-                    <span class="status-pill" [class.active]="member.status === 'active'" [class.inactive]="member.status === 'inactive'" (click)="togglePanelMemberStatus(member)">
-                      {{ member.status === 'active' ? 'Active' : 'Inactive' }}
-                    </span>
-                  </td>
+                  <td><span class="expertise-text">{{ getExt(panel.raw?.feedback) || '-' }}</span></td>
+                  <td><span class="interview-count">{{ getExt(panel.raw?.rating) || '-' }}</span></td>
+                  <td>{{ getExt(panel.raw?.task_id) || '-' }}</td>
+                  <td>{{ getExt(panel.raw?.temp1) || '-' }}</td>
+                  <td>{{ getExt(panel.raw?.temp2) || '-' }}</td>
+                  <td>{{ getExt(panel.raw?.temp3) || '-' }}</td>
+                  <td>{{ getExt(panel.raw?.temp4) || '-' }}</td>
+                  <td>{{ getExt(panel.raw?.temp5) || '-' }}</td>
+                  <td>{{ getExt(panel.raw?.created_by) || '-' }}</td>
+                  <td>{{ getExt(panel.raw?.modified_by) || '-' }}</td>
                   <td>
                     <div class="action-btns">
-                      <button class="icon-action-btn" title="Edit"><i class="fas fa-pen"></i></button>
-                      <button class="icon-action-btn danger" title="Remove" (click)="removePanelist(member.id)"><i class="fas fa-trash-alt"></i></button>
+                      <button class="icon-action-btn" title="Edit" (click)="openEditPanelModal(panel)"><i class="fas fa-pen"></i></button>
+                      <button class="icon-action-btn danger" title="Remove" (click)="removePanelist(panel)"><i class="fas fa-trash-alt"></i></button>
                     </div>
                   </td>
                 </tr>
               </tbody>
             </table>
-            <div class="empty-state" *ngIf="filteredPanelMembers.length === 0">
+            <div class="empty-state" *ngIf="filteredInterviewPanels.length === 0">
               <i class="fas fa-user-slash"></i>
-              <p>No panelists found matching your search.</p>
+              <p>No interview panels found matching your search.</p>
+            </div>
+            
+            <!-- Pagination Controls -->
+            <div class="pagination-controls" style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border-top: 1px solid #E2E8F0;" *ngIf="filteredInterviewPanels.length > 0">
+              <div style="color: #64748B; font-size: 0.85rem;">
+                Showing <span style="font-weight: 600; color: #1E293B;">{{ (interviewPanelCurrentPage - 1) * interviewPanelPageSize + 1 }}</span> 
+                to <span style="font-weight: 600; color: #1E293B;">{{ interviewPanelCurrentPage * interviewPanelPageSize > filteredInterviewPanels.length ? filteredInterviewPanels.length : interviewPanelCurrentPage * interviewPanelPageSize }}</span> 
+                of <span style="font-weight: 600; color: #1E293B;">{{ filteredInterviewPanels.length }}</span> panelists
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-outline-sm" 
+                        [disabled]="interviewPanelCurrentPage === 1" 
+                        (click)="changeInterviewPanelPage(-1)"
+                        style="padding: 4px 12px;">
+                  <i class="fas fa-chevron-left" style="font-size: 0.75rem;"></i> Prev
+                </button>
+                <div style="display: flex; align-items: center; padding: 0 10px; font-size: 0.9rem; font-weight: 600; color: #1E293B; background: #F1F5F9; border-radius: 6px;">
+                  {{ interviewPanelCurrentPage }} / {{ interviewPanelTotalPages }}
+                </div>
+                <button class="btn btn-outline-sm" 
+                        [disabled]="interviewPanelCurrentPage === interviewPanelTotalPages" 
+                        (click)="changeInterviewPanelPage(1)"
+                        style="padding: 4px 12px;">
+                  Next <i class="fas fa-chevron-right" style="font-size: 0.75rem;"></i>
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- Add Panelist Modal -->
-        <div class="modal-backdrop" *ngIf="showAddPanelModal" (click)="closeAddPanelModal()">
-          <div class="modal-dialog" (click)="$event.stopPropagation()">
+        <div class="modal-backdrop" *ngIf="showAddPanelModal || showEditPanelModal" (click)="closeAddPanelModal()">
+          <div class="modal-dialog" style="max-width: 900px;" (click)="$event.stopPropagation()">
             <div class="modal-header-row">
-              <h3><i class="fas fa-user-plus text-blue"></i> Add New Panelist</h3>
+              <h3><i class="fas fa-user-plus text-blue"></i> {{ showEditPanelModal ? 'Edit' : 'Add New' }} Interview Panel</h3>
               <button class="modal-close-btn" (click)="closeAddPanelModal()"><i class="fas fa-times"></i></button>
             </div>
-            <form class="req-form" (ngSubmit)="addPanelist()">
-              <div class="form-group">
-                <label>Full Name <span class="req-star">*</span></label>
-                <input type="text" class="form-input" placeholder="e.g. John Doe" [(ngModel)]="newPanelist.name" name="pName">
-              </div>
-              <div class="form-group">
-                <label>Role <span class="req-star">*</span></label>
-                <input type="text" class="form-input" placeholder="e.g. Senior Developer" [(ngModel)]="newPanelist.role" name="pRole">
-              </div>
-              <div class="form-row">
-                <div class="form-group half-width">
-                  <label>Department</label>
-                  <select class="form-input" [(ngModel)]="newPanelist.department" name="pDept">
-                    <option>Engineering</option>
-                    <option>Design</option>
-                    <option>Product</option>
-                    <option>HR & Ops</option>
-                  </select>
+            <form class="req-form" (ngSubmit)="showEditPanelModal ? updatePanelist() : addPanelist()">
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>Panel ID <span class="req-star">*</span></label>
+                  <input type="text" class="form-input" placeholder="e.g. PNL001" [(ngModel)]="newPanelForm.panel_id" name="panel_id" [required]="!showEditPanelModal">
                 </div>
-                <div class="form-group half-width">
-                  <label>Expertise</label>
-                  <input type="text" class="form-input" placeholder="e.g. System Design, DSA" [(ngModel)]="newPanelist.expertise" name="pExpertise">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>Interview ID <span class="req-star">*</span></label>
+                  <input type="text" class="form-input" placeholder="e.g. INT001" [(ngModel)]="newPanelForm.interview_id" name="interview_id" [required]="!showEditPanelModal">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>Interviewer ID <span class="req-star">*</span></label>
+                  <input type="text" class="form-input" placeholder="e.g. EMP001" [(ngModel)]="newPanelForm.interviewer_id" name="interviewer_id" [required]="!showEditPanelModal">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>Interviewer Name</label>
+                  <input type="text" class="form-input" placeholder="e.g. John Doe" [(ngModel)]="newPanelForm.interviewer_name" name="interviewer_name">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>Feedback</label>
+                  <input type="text" class="form-input" placeholder="e.g. Good candidate" [(ngModel)]="newPanelForm.feedback" name="feedback">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>Rating</label>
+                  <input type="text" class="form-input" placeholder="e.g. 4/5" [(ngModel)]="newPanelForm.rating" name="rating">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>Task ID</label>
+                  <input type="text" class="form-input" placeholder="e.g. TASK001" [(ngModel)]="newPanelForm.task_id" name="task_id">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>Temp1 (Status)</label>
+                  <input type="text" class="form-input" placeholder="e.g. active / inactive" [(ngModel)]="newPanelForm.temp1" name="temp1">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>Temp2 (Department)</label>
+                  <input type="text" class="form-input" placeholder="e.g. Engineering" [(ngModel)]="newPanelForm.temp2" name="temp2">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>Temp3 (Role)</label>
+                  <input type="text" class="form-input" placeholder="e.g. Senior Developer" [(ngModel)]="newPanelForm.temp3" name="temp3">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>Temp4 (Expertise)</label>
+                  <input type="text" class="form-input" placeholder="e.g. React, Angular" [(ngModel)]="newPanelForm.temp4" name="temp4">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label>Temp5</label>
+                  <input type="text" class="form-input" placeholder="Additional field" [(ngModel)]="newPanelForm.temp5" name="temp5">
                 </div>
               </div>
               <div class="form-actions mt-4" style="display: flex; gap: 15px; justify-content: flex-end;">
                 <button type="button" class="btn btn-outline-sm" (click)="closeAddPanelModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary-blue">Add Panelist</button>
+                <button type="submit" class="btn btn-primary-blue">{{ showEditPanelModal ? 'Update' : 'Add' }} Panelist</button>
               </div>
             </form>
           </div>
@@ -573,6 +676,9 @@
             <button class="sub-tab" [class.active]="schedulingSubTab === 'event-types'" (click)="schedulingSubTab = 'event-types'">Event types</button>
             <button class="sub-tab" [class.active]="schedulingSubTab === 'single-use'" (click)="schedulingSubTab = 'single-use'">Single-use links</button>
             <button class="sub-tab" [class.active]="schedulingSubTab === 'meeting-polls'" (click)="schedulingSubTab = 'meeting-polls'">Meeting polls</button>
+            <button class="sub-tab" [class.active]="schedulingSubTab === 'teams-meeting'" (click)="schedulingSubTab = 'teams-meeting'" style="color: #6264A7;">
+              <i class="fab fa-microsoft"></i> Teams Meeting
+            </button>
           </div>
 
           <!-- Search -->
@@ -633,6 +739,70 @@
               <i class="fas fa-poll"></i>
               <p>Meeting polls let panel members vote on available times collaboratively.</p>
               <button class="btn btn-primary-blue" (click)="openCreateEventModal()"><i class="fas fa-plus"></i> Create Meeting Poll</button>
+            </div>
+          </div>
+
+          <!-- ===== TEAMS MEETING TAB ===== -->
+          <div class="scheduling-placeholder" *ngIf="schedulingSubTab === 'teams-meeting'">
+            <div class="bg-white rounded-lg p-5" style="border: 1px solid #E2E8F0; max-width: 700px;">
+              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+                <div style="width: 40px; height: 40px; border-radius: 10px; background: #6264A7; color: white; display: flex; align-items: center; justify-content: center;">
+                  <i class="fab fa-microsoft" style="font-size: 1.1rem;"></i>
+                </div>
+                <div>
+                  <h3 style="margin: 0; font-size: 1.1rem; color: #1E293B;">Schedule Microsoft Teams Meeting</h3>
+                  <p style="margin: 0; font-size: 0.8rem; color: #64748B;">Create a Teams meeting and get a join link</p>
+                </div>
+              </div>
+
+              <form class="req-form" (ngSubmit)="scheduleTeamsMeeting()">
+                <div class="form-group">
+                  <label>Meeting Subject <span class="req-star">*</span></label>
+                  <input type="text" class="form-input" placeholder="e.g. Technical Interview - Aarav Mehta" [(ngModel)]="teamsMeeting.subject" name="tmSubject">
+                </div>
+                <div class="form-row">
+                  <div class="form-group half-width">
+                    <label>Start Time <span class="req-star">*</span></label>
+                    <input type="datetime-local" class="form-input" [(ngModel)]="teamsMeeting.startTime" name="tmStart">
+                  </div>
+                  <div class="form-group half-width">
+                    <label>End Time <span class="req-star">*</span></label>
+                    <input type="datetime-local" class="form-input" [(ngModel)]="teamsMeeting.endTime" name="tmEnd">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Attendees <span class="req-star">*</span></label>
+                  <input type="text" class="form-input" placeholder="Comma separated emails: user1@example.com, user2@example.com" [(ngModel)]="teamsMeeting.attendees" name="tmAttendees">
+                  <span style="font-size: 0.75rem; color: #94A3B8; margin-top: 4px; display: block;">Separate multiple emails with commas</span>
+                </div>
+
+                <div class="form-actions mt-4" style="display: flex; gap: 15px; justify-content: flex-end;">
+                  <button type="button" class="btn btn-outline-sm" (click)="resetTeamsForm()">Clear</button>
+                  <button type="submit" class="btn btn-primary-blue" [disabled]="isCreatingMeeting" style="background: #6264A7; border-color: #6264A7;">
+                    <i class="fas fa-spinner fa-spin" *ngIf="isCreatingMeeting"></i>
+                    <i class="fab fa-microsoft" *ngIf="!isCreatingMeeting"></i>
+                    {{ isCreatingMeeting ? 'Creating...' : 'Create Teams Meeting' }}
+                  </button>
+                </div>
+              </form>
+
+              <!-- Result Card -->
+              <div *ngIf="teamsMeetingResult" style="margin-top: 20px; padding: 16px; background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                  <i class="fas fa-check-circle" style="color: #10B981; font-size: 1.2rem;"></i>
+                  <span style="font-weight: 600; color: #166534;">Meeting Created Successfully</span>
+                </div>
+                <div style="margin-bottom: 8px;">
+                  <span style="font-size: 0.8rem; color: #64748B; font-weight: 600;">Event ID:</span>
+                  <span style="font-size: 0.85rem; color: #1E293B; margin-left: 6px;">{{ teamsMeetingResult.eventId }}</span>
+                </div>
+                <div>
+                  <span style="font-size: 0.8rem; color: #64748B; font-weight: 600;">Join Link:</span>
+                  <a [href]="teamsMeetingResult.joinUrl" target="_blank" style="font-size: 0.85rem; color: #6264A7; margin-left: 6px; word-break: break-all;">
+                    {{ teamsMeetingResult.joinUrl }}
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </div>

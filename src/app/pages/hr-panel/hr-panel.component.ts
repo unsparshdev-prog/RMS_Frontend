@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { HeroService } from '../../hero.service';
 import { AuthService } from '../../auth.service';
 
@@ -40,10 +41,11 @@ export class HrPanelComponent implements OnInit {
   toastMessage = '';
   toastType: 'success' | 'error' = 'success';
 
-  constructor(private heroService: HeroService, private auth: AuthService, private router: Router) {}
+  constructor(private heroService: HeroService, private auth: AuthService, private router: Router, private http: HttpClient) {}
 
   ngOnInit() {
     this.loadJobs();
+    this.loadInterviewPanels();
   }
 
   logout(): void {
@@ -98,74 +100,182 @@ export class HrPanelComponent implements OnInit {
   ];
 
   // --- Interview Panel Data ---
-  panelMembers = [
-    { id: 1, name: 'Rajesh Kumar', role: 'Engineering Manager', department: 'Engineering', expertise: 'System Design, DSA', avatar: 'RK', status: 'active', interviewsConducted: 48 },
-    { id: 2, name: 'Priya Sharma', role: 'Senior Developer', department: 'Engineering', expertise: 'Frontend, React, Angular', avatar: 'PS', status: 'active', interviewsConducted: 35 },
-    { id: 3, name: 'Amit Verma', role: 'Tech Lead', department: 'Engineering', expertise: 'Backend, Microservices', avatar: 'AV', status: 'active', interviewsConducted: 62 },
-    { id: 4, name: 'Sneha Patel', role: 'HR Business Partner', department: 'HR & Ops', expertise: 'Culture Fit, Behavioral', avatar: 'SP', status: 'active', interviewsConducted: 90 },
-    { id: 5, name: 'Vikram Joshi', role: 'Product Manager', department: 'Product', expertise: 'Product Sense, Strategy', avatar: 'VJ', status: 'inactive', interviewsConducted: 22 },
-    { id: 6, name: 'Neha Gupta', role: 'Design Lead', department: 'Design', expertise: 'UI/UX, Portfolio Review', avatar: 'NG', status: 'active', interviewsConducted: 41 }
-  ];
-
+  isLoadingPanels = false;
+  interviewPanels: any[] = [];
   showAddPanelModal = false;
-  newPanelist = { name: '', role: '', department: 'Engineering', expertise: '' };
+  showEditPanelModal = false;
+  editingPanel: any = null;
+  newPanelForm = {
+    panel_id: '',
+    interview_id: '',
+    interviewer_id: '',
+    interviewer_name: '',
+    feedback: '',
+    rating: '',
+    task_id: '',
+    temp1: '',
+    temp2: '',
+    temp3: '',
+    temp4: '',
+    temp5: ''
+  };
   panelSearchQuery = '';
 
   get activePanelistCount() {
-    return this.panelMembers.filter(m => m.status === 'active').length;
+    return this.interviewPanels.filter(m => this.getExt(m.temp1) === 'active').length;
   }
 
   get inactivePanelistCount() {
-    return this.panelMembers.filter(m => m.status === 'inactive').length;
+    return this.interviewPanels.filter(m => this.getExt(m.temp1) === 'inactive').length;
   }
 
-  get filteredPanelMembers() {
-    if (!this.panelSearchQuery.trim()) return this.panelMembers;
-    const q = this.panelSearchQuery.toLowerCase();
-    return this.panelMembers.filter(m =>
-      m.name.toLowerCase().includes(q) ||
-      m.role.toLowerCase().includes(q) ||
-      m.department.toLowerCase().includes(q) ||
-      m.expertise.toLowerCase().includes(q)
-    );
+  get filteredInterviewPanels() {
+    let filtered = this.interviewPanels;
+    if (this.panelSearchQuery.trim()) {
+      const q = this.panelSearchQuery.toLowerCase();
+      filtered = this.interviewPanels.filter(m =>
+        this.getExt(m.interviewer_name).toLowerCase().includes(q) ||
+        this.getExt(m.interviewer_id).toLowerCase().includes(q) ||
+        this.getExt(m.temp2).toLowerCase().includes(q) ||
+        this.getExt(m.temp3).toLowerCase().includes(q)
+      );
+    }
+    return filtered;
   }
 
-  togglePanelMemberStatus(member: any) {
-    member.status = member.status === 'active' ? 'inactive' : 'active';
+  // --- Pagination Logic ---
+  interviewPanelCurrentPage = 1;
+  interviewPanelPageSize = 5;
+
+  get paginatedInterviewPanels() {
+    const start = (this.interviewPanelCurrentPage - 1) * this.interviewPanelPageSize;
+    return this.filteredInterviewPanels.slice(start, start + this.interviewPanelPageSize);
+  }
+
+  get interviewPanelTotalPages() {
+    return Math.max(1, Math.ceil(this.filteredInterviewPanels.length / this.interviewPanelPageSize));
+  }
+
+  changeInterviewPanelPage(delta: number) {
+    const newPage = this.interviewPanelCurrentPage + delta;
+    if (newPage >= 1 && newPage <= this.interviewPanelTotalPages) {
+      this.interviewPanelCurrentPage = newPage;
+    }
+  }
+
+  onPanelSearchChange() {
+    this.interviewPanelCurrentPage = 1;
+  }
+
+  async loadInterviewPanels() {
+    this.isLoadingPanels = true;
+    try {
+      const resp = await this.heroService.getInterviewPanels();
+      let data = this.heroService.xmltojson(resp, 'tuple');
+      if (!data) data = this.heroService.xmltojson(resp, 'interview_panel');
+      if (!data) data = [];
+      const arr = Array.isArray(data) ? data : [data];
+      this.interviewPanels = arr.map((t: any) => {
+        const p = t.new?.interview_panel || t.old?.interview_panel || t.interview_panel || t;
+        return { raw: p };
+      }).filter((p: any) => p.raw && Object.keys(p.raw).length > 0);
+      console.log('[HrPanel] Loaded interview panels:', this.interviewPanels);
+    } catch (e) {
+      console.error('[HrPanel] Error loading interview panels:', e);
+      this.showToast('Failed to load interview panels.', 'error');
+    } finally {
+      this.isLoadingPanels = false;
+    }
+  }
+
+  getExt(field: any): string {
+    if (!field) return '';
+    if (typeof field === 'string') return field;
+    if (field.text) return field.text;
+    if (field['#text']) return field['#text'];
+    return String(field);
   }
 
   openAddPanelModal() {
     this.showAddPanelModal = true;
-    this.newPanelist = { name: '', role: '', department: 'Engineering', expertise: '' };
+    this.newPanelForm = {
+      panel_id: '', interview_id: '', interviewer_id: '', interviewer_name: '',
+      feedback: '', rating: '', task_id: '', temp1: '', temp2: '', temp3: '', temp4: '', temp5: ''
+    };
+  }
+
+  openEditPanelModal(panel: any) {
+    this.editingPanel = panel;
+    this.showEditPanelModal = true;
+    this.newPanelForm = {
+      panel_id: this.getExt(panel.raw?.panel_id),
+      interview_id: this.getExt(panel.raw?.interview_id),
+      interviewer_id: this.getExt(panel.raw?.interviewer_id),
+      interviewer_name: this.getExt(panel.raw?.interviewer_name),
+      feedback: this.getExt(panel.raw?.feedback),
+      rating: this.getExt(panel.raw?.rating),
+      task_id: this.getExt(panel.raw?.task_id),
+      temp1: this.getExt(panel.raw?.temp1),
+      temp2: this.getExt(panel.raw?.temp2),
+      temp3: this.getExt(panel.raw?.temp3),
+      temp4: this.getExt(panel.raw?.temp4),
+      temp5: this.getExt(panel.raw?.temp5)
+    };
   }
 
   closeAddPanelModal() {
     this.showAddPanelModal = false;
+    this.showEditPanelModal = false;
+    this.editingPanel = null;
   }
 
-  addPanelist() {
-    if (this.newPanelist.name && this.newPanelist.role) {
-      const initials = this.newPanelist.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2);
-      this.panelMembers.push({
-        id: this.panelMembers.length + 1,
-        name: this.newPanelist.name,
-        role: this.newPanelist.role,
-        department: this.newPanelist.department,
-        expertise: this.newPanelist.expertise,
-        avatar: initials,
-        status: 'active',
-        interviewsConducted: 0
+  async addPanelist() {
+    if (!this.newPanelForm.panel_id || !this.newPanelForm.interviewer_id) {
+      this.showToast('Panel ID and Interviewer ID are required.', 'error');
+      return;
+    }
+    try {
+      await this.heroService.createInterviewPanel({
+        ...this.newPanelForm,
+        created_at: new Date().toISOString(),
+        created_by: sessionStorage.getItem('displayName') || 'HR'
       });
+      this.showToast('Interview panel created successfully!', 'success');
       this.closeAddPanelModal();
+      this.loadInterviewPanels();
+    } catch (e) {
+      console.error('Error creating interview panel:', e);
+      this.showToast('Failed to create interview panel.', 'error');
     }
   }
 
-  removePanelist(id: number) {
-    this.panelMembers = this.panelMembers.filter(m => m.id !== id);
+  async updatePanelist() {
+    if (!this.editingPanel) return;
+    try {
+      await this.heroService.updateInterviewPanel(this.editingPanel.raw, this.newPanelForm);
+      this.showToast('Interview panel updated successfully!', 'success');
+      this.closeAddPanelModal();
+      this.loadInterviewPanels();
+    } catch (e) {
+      console.error('Error updating interview panel:', e);
+      this.showToast('Failed to update interview panel.', 'error');
+    }
+  }
+
+  async removePanelist(panel: any) {
+    if (!confirm('Are you sure you want to remove this interview panel?')) return;
+    try {
+      await this.heroService.deleteInterviewPanel(panel.raw);
+      this.showToast('Interview panel removed successfully!', 'success');
+      this.loadInterviewPanels();
+    } catch (e) {
+      console.error('Error removing interview panel:', e);
+      this.showToast('Failed to remove interview panel.', 'error');
+    }
   }
 
   // --- Scheduling Data (Calendly-like) ---
-  schedulingSubTab: 'event-types' | 'single-use' | 'meeting-polls' = 'event-types';
+  schedulingSubTab: 'event-types' | 'single-use' | 'meeting-polls' | 'teams-meeting' = 'event-types';
   schedulingSearchQuery = '';
   showCreateEventModal = false;
 
@@ -221,6 +331,62 @@ export class HrPanelComponent implements OnInit {
 
   deleteEvent(id: number) {
     this.eventTypes = this.eventTypes.filter(e => e.id !== id);
+  }
+
+  // --- Teams Meeting (Demo) ---
+  private readonly TEAMS_API = 'http://localhost:3001/api/teams/meeting';
+
+  teamsMeeting = {
+    subject: '',
+    startTime: '',
+    endTime: '',
+    attendees: '' as string | string[]
+  };
+  isCreatingMeeting = false;
+  teamsMeetingResult: { joinUrl: string; eventId: string } | null = null;
+
+  scheduleTeamsMeeting() {
+    if (!this.teamsMeeting.subject || !this.teamsMeeting.startTime || !this.teamsMeeting.endTime) {
+      this.showToast('Please fill in Subject, Start Time, and End Time.', 'error');
+      return;
+    }
+
+    const attendeesList = typeof this.teamsMeeting.attendees === 'string'
+      ? this.teamsMeeting.attendees.split(',').map((e: string) => e.trim()).filter(Boolean)
+      : this.teamsMeeting.attendees;
+
+    if (attendeesList.length === 0) {
+      this.showToast('Please add at least one attendee email.', 'error');
+      return;
+    }
+
+    const payload = {
+      subject: this.teamsMeeting.subject,
+      startTime: new Date(this.teamsMeeting.startTime).toISOString(),
+      endTime: new Date(this.teamsMeeting.endTime).toISOString(),
+      attendees: attendeesList
+    };
+
+    this.isCreatingMeeting = true;
+    this.teamsMeetingResult = null;
+
+    this.http.post<any>(this.TEAMS_API, payload).subscribe({
+      next: (res) => {
+        this.teamsMeetingResult = { joinUrl: res.joinUrl, eventId: res.eventId };
+        this.showToast('Teams meeting created successfully!', 'success');
+        this.isCreatingMeeting = false;
+      },
+      error: (err) => {
+        const detail = err.error?.detail || err.message || 'Unknown error';
+        this.showToast(`Failed to create meeting: ${detail}`, 'error');
+        this.isCreatingMeeting = false;
+      }
+    });
+  }
+
+  resetTeamsForm() {
+    this.teamsMeeting = { subject: '', startTime: '', endTime: '', attendees: '' };
+    this.teamsMeetingResult = null;
   }
 
   setActiveTab(tabName: string) {
@@ -536,6 +702,13 @@ export class HrPanelComponent implements OnInit {
             raw: record
           };
         });
+        
+        // Sort newest first based on ID (assuming sequential)
+        this.jobsList.sort((a, b) => {
+          const idA = parseInt(String(a.id).replace(/\D/g, '')) || 0;
+          const idB = parseInt(String(b.id).replace(/\D/g, '')) || 0;
+          return idB - idA;
+        });
       }
       console.log('[HrPanel] Loaded jobs:', this.jobsList);
     } catch (e) {
@@ -608,14 +781,41 @@ export class HrPanelComponent implements OnInit {
   }
 
   get filteredJobs() {
-    if (!this.jobsSearchQuery.trim()) return this.jobsList;
-    const q = this.jobsSearchQuery.toLowerCase();
-    return this.jobsList.filter(j => 
-      j.title.toLowerCase().includes(q) || 
-      j.department.toLowerCase().includes(q) ||
-      j.status.toLowerCase().includes(q) ||
-      j.location.toLowerCase().includes(q)
-    );
+    let filtered = this.jobsList;
+    if (this.jobsSearchQuery.trim()) {
+      const q = this.jobsSearchQuery.toLowerCase();
+      filtered = this.jobsList.filter(j => 
+        j.title.toLowerCase().includes(q) || 
+        j.department.toLowerCase().includes(q) ||
+        j.status.toLowerCase().includes(q) ||
+        j.location.toLowerCase().includes(q)
+      );
+    }
+    return filtered;
+  }
+
+  // --- Pagination Logic for Jobs ---
+  jobsCurrentPage = 1;
+  jobsPageSize = 5;
+
+  get paginatedJobs() {
+    const start = (this.jobsCurrentPage - 1) * this.jobsPageSize;
+    return this.filteredJobs.slice(start, start + this.jobsPageSize);
+  }
+
+  get jobsTotalPages() {
+    return Math.max(1, Math.ceil(this.filteredJobs.length / this.jobsPageSize));
+  }
+
+  changeJobsPage(delta: number) {
+    const newPage = this.jobsCurrentPage + delta;
+    if (newPage >= 1 && newPage <= this.jobsTotalPages) {
+      this.jobsCurrentPage = newPage;
+    }
+  }
+
+  onJobsSearchChange() {
+    this.jobsCurrentPage = 1;
   }
 }
 
