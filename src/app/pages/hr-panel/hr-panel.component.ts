@@ -46,6 +46,7 @@ export class HrPanelComponent implements OnInit {
   ngOnInit() {
     this.loadJobs();
     this.loadInterviewPanels();
+    this.loadCandidates();
   }
 
   logout(): void {
@@ -120,6 +121,21 @@ export class HrPanelComponent implements OnInit {
     temp5: ''
   };
   panelSearchQuery = '';
+
+  // --- New Interview Form Data ---
+  employeesList: any[] = [];
+  jobCandidates: any[] = [];
+  selectedJobId: string = '';
+  selectedCandidateIds: string[] = [];
+  selectedInterviewerIds: string[] = [];
+  isLoadingEmployees = false;
+  interviewSchedule = {
+    round: 'Round 1',
+    scheduled_date: '',
+    scheduled_time: '',
+    meeting_link: ''
+  };
+  isSubmittingInterview = false;
 
   get activePanelistCount() {
     return this.interviewPanels.filter(m => this.getExt(m.temp1) === 'active').length;
@@ -227,6 +243,262 @@ export class HrPanelComponent implements OnInit {
     this.showAddPanelModal = false;
     this.showEditPanelModal = false;
     this.editingPanel = null;
+    // Reset new interview form
+    this.selectedJobId = '';
+    this.selectedCandidateIds = [];
+    this.selectedInterviewerIds = [];
+    this.jobCandidates = [];
+    this.interviewSchedule = {
+      round: 'Round 1',
+      scheduled_date: '',
+      scheduled_time: '',
+      meeting_link: ''
+    };
+  }
+
+  getJobTitleById(jrId: string): string {
+    const job = this.jobsList.find(j => j.jr_id === jrId);
+    return job ? job.job_title : '';
+  }
+
+  async openAddPanelModalWithInterview() {
+    this.showAddPanelModal = true;
+    this.selectedJobId = '';
+    this.selectedCandidateIds = [];
+    this.selectedInterviewerIds = [];
+    this.jobCandidates = [];
+    this.interviewSchedule = {
+      round: 'Round 1',
+      scheduled_date: '',
+      scheduled_time: '',
+      meeting_link: ''
+    };
+    
+    // Load jobs and employees in parallel
+    await Promise.all([
+      this.loadJobsForInterview(),
+      this.loadEmployeesForInterview()
+    ]);
+  }
+
+  async loadJobsForInterview() {
+    try {
+      const resp = await this.heroService.getJobRequisitions();
+      const jobData = this.heroService.xmltojson(resp, 'job_requisition');
+      const jobsArray = jobData ? (Array.isArray(jobData) ? jobData : [jobData]) : [];
+      
+      const ext = (field: any) => field?.text || field?.['#text'] || field || '';
+      
+      this.jobsList = jobsArray.map((j: any) => {
+        const record = j.old || j.new || j;
+        return {
+          jr_id: ext(record.jr_id),
+          job_title: ext(record.job_title),
+          department: ext(record.department),
+          location: ext(record.location),
+          status: ext(record.status),
+          raw: record
+        };
+      }).filter((j: any) => j.jr_id);
+      
+      console.log('[HrPanel] Loaded jobs for interview:', this.jobsList);
+    } catch (e) {
+      console.error('[HrPanel] Error loading jobs:', e);
+    }
+  }
+
+  async loadEmployeesForInterview() {
+    this.isLoadingEmployees = true;
+    try {
+      const resp = await this.heroService.getEmployees();
+      const empData = this.heroService.xmltojson(resp, 'tuple');
+      const empArray = empData ? (Array.isArray(empData) ? empData : [empData]) : [];
+      
+      const ext = (field: any) => field?.text || field?.['#text'] || field || '';
+      
+      this.employeesList = empArray.map((e: any) => {
+        const record = e.old?.employee || e.new?.employee || e.employee || e;
+        return {
+          employee_id: ext(record.employee_id),
+          employee_name: ext(record.employee_name),
+          email: ext(record.email),
+          department: ext(record.department),
+          designation: ext(record.designation),
+          raw: record
+        };
+      }).filter((e: any) => e.employee_id);
+      
+      console.log('[HrPanel] Loaded employees:', this.employeesList);
+    } catch (e) {
+      console.error('[HrPanel] Error loading employees:', e);
+    } finally {
+      this.isLoadingEmployees = false;
+    }
+  }
+
+  async onJobSelectForInterview() {
+    if (!this.selectedJobId) {
+      this.jobCandidates = [];
+      this.selectedCandidateIds = [];
+      return;
+    }
+    
+    this.isLoadingCandidates = true;
+    try {
+      const resp = await this.heroService.getCandidatesForJob(this.selectedJobId);
+      const appData = this.heroService.xmltojson(resp, 'tuple');
+      const appArray = appData ? (Array.isArray(appData) ? appData : [appData]) : [];
+      
+      const ext = (field: any) => field?.text || field?.['#text'] || field || '';
+      
+      this.jobCandidates = appArray.map((a: any) => {
+        const record = a.old?.candidate_job_application || a.new?.candidate_job_application || a.candidate_job_application || a;
+        const name = ext(record.candidate_name) || ext(record.candidate_id) || 'Unknown';
+        const nameParts = name.split(' ');
+        const initials = nameParts.map((n: string) => n[0]).join('').toUpperCase().substring(0, 2);
+        
+        return {
+          application_id: ext(record.application_id),
+          candidate_id: ext(record.candidate_id),
+          candidate_name: name,
+          avatar: initials,
+          applied_date: ext(record.applied_date),
+          status: ext(record.application_status),
+          stage: ext(record.stage),
+          raw: record
+        };
+      }).filter((c: any) => c.application_id);
+      
+      this.selectedCandidateIds = [];
+      console.log('[HrPanel] Loaded candidates for job:', this.jobCandidates);
+    } catch (e) {
+      console.error('[HrPanel] Error loading candidates for job:', e);
+      this.showToast('Failed to load candidates for selected job.', 'error');
+    } finally {
+      this.isLoadingCandidates = false;
+    }
+  }
+
+  toggleCandidateSelection(candidateId: string) {
+    const index = this.selectedCandidateIds.indexOf(candidateId);
+    if (index > -1) {
+      this.selectedCandidateIds.splice(index, 1);
+    } else {
+      this.selectedCandidateIds.push(candidateId);
+    }
+  }
+
+  isCandidateSelected(candidateId: string): boolean {
+    return this.selectedCandidateIds.includes(candidateId);
+  }
+
+  toggleInterviewerSelection(employeeId: string, employeeName: string) {
+    const index = this.selectedInterviewerIds.indexOf(employeeId);
+    if (index > -1) {
+      this.selectedInterviewerIds.splice(index, 1);
+    } else {
+      this.selectedInterviewerIds.push(employeeId);
+    }
+  }
+
+  isInterviewerSelected(employeeId: string): boolean {
+    return this.selectedInterviewerIds.includes(employeeId);
+  }
+
+  async createInterviews() {
+    // Validation
+    if (!this.selectedJobId) {
+      this.showToast('Please select a job.', 'error');
+      return;
+    }
+    if (this.selectedCandidateIds.length === 0) {
+      this.showToast('Please select at least one candidate.', 'error');
+      return;
+    }
+    if (this.selectedInterviewerIds.length === 0) {
+      this.showToast('Please select at least one interviewer.', 'error');
+      return;
+    }
+    if (!this.interviewSchedule.scheduled_date || !this.interviewSchedule.scheduled_time) {
+      this.showToast('Please provide scheduled date and time.', 'error');
+      return;
+    }
+
+    this.isSubmittingInterview = true;
+    let successCount = 0;
+    let errorCount = 0;
+
+    try {
+      // For each selected candidate, create an interview and link all interviewers
+      for (const candidateId of this.selectedCandidateIds) {
+        try {
+          // Create interview
+          const interviewResp = await this.heroService.createInterview({
+            candidate_id: candidateId,
+            jr_id: this.selectedJobId,
+            round: this.interviewSchedule.round,
+            scheduled_date: this.interviewSchedule.scheduled_date,
+            scheduled_time: this.interviewSchedule.scheduled_time,
+            meeting_link: this.interviewSchedule.meeting_link,
+            status: 'SCHEDULED'
+          });
+
+          // Extract the created interview_id from response
+          const interviewId = this.heroService.xmltojson(interviewResp, 'interview_id');
+          
+          if (!interviewId) {
+            console.warn('[HrPanel] No interview_id returned for candidate:', candidateId);
+            errorCount++;
+            continue;
+          }
+
+          // Create interview panel for each selected interviewer
+          for (const interviewerId of this.selectedInterviewerIds) {
+            const interviewer = this.employeesList.find(e => e.employee_id === interviewerId);
+            const interviewerName = interviewer?.employee_name || interviewerId;
+
+            await this.heroService.createInterviewPanel({
+              panel_id: this.generateId(),
+              interview_id: interviewId,
+              interviewer_id: interviewerId,
+              interviewer_name: interviewerName,
+              feedback: '',
+              rating: '',
+              task_id: '',
+              temp1: 'active',
+              temp2: '',
+              temp3: '',
+              temp4: '',
+              temp5: '',
+              created_at: new Date().toISOString(),
+              created_by: sessionStorage.getItem('displayName') || 'HR'
+            });
+          }
+
+          successCount++;
+        } catch (e) {
+          console.error('[HrPanel] Error creating interview for candidate:', candidateId, e);
+          errorCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        this.showToast(`Successfully created ${successCount} interview(s)!`, 'success');
+        this.closeAddPanelModal();
+        this.loadInterviewPanels();
+      } else {
+        this.showToast('Failed to create interviews. Please try again.', 'error');
+      }
+    } catch (e) {
+      console.error('[HrPanel] Error in createInterviews:', e);
+      this.showToast('Failed to create interviews. Please try again.', 'error');
+    } finally {
+      this.isSubmittingInterview = false;
+    }
+  }
+
+  generateId(): string {
+    return 'PAN-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
   }
 
   async addPanelist() {
@@ -471,16 +743,8 @@ export class HrPanelComponent implements OnInit {
     { id: 'joined', name: 'Joined', icon: 'fas fa-check-circle', color: '#10B981' }
   ];
 
-  candidates: any[] = [
-    { id: 1, name: 'Aarav Mehta', role: 'Senior Frontend Developer', department: 'Engineering', avatar: 'AM', stage: 'applied', appliedDate: '2026-03-10', score: 87, skills: ['Angular', 'TypeScript', 'CSS'], email: 'aarav.m@example.com', phone: '+91 98765 43210', experience: '5 years' },
-    { id: 2, name: 'Diya Sharma', role: 'Product Designer', department: 'Design', avatar: 'DS', stage: 'applied', appliedDate: '2026-03-12', score: 92, skills: ['Figma', 'UI/UX', 'Prototyping'], email: 'diya.s@example.com', phone: '+91 87654 32109', experience: '4 years' },
-    { id: 3, name: 'Rohan Patel', role: 'Backend Engineer', department: 'Engineering', avatar: 'RP', stage: 'screened', appliedDate: '2026-03-05', score: 78, skills: ['Java', 'Microservices', 'SQL'], email: 'rohan.p@example.com', phone: '+91 76543 21098', experience: '3 years' },
-    { id: 4, name: 'Ananya Gupta', role: 'QA Analyst', department: 'Engineering', avatar: 'AG', stage: 'screened', appliedDate: '2026-03-08', score: 81, skills: ['Selenium', 'JIRA', 'API Testing'], email: 'ananya.g@example.com', phone: '+91 65432 10987', experience: '2 years' },
-    { id: 5, name: 'Vikram Singh', role: 'DevOps Engineer', department: 'Engineering', avatar: 'VS', stage: 'interviewing', appliedDate: '2026-02-28', score: 90, skills: ['Docker', 'K8s', 'AWS'], email: 'vikram.s@example.com', phone: '+91 54321 09876', experience: '6 years' },
-    { id: 6, name: 'Priya Nair', role: 'HR Coordinator', department: 'HR & Ops', avatar: 'PN', stage: 'interviewing', appliedDate: '2026-03-01', score: 85, skills: ['Recruitment', 'Onboarding', 'Compliance'], email: 'priya.n@example.com', phone: '+91 43210 98765', experience: '3 years' },
-    { id: 7, name: 'Karthik Rao', role: 'Data Analyst', department: 'Product', avatar: 'KR', stage: 'offered', appliedDate: '2026-02-20', score: 94, skills: ['Python', 'SQL', 'Tableau'], email: 'karthik.r@example.com', phone: '+91 32109 87654', experience: '4 years' },
-    { id: 8, name: 'Meera Joshi', role: 'Full Stack Developer', department: 'Engineering', avatar: 'MJ', stage: 'applied', appliedDate: '2026-03-14', score: 76, skills: ['React', 'Node.js', 'MongoDB'], email: 'meera.j@example.com', phone: '+91 21098 76543', experience: '2 years' }
-  ];
+  isLoadingCandidates = false;
+  candidates: any[] = [];
 
   pipelineSearchQuery = '';
   selectedCandidate: any = null;
@@ -538,7 +802,7 @@ export class HrPanelComponent implements OnInit {
     this.draggedCandidate = candidate;
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move';
-      event.dataTransfer.setData('text/plain', candidate.id.toString());
+      event.dataTransfer.setData('text/plain', candidate.application_id?.toString() || '');
     }
   }
 
@@ -578,9 +842,104 @@ export class HrPanelComponent implements OnInit {
     this.dragOverStage = '';
   }
 
-  confirmMove() {
+  async loadCandidates() {
+    this.isLoadingCandidates = true;
+    try {
+      const [candidatesResp, applicationsResp] = await Promise.all([
+        this.heroService.getCandidates(),
+        this.heroService.getCandidateApplications()
+      ]);
+
+      const candidatesData = this.heroService.xmltojson(candidatesResp, 'tuple');
+      const applicationsData = this.heroService.xmltojson(applicationsResp, 'tuple');
+
+      const candidatesArr = candidatesData ? (Array.isArray(candidatesData) ? candidatesData : [candidatesData]) : [];
+      const applicationsArr = applicationsData ? (Array.isArray(applicationsData) ? applicationsData : [applicationsData]) : [];
+
+      const candidateMap = new Map<string, any>();
+      candidatesArr.forEach((t: any) => {
+        const c = t.old?.candidate || t.new?.candidate || t.candidate || t;
+        if (c && c.candidate_id) {
+          const ext = (field: any) => field?.text || field?.['#text'] || field || '';
+          candidateMap.set(ext(c.candidate_id), c);
+        }
+      });
+
+      const ext = (field: any) => field?.text || field?.['#text'] || field || '';
+
+      this.candidates = applicationsArr.map((t: any) => {
+        const app = t.old?.candidate_job_application || t.new?.candidate_job_application || t.candidate_job_application || t;
+        const candidateId = ext(app.candidate_id);
+        const candidate = candidateMap.get(candidateId) || {};
+
+        const stage = ext(app.stage) || 'applied';
+        const name = ext(candidate.name) || ext(candidate.candidate_name) || `Candidate ${candidateId}`;
+        const nameParts = name.split(' ');
+        const initials = nameParts.map((n: string) => n[0]).join('').toUpperCase().substring(0, 2);
+
+        const skillsStr = ext(candidate.skills) || '';
+        const skills = skillsStr ? skillsStr.split(',').map((s: string) => s.trim()) : [];
+
+        return {
+          application_id: ext(app.application_id),
+          candidate_id: candidateId,
+          name: name,
+          avatar: initials,
+          role: ext(candidate.designation) || ext(candidate.position) || 'Not specified',
+          department: ext(app.department) || ext(candidate.department) || 'General',
+          stage: stage.toLowerCase(),
+          appliedDate: ext(app.applied_date) || ext(app.created_at) || new Date().toISOString().split('T')[0],
+          score: parseInt(ext(candidate.score) || '0', 10) || 0,
+          skills: skills,
+          email: ext(candidate.email) || '',
+          phone: ext(candidate.phone) || '',
+          experience: ext(candidate.experience) || '0 years',
+          raw: { candidate, application: app }
+        };
+      }).filter((c: any) => c.candidate_id && c.name);
+
+      console.log('[HrPanel] Loaded candidates:', this.candidates);
+    } catch (e) {
+      console.error('[HrPanel] Error loading candidates:', e);
+      this.showToast('Failed to load candidates from server.', 'error');
+    } finally {
+      this.isLoadingCandidates = false;
+    }
+  }
+
+  async confirmMove() {
     if (this.pendingMove) {
-      this.pendingMove.candidate.stage = this.pendingMove.toStage;
+      const candidate = this.pendingMove.candidate;
+      const toStage = this.pendingMove.toStage;
+
+      const stageToStatus: { [key: string]: string } = {
+        'applied': 'APPLIED',
+        'screened': 'SCREENED',
+        'interviewing': 'IN_PROGRESS',
+        'offered': 'OFFERED',
+        'joined': 'JOINED'
+      };
+
+      const applicationStatus = stageToStatus[toStage] || toStage.toUpperCase();
+
+      try {
+        const oldApp = candidate.raw?.application || candidate;
+        await this.heroService.updateCandidateApplication(
+          oldApp,
+          { application_status: applicationStatus, stage: toStage }
+        );
+
+        const idx = this.candidates.findIndex(c => c.application_id === candidate.application_id);
+        if (idx !== -1) {
+          this.candidates[idx].stage = toStage;
+        }
+
+        this.showToast(`Candidate moved to ${this.getStageName(toStage)} successfully!`, 'success');
+      } catch (e) {
+        console.error('[HrPanel] Error moving candidate:', e);
+        this.showToast('Failed to move candidate. Please try again.', 'error');
+      }
+
       this.pendingMove = null;
     }
     this.showConfirmModal = false;
@@ -611,13 +970,13 @@ export class HrPanelComponent implements OnInit {
       this.showToast('You can compare up to 4 candidates at a time.', 'error');
       return;
     }
-    if (!this.comparatorList.some(c => c.id === candidate.id)) {
+    if (!this.comparatorList.some(c => c.application_id === candidate.application_id)) {
       this.comparatorList.push(candidate);
     }
   }
 
-  removeFromComparator(id: number) {
-    this.comparatorList = this.comparatorList.filter(c => c.id !== id);
+  removeFromComparator(applicationId: string) {
+    this.comparatorList = this.comparatorList.filter(c => c.application_id !== applicationId);
   }
 
   openComparator() {

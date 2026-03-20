@@ -489,6 +489,71 @@ export class HeroService {
     return this.ajax('UpdateInterview_panel', 'http://schemas.cordys.com/RMS_DB_Metadata', payload);
   }
 
+  // ===================== CANDIDATE PIPELINE SERVICES =====================
+
+  getCandidates(): Promise<any> {
+    return this.ajax('GetCandidateObjects', 'http://schemas.cordys.com/RMS_DB_Metadata', {
+      preserveSpace: 'no',
+      qAccess: '0',
+      qValues: '',
+      cursor: {
+        '@id': '0',
+        '@position': '0',
+        '@numRows': '',
+        '@maxRows': '99999',
+        '@sameConnection': 'false'
+      },
+      fromCandidate_id: '0',
+      toCandidate_id: 'zzzzzzzzzz'
+    });
+  }
+
+  getCandidateApplications(): Promise<any> {
+    return this.ajax('GetCandidate_job_applicationObjects', 'http://schemas.cordys.com/RMS_DB_Metadata', {
+      preserveSpace: 'no',
+      qAccess: '0',
+      qValues: '',
+      cursor: {
+        '@id': '0',
+        '@position': '0',
+        '@numRows': '',
+        '@maxRows': '99999',
+        '@sameConnection': 'false'
+      },
+      fromApplication_id: '1',
+      toApplication_id: '9999999'
+    });
+  }
+
+  updateCandidateApplication(oldApp: any, newApp: any): Promise<any> {
+    const ext = (field: any) => field?.text || field?.['#text'] || field || '';
+    const payload = {
+      reply: 'yes',
+      commandUpdate: 'no',
+      preserveSpace: 'no',
+      batchUpdate: 'no',
+      tuple: {
+        old: {
+          candidate_job_application: {
+            application_id: ext(oldApp.application_id),
+            candidate_id: ext(oldApp.candidate_id),
+            jr_id: ext(oldApp.jr_id)
+          }
+        },
+        new: {
+          candidate_job_application: {
+            application_id: ext(oldApp.application_id),
+            candidate_id: ext(oldApp.candidate_id),
+            jr_id: ext(oldApp.jr_id),
+            application_status: newApp.application_status,
+            stage: newApp.stage
+          }
+        }
+      }
+    };
+    return this.ajax('UpdateCandidate_job_application', 'http://schemas.cordys.com/RMS_DB_Metadata', payload);
+  }
+
   showAllJobRequisition(): Promise<any> {
     return this.ajax('ShowAllJobRequisition', 'http://schemas.cordys.com/RMS_DB_Metadata', {
       preserveSpace: 'no',
@@ -607,6 +672,157 @@ export class HeroService {
       qAccess: '0',
       qValues: ''
     });
+  }
+
+  // ===================== INTERVIEW PANEL SERVICES =====================
+
+  /**
+   * Get all job requisitions for dropdown
+   */
+  getJobRequisitions(): Promise<any> {
+    return this.ajax('GetJob_requisitionObjects', 'http://schemas.cordys.com/RMS_DB_Metadata', {
+      preserveSpace: 'no',
+      qAccess: '0',
+      qValues: '',
+      cursor: {
+        '@id': '0',
+        '@position': '0',
+        '@numRows': '',
+        '@maxRows': '99999',
+        '@sameConnection': 'false'
+      },
+      fromJr_id: '0',
+      toJr_id: 'zzzzzzzzzz'
+    });
+  }
+
+  /**
+   * Get candidates who applied for a specific job
+   */
+  getCandidatesForJob(jrId: string): Promise<any> {
+    return this.ajax('GetCandidate_job_applicationObjectsForjr_id', 'http://schemas.cordys.com/RMS_DB_Metadata', {
+      Jr_id: jrId,
+      preserveSpace: 'no',
+      qAccess: '0',
+      qValues: ''
+    });
+  }
+
+  /**
+   * Get all employees (for interviewer dropdown)
+   */
+  getEmployees(): Promise<any> {
+    return this.ajax('GetEmployeeObjects', 'http://schemas.cordys.com/RMS_DB_Metadata', {
+      preserveSpace: 'no',
+      qAccess: '0',
+      qValues: '',
+      cursor: {
+        '@id': '0',
+        '@position': '0',
+        '@numRows': '',
+        '@maxRows': '99999',
+        '@sameConnection': 'false'
+      },
+      fromEmployee_id: '0',
+      toEmployee_id: 'zzzzzzzzzz'
+    });
+  }
+
+  /**
+   * Create a new interview (for a single candidate)
+   */
+  createInterview(data: {
+    candidate_id: string;
+    jr_id: string;
+    round: string;
+    scheduled_date: string;
+    scheduled_time: string;
+    meeting_link: string;
+    status: string;
+    task_id?: string;
+    temp1?: string;
+    temp2?: string;
+    temp3?: string;
+    temp4?: string;
+    temp5?: string;
+  }): Promise<any> {
+    const payload = {
+      reply: 'yes',
+      commandUpdate: 'no',
+      preserveSpace: 'no',
+      batchUpdate: 'no',
+      tuple: {
+        new: {
+          interview: {
+            candidate_id: data.candidate_id || '',
+            jr_id: data.jr_id || '',
+            round: data.round || '',
+            scheduled_date: data.scheduled_date || '',
+            scheduled_time: data.scheduled_time || '',
+            meeting_link: data.meeting_link || '',
+            final_score: '',
+            status: data.status || 'SCHEDULED',
+            task_id: data.task_id || '',
+            temp1: data.temp1 || '',
+            temp2: data.temp2 || '',
+            temp3: data.temp3 || '',
+            temp4: data.temp4 || '',
+            temp5: data.temp5 || '',
+            created_at: new Date().toISOString(),
+            created_by: sessionStorage.getItem('displayName') || 'HR',
+            modified_at: '',
+            modified_by: ''
+          }
+        }
+      }
+    };
+    return this.ajax('UpdateInterview', 'http://schemas.cordys.com/RMS_DB_Metadata', payload);
+  }
+
+  /**
+   * Update interview details
+   */
+  updateInterview(oldData: any, newData: any): Promise<any> {
+    const ext = (field: any) => field?.text || field?.['#text'] || field || '';
+    const payload = {
+      reply: 'yes',
+      commandUpdate: 'no',
+      preserveSpace: 'no',
+      batchUpdate: 'no',
+      tuple: {
+        old: {
+          interview: {
+            interview_id: ext(oldData.interview_id),
+            candidate_id: ext(oldData.candidate_id),
+            jr_id: ext(oldData.jr_id)
+          }
+        },
+        new: {
+          interview: {
+            interview_id: ext(oldData.interview_id),
+            candidate_id: ext(newData.candidate_id) || ext(oldData.candidate_id),
+            jr_id: ext(newData.jr_id) || ext(oldData.jr_id),
+            round: ext(newData.round) || '',
+            scheduled_date: ext(newData.scheduled_date) || '',
+            scheduled_time: ext(newData.scheduled_time) || '',
+            meeting_link: ext(newData.meeting_link) || '',
+            final_score: ext(newData.final_score) || '',
+            status: ext(newData.status) || 'SCHEDULED',
+            task_id: ext(newData.task_id) || '',
+            temp1: ext(newData.temp1) || '',
+            temp2: ext(newData.temp2) || '',
+            temp3: ext(newData.temp3) || '',
+            temp4: ext(newData.temp4) || '',
+            temp5: ext(newData.temp5) || '',
+            created_at: ext(oldData.created_at),
+            created_by: ext(oldData.created_by),
+            modified_at: new Date().toISOString(),
+            modified_by: sessionStorage.getItem('displayName') || 'HR'
+          }
+        }
+      }
+    };
+    return this.ajax('UpdateInterview', 'http://schemas.cordys.com/RMS_DB_Metadata', payload);
   }
 
   /**
