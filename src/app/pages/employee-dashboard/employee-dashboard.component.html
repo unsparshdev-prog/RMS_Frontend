@@ -52,9 +52,6 @@
         <p class="page-subtitle">Adnate IT Solutions — Employee Portal</p>
       </div>
       <div class="header-actions">
-        <div class="user-avatar">
-          <span>{{ loggedInUserInitial }}</span>
-        </div>
       </div>
     </header>
 
@@ -438,8 +435,8 @@
           </div>
         </div>
         <textarea class="feedback-textarea" [(ngModel)]="feedbackText" placeholder="Write your feedback about the candidate…" rows="4"></textarea>
-        <button class="btn-primary" (click)="submitFeedback()" [disabled]="isSubmittingFeedback">
-          {{ isSubmittingFeedback ? 'Submitting…' : 'Submit Feedback' }}
+        <button class="btn-primary" (click)="submitFeedback()" [disabled]="isSubmittingFeedback || selectedInterview?.feedback">
+          {{ isSubmittingFeedback ? 'Submitting…' : (selectedInterview?.feedback ? 'Feedback Submitted' : 'Submit Feedback') }}
         </button>
       </div>
     </div>
