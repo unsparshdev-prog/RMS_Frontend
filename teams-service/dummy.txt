@@ -1,0 +1,8 @@
+John Doe
+john.doe@example.com
++1 555 123 4567
+Experience:
+5 years at Google as Software Engineer
+Education:
+Bachelor of Science in Computer Science from MIT
+Skills: JavaScript, Node.js, Angular, TypeScript

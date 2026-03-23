@@ -150,6 +150,8 @@ export class ApplyJobsComponent implements OnInit {
           stage: 'Applied'
         };
 
+        const jobTitleForEmail = this.confirmJobTitle;
+
         this.heroService.updateCandidateJobApplication(applicationData)
           .then(() => {
             // SUCCESS RESPONSE - STEP 4
@@ -159,6 +161,60 @@ export class ApplyJobsComponent implements OnInit {
             };
             console.log(JSON.stringify(response, null, 2));
             this.toast.success(response.message);
+
+            // SEND MAIL FOR JOB APPLIED
+            const sessionEmail = sessionStorage.getItem('displayName') || '';
+            const subject = `Job Application Received: ${jobTitleForEmail}`;
+            const jobDetails = this.filteredJobs.find(j => j.id === jobId);
+            const companyName = jobDetails?.company || 'RMS';
+            const location = jobDetails?.location || 'Not Specified';
+
+            const getEmailBody = (candidateName: string) => ({
+               '@type': 'normal',
+               text: `Dear ${candidateName},\n\nThank you for applying for the ${jobTitleForEmail} position at ${companyName}.\n\nApplication Details:\n- Job Title: ${jobTitleForEmail}\n- Job ID: ${jobId}\n- Location: ${location}\n- Status: Applied\n- Applied On: ${new Date().toLocaleDateString()}\n\nOur HR team will review your application and get back to you with the next steps shortly.\n\nBest Regards,\nRMS Recruitment Team`
+            });
+
+            // Attempt to get candidate details from Candidates service
+            this.heroService.getCandidateObject(candidateId).then(cResp => {
+               const cData = this.heroService.xmltojson(cResp, 'candidate');
+               let finalEmail = sessionEmail;
+               let finalName = 'Candidate';
+
+               if (cData) {
+                 const cObj = Array.isArray(cData) ? cData[0] : cData;
+                 finalEmail = cObj.email || sessionEmail;
+                 finalName = cObj.name || finalEmail;
+               }
+
+               this.heroService.setEmailProfile().then(() => {
+                 return this.heroService.sendMail(
+                   finalEmail,
+                   finalName,
+                   'muditmwork@gmail.com',
+                   'Mudit Mathur',
+                   subject,
+                   getEmailBody(finalName) as any
+                 );
+               }).then(() => {
+                 console.log('Job Applied email notification sent successfully.');
+               }).catch(err => {
+                 console.error('Failed to send Job Applied email or set profile:', err);
+               });
+            }).catch(err => {
+               console.warn('Candidate fetch failed, falling back to session email', err);
+               this.heroService.setEmailProfile().then(() => {
+                 return this.heroService.sendMail(
+                   sessionEmail,
+                   sessionEmail,
+                   'muditmwork@gmail.com',
+                   'Mudit Mathur',
+                   subject,
+                   getEmailBody('Candidate') as any
+                 );
+               }).catch(mailErr => {
+                 console.error('Failed to send Job Applied email fallback:', mailErr);
+               });
+            });
           })
           .catch(err => {
             console.error('Error applying for job:', err);

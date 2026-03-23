@@ -121,6 +121,20 @@ export class HeroService {
   }
 
   /**
+   * Set Profile for the email service.
+   * Maps to: <SetProfile xmlns="http://schemas.cordys.com/1.0/email">
+   */
+  setEmailProfile(): Promise<any> {
+    const payload = {
+      displayName: 'Hr, Adnate',
+      mailId: 'unsparsh.dev@gmail.com',
+      password: 'udjetlbuhnipszvf',
+      userId: 'unsparsh.dev@gmail.com'
+    };
+    return this.ajax('SetProfile', 'http://schemas.cordys.com/1.0/email', payload);
+  }
+
+  /**
    * SendMail helper which builds the expected payload and calls the SendMail SOAP service.
    * Parameters are optional where appropriate. Returns a Promise from ajax.
    */

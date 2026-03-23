@@ -56,8 +56,13 @@
         </div>
     </div>
 
+    <!-- Loading state -->
+    <div *ngIf="loading" class="flex justify-center items-center py-16">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+    </div>
+
     <!-- Empty state -->
-    <div *ngIf="selectedJobs.length === 0"
+    <div *ngIf="!loading && selectedJobs.length === 0"
         class="text-center py-16 bg-card rounded-2xl border border-border">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
             stroke="currentColor" class="w-12 h-12 text-muted-foreground mx-auto mb-4">

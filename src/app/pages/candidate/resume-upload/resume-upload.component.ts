@@ -158,187 +158,166 @@ export class ResumeUploadComponent implements OnInit {
     this.currentStep = 0;
     this.showToast('File selected: ' + file.name, 'info');
 
-    if (file.type === 'application/pdf') {
-      this.parseResumeFromPDF(file);
-    } else {
-      // For DOC/DOCX files, show empty fields for manual entry
-      this.parsedData = { name: null, email: null, phone: null, skills: null, experience: null, education: null };
-      this.currentStep = 2; // Skip to review step
-    }
+    this.parseResumeWithApyHub(file);
   }
 
   // =====================================================================
-  //  RESUME PARSING via Gemini API  (Step 1)
+  //  RESUME PARSING via ApyHub SharpAPI  (Step 1)
   // =====================================================================
-  async parseResumeFromPDF(file: File) {
+  async parseResumeWithApyHub(file: File) {
     this.isParsing = true;
     this.parsedData = null;
-    this.currentStep = 1; // Parsing step
+    this.currentStep = 1;
+
+    const apiKey = (environment as any).apyhubApiKey;
+    if (!apiKey) {
+      this.showToast('ApyHub API key not configured.', 'error');
+      this.isParsing = false;
+      return;
+    }
+
     try {
-      // Step 1: Extract raw text from PDF
-      const ab = await file.arrayBuffer();
-      const pdfjsLib = await (import('pdfjs-dist') as any);
-      pdfjsLib.GlobalWorkerOptions.workerSrc =
-        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      this.showToast('Submitting resume to ApyHub AI…', 'info');
+      
+      const formData = new FormData();
+      formData.append('file', file);
 
-      const pdf = await (pdfjsLib.getDocument({ data: ab })).promise;
-      let text = '';
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const tc = await page.getTextContent();
-        text += tc.items.map((item: any) => item.str).join(' ') + '\n';
+      // Step 1: Submit file to API
+      const submitResponse = await fetch('https://api.apyhub.com/sharpapi/api/v1/hr/parse_resume', {
+        method: 'POST',
+        headers: {
+          'apy-token': apiKey
+        },
+        body: formData
+      });
+
+      if (!submitResponse.ok) {
+        throw new Error('Failed to submit resume for parsing.');
       }
 
-      console.log('Extracted PDF text length:', text.length);
+      const submitData = await submitResponse.json();
+      const statusUrl = submitData.status_url;
 
-      // Step 2: Send to Gemini API for intelligent parsing
-      this.showToast('Parsing resume with Gemini AI…', 'info');
-      const parsed = await this.parseWithGemini(text);
-
-      if (parsed) {
-        this.parsedData = this.normalizeNulls(parsed);
-        this.currentStep = 2; // Advance to review step
-        this.showToast('Resume parsed successfully with Gemini AI!', 'success');
-      } else {
-        // Fallback to basic regex if Gemini fails
-        console.warn('Gemini parsing returned null, falling back to regex.');
-        this.extractFieldsFromTextFallback(text);
-        this.currentStep = 2;
-        this.showToast('Parsed with basic extraction (Gemini unavailable).', 'info');
+      if (!statusUrl) {
+         throw new Error('Invalid response from parsing API.');
       }
+
+      this.showToast('Resume submitted successfully. Waiting for AI processing...', 'info');
+
+      // Step 2: Poll status until complete
+      let jobResult: any = null;
+      let attempts = 0;
+
+      // Extract Job ID to proxy through local backend and bypass CORS
+      const parts = statusUrl.split('/');
+      const jobId = parts[parts.length - 1];
+      const proxyUrl = `http://localhost:3001/api/apyhub/status/${jobId}`;
+      
+      while (attempts < 30) {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Fetch via Node backend
+        const statusResponse = await fetch(proxyUrl);
+        
+        if (!statusResponse.ok) continue;
+        
+        const statusData = await statusResponse.json();
+        const status = statusData.data?.attributes?.status;
+        
+        if (status === 'success') {
+           jobResult = statusData.data.attributes.result;
+           break;
+        } else if (status === 'failed') {
+           throw new Error('Parsing job failed at server.');
+        }
+        
+        attempts++;
+      }
+
+      if (!jobResult) {
+        throw new Error('Parsing timed out.');
+      }
+
+      // Map ApyHub result to our format exactly based on SharpAPI signature
+      let name = jobResult.candidate_name || null;
+      let email = jobResult.candidate_email || null;
+      let phone = jobResult.candidate_phone || null;
+      let experienceNum = jobResult.years_of_experience || 0;
+
+      // Extract skills from all positions and flatten into a unique list
+      let allSkills = new Set<string>();
+      if (Array.isArray(jobResult.positions)) {
+        jobResult.positions.forEach((pos: any) => {
+          if (Array.isArray(pos.skills)) {
+            pos.skills.forEach((skill: string) => allSkills.add(skill));
+          }
+        });
+      }
+      // If skills array exists at the root (just in case), add those too
+      if (Array.isArray(jobResult.skills)) {
+        jobResult.skills.forEach((skill: any) => {
+          if (typeof skill === 'string') allSkills.add(skill);
+        });
+      }
+      let skills = allSkills.size > 0 ? Array.from(allSkills).join(', ') : null;
+
+      // Extract Education
+      let education = null;
+      if (Array.isArray(jobResult.education_qualifications) && jobResult.education_qualifications.length > 0) {
+        const edu = jobResult.education_qualifications[0];
+        const degree = edu.degree_type || '';
+        const spec = edu.specialization_subjects ? ` in ${edu.specialization_subjects}` : '';
+        const school = edu.school_name || '';
+        education = `${degree}${spec} - ${school}`.trim();
+        if (education.startsWith('- ')) education = education.substring(2);
+      } else if (Array.isArray(jobResult.education) && jobResult.education.length > 0) {
+        // Fallback for different version
+        const edu = jobResult.education[0];
+        education = `${edu.degree || edu.title || ''} - ${edu.institution_name || edu.school || ''}`.trim();
+      }
+
+      // Robust fallback search for Email and Phone if they were blank
+      const extractRegex = (obj: any, regex: RegExp): string | null => {
+        if (!obj) return null;
+        if (typeof obj === 'string') {
+          const m = obj.match(regex);
+          if (m) return m[0];
+        }
+        if (typeof obj === 'object') {
+          for (const k of Object.keys(obj)) {
+            const found = extractRegex(obj[k], regex);
+            if (found) return found;
+          }
+        }
+        return null;
+      };
+
+      if (!email) email = extractRegex(jobResult, /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+      if (!phone) phone = extractRegex(jobResult, /\+?\d[\d\s\-\(\)]{8,}/);
+
+      const mappedData = {
+        name: name,
+        email: email,
+        phone: phone ? String(phone) : null,
+        skills: skills,
+        experience: experienceNum,
+        education: education
+      };
+
+      this.parsedData = this.normalizeNulls(mappedData);
+      this.currentStep = 2; // Advance to review step
+      this.showToast('Resume parsed successfully with ApyHub AI!', 'success');
+
     } catch (err: any) {
-      console.error('PDF parse error:', err);
-      this.showToast('Failed to parse PDF: ' + (err.message || err), 'error');
+      console.error('ApyHub parse error:', err);
+      this.showToast('Failed to parse Resume: ' + (err.message || err), 'error');
+      // Fallback
+      this.parsedData = { name: null, email: null, phone: null, skills: null, experience: null, education: null };
+      this.currentStep = 2;
+      this.isApproved = false;
     } finally {
       this.isParsing = false;
     }
-  }
-
-  /** Call Gemini API to parse resume text into structured fields */
-  private async parseWithGemini(resumeText: string): Promise<any> {
-    const apiKey = environment.geminiApiKey;
-    if (!apiKey) {
-      console.warn('Gemini API key not configured.');
-      return null;
-    }
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-    const prompt = `You are a resume parser. Extract the following information from the resume text below and return ONLY a valid JSON object (no markdown, no code fences, no explanation).
-
-JSON format:
-{
-  "name": "Full Name",
-  "email": "email@example.com",
-  "phone": "phone number",
-  "skills": "comma separated skills",
-  "experience": 0,
-  "education": "highest education details"
-}
-
-Rules:
-- "experience" must be a number (years of experience). If not found, use 0.
-- If a field is not found, use null for that field.
-- For "skills", list all technical and professional skills found, comma separated.
-- For "education", include degree, institution, and year if available.
-
-Resume text:
-${resumeText}`;
-
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 1024
-          }
-        })
-      });
-
-      if (!response.ok) {
-        console.error('Gemini API HTTP error:', response.status, response.statusText);
-        return null;
-      }
-
-      const data = await response.json();
-      console.log('Gemini API raw response:', data);
-
-      // Extract the text content from the response
-      const content = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      console.log('Gemini response text:', content);
-
-      // Clean the response: strip possible markdown code fences
-      let jsonStr = content.trim();
-      if (jsonStr.startsWith('```')) {
-        jsonStr = jsonStr.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
-      }
-
-      const parsed = JSON.parse(jsonStr);
-
-      // Normalize the parsed data — return null for missing fields
-      return {
-        name:       parsed.name ? String(parsed.name).substring(0, 254) : null,
-        email:      parsed.email ? String(parsed.email).substring(0, 254) : null,
-        phone:      parsed.phone ? String(parsed.phone).substring(0, 19) : null,
-        skills:     parsed.skills ? String(parsed.skills).substring(0, 499) : null,
-        experience: typeof parsed.experience === 'number' ? parsed.experience : (parseInt(parsed.experience) || null),
-        education:  parsed.education ? String(parsed.education).substring(0, 254) : null
-      };
-    } catch (err) {
-      console.error('Gemini parsing error:', err);
-      return null;
-    }
-  }
-
-  /** Fallback: basic regex extraction if Gemini is unavailable */
-  private extractFieldsFromTextFallback(text: string) {
-    const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-    const phoneMatch = text.match(/[\d]{3}[- .]?[\d]{3}[- .]?[\d]{4}/) || text.match(/\+?\d[\d\s\-\(\)]{8,}/);
-
-    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 2);
-    let name: string | null = null;
-    for (const line of lines.slice(0, 5)) {
-      if (!/resume|curriculum|vitae|profile|about|candidate|summary/i.test(line)) {
-        name = line; break;
-      }
-    }
-
-    const lower = text.toLowerCase();
-    let skills: string | null = null;
-    let education: string | null = null;
-    let experienceNum: number | null = null;
-
-    const si = lower.indexOf('skills');
-    if (si !== -1) {
-      const raw = text.substring(si + 6, si + 500).split('\n')[0].replace(/^[:\-·\s]+/, '').trim();
-      skills = raw ? raw.substring(0, 499) : null;
-    }
-
-    const ei = lower.indexOf('experience');
-    if (ei !== -1) {
-      const near = text.substring(Math.max(0, ei - 50), ei + 150);
-      const ym = near.match(/(\d+[\.,]?\d*)\s*(year|yr|exp)/i);
-      if (ym) experienceNum = Math.round(parseFloat(ym[1].replace(',', '.')));
-    }
-
-    const edi = lower.indexOf('education');
-    if (edi !== -1) {
-      const raw = text.substring(edi + 9, edi + 250).split('\n')[0].replace(/^[:\-·\s]+/, '').trim();
-      education = raw ? raw.substring(0, 254) : null;
-    }
-
-    this.parsedData = {
-      name: name ? name.substring(0, 254) : null,
-      email: emailMatch ? emailMatch[0].substring(0, 254) : null,
-      phone: phoneMatch ? phoneMatch[0].substring(0, 19) : null,
-      skills,
-      experience: experienceNum,
-      education
-    };
-    this.isApproved = false;
   }
 
   // =====================================================================

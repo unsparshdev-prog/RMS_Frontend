@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  geminiApiKey: 'AIzaSyCU5C5S4XCVlVRCs4-lKd8Xkubtk42yNI4'
+  apyhubApiKey: 'APY0tdwcgtk8I45k8jffmxBZioFjwzedLtidefoAzl1e9rWzjZem7xvVnOmNaBHm3PyCMOLB',
 };
