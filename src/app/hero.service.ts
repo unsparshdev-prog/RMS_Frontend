@@ -213,7 +213,7 @@ export class HeroService {
       tuple: {
         old: {
           job_requisition: {
-            qConstraint: '0',
+            '@qConstraint': '0',
             jr_id: jr_id,
             modified_by: sessionStorage.getItem('displayName') || 'HR'
           }
@@ -366,20 +366,20 @@ export class HeroService {
   }
 
   createInterviewPanel(data: {
-    panel_id: string;
+    panel_id?: string;
     interview_id: string;
     interviewer_id: string;
     interviewer_name: string;
-    feedback: string;
-    rating: string;
-    task_id: string;
-    temp1: string;
-    temp2: string;
-    temp3: string;
-    temp4: string;
-    temp5: string;
-    created_at: string;
-    created_by: string;
+    feedback?: string;
+    rating?: string;
+    task_id?: string;
+    temp1?: string;
+    temp2?: string;
+    temp3?: string;
+    temp4?: string;
+    temp5?: string;
+    created_at?: string;
+    created_by?: string;
   }): Promise<any> {
     const payload = {
       tuple: {
@@ -389,18 +389,18 @@ export class HeroService {
             '@qConstraint': '0',
             '@qInit': '0',
             '@qValues': '',
-            panel_id: data.panel_id || '',
+            ...(data.panel_id ? { panel_id: data.panel_id } : {}),
             interview_id: data.interview_id || '',
             interviewer_id: data.interviewer_id || '',
             interviewer_name: data.interviewer_name || '',
-            feedback: data.feedback || '',
-            rating: data.rating || '',
-            task_id: data.task_id || '',
-            temp1: data.temp1 || '',
-            temp2: data.temp2 || '',
-            temp3: data.temp3 || '',
-            temp4: data.temp4 || '',
-            temp5: data.temp5 || '',
+            ...(data.feedback ? { feedback: data.feedback } : {}),
+            ...(data.rating ? { rating: data.rating } : {}),
+            ...(data.task_id ? { task_id: data.task_id } : {}),
+            ...(data.temp1 ? { temp1: data.temp1 } : {}),
+            ...(data.temp2 ? { temp2: data.temp2 } : {}),
+            ...(data.temp3 ? { temp3: data.temp3 } : {}),
+            ...(data.temp4 ? { temp4: data.temp4 } : {}),
+            ...(data.temp5 ? { temp5: data.temp5 } : {}),
             created_at: data.created_at || '',
             created_by: data.created_by || ''
           }
@@ -420,7 +420,7 @@ export class HeroService {
       tuple: {
         old: {
           interview_panel: {
-            qConstraint: '0',
+            '@qConstraint': '0',
             panel_id: ext(oldData.panel_id),
             interview_id: ext(oldData.interview_id),
             interviewer_id: ext(oldData.interviewer_id)
@@ -438,14 +438,12 @@ export class HeroService {
             interviewer_name: ext(newData.interviewer_name),
             feedback: ext(newData.feedback),
             rating: ext(newData.rating),
-            task_id: ext(newData.task_id),
-            temp1: ext(newData.temp1),
-            temp2: ext(newData.temp2),
-            temp3: ext(newData.temp3),
-            temp4: ext(newData.temp4),
-            temp5: ext(newData.temp5),
-            created_at: ext(newData.created_at),
-            created_by: ext(newData.created_by),
+            ...(ext(newData.task_id) ? { task_id: ext(newData.task_id) } : {}),
+            ...(ext(newData.temp1) ? { temp1: ext(newData.temp1) } : {}),
+            ...(ext(newData.temp2) ? { temp2: ext(newData.temp2) } : {}),
+            ...(ext(newData.temp3) ? { temp3: ext(newData.temp3) } : {}),
+            ...(ext(newData.temp4) ? { temp4: ext(newData.temp4) } : {}),
+            ...(ext(newData.temp5) ? { temp5: ext(newData.temp5) } : {}),
             modified_at: new Date().toISOString(),
             modified_by: sessionStorage.getItem('displayName') || 'HR'
           }
@@ -465,23 +463,10 @@ export class HeroService {
       tuple: {
         old: {
           interview_panel: {
-            qConstraint: '0',
+            '@qConstraint': '0',
             panel_id: ext(oldData.panel_id),
             interview_id: ext(oldData.interview_id),
-            interviewer_id: ext(oldData.interviewer_id),
-            interviewer_name: ext(oldData.interviewer_name),
-            feedback: ext(oldData.feedback),
-            rating: ext(oldData.rating),
-            task_id: ext(oldData.task_id),
-            temp1: ext(oldData.temp1),
-            temp2: ext(oldData.temp2),
-            temp3: ext(oldData.temp3),
-            temp4: ext(oldData.temp4),
-            temp5: ext(oldData.temp5),
-            created_at: ext(oldData.created_at),
-            created_by: ext(oldData.created_by),
-            modified_at: ext(oldData.modified_at),
-            modified_by: ext(oldData.modified_by)
+            interviewer_id: ext(oldData.interviewer_id)
           }
         }
       }
@@ -758,20 +743,17 @@ export class HeroService {
             jr_id: data.jr_id || '',
             round: data.round || '',
             scheduled_date: data.scheduled_date || '',
-            scheduled_time: data.scheduled_time || '',
+            scheduled_time: data.scheduled_time ? (data.scheduled_time.length === 5 ? data.scheduled_time + ':00' : data.scheduled_time) : '',
             meeting_link: data.meeting_link || '',
-            final_score: '',
             status: data.status || 'SCHEDULED',
-            task_id: data.task_id || '',
-            temp1: data.temp1 || '',
-            temp2: data.temp2 || '',
-            temp3: data.temp3 || '',
-            temp4: data.temp4 || '',
-            temp5: data.temp5 || '',
+            ...(data.task_id ? { task_id: data.task_id } : {}),
+            ...(data.temp1 ? { temp1: data.temp1 } : {}),
+            ...(data.temp2 ? { temp2: data.temp2 } : {}),
+            ...(data.temp3 ? { temp3: data.temp3 } : {}),
+            ...(data.temp4 ? { temp4: data.temp4 } : {}),
+            ...(data.temp5 ? { temp5: data.temp5 } : {}),
             created_at: new Date().toISOString(),
-            created_by: sessionStorage.getItem('displayName') || 'HR',
-            modified_at: '',
-            modified_by: ''
+            created_by: sessionStorage.getItem('displayName') || 'HR'
           }
         }
       }
@@ -798,22 +780,22 @@ export class HeroService {
           }
         },
         new: {
-          interview: {
+            interview: {
             interview_id: ext(oldData.interview_id),
             candidate_id: ext(newData.candidate_id) || ext(oldData.candidate_id),
             jr_id: ext(newData.jr_id) || ext(oldData.jr_id),
             round: ext(newData.round) || '',
             scheduled_date: ext(newData.scheduled_date) || '',
-            scheduled_time: ext(newData.scheduled_time) || '',
+            scheduled_time: ext(newData.scheduled_time) ? (ext(newData.scheduled_time).length === 5 ? ext(newData.scheduled_time) + ':00' : ext(newData.scheduled_time)) : '',
             meeting_link: ext(newData.meeting_link) || '',
-            final_score: ext(newData.final_score) || '',
             status: ext(newData.status) || 'SCHEDULED',
-            task_id: ext(newData.task_id) || '',
-            temp1: ext(newData.temp1) || '',
-            temp2: ext(newData.temp2) || '',
-            temp3: ext(newData.temp3) || '',
-            temp4: ext(newData.temp4) || '',
-            temp5: ext(newData.temp5) || '',
+            ...(ext(newData.final_score) ? { final_score: ext(newData.final_score) } : {}),
+            ...(ext(newData.task_id) ? { task_id: ext(newData.task_id) } : {}),
+            ...(ext(newData.temp1) ? { temp1: ext(newData.temp1) } : {}),
+            ...(ext(newData.temp2) ? { temp2: ext(newData.temp2) } : {}),
+            ...(ext(newData.temp3) ? { temp3: ext(newData.temp3) } : {}),
+            ...(ext(newData.temp4) ? { temp4: ext(newData.temp4) } : {}),
+            ...(ext(newData.temp5) ? { temp5: ext(newData.temp5) } : {}),
             created_at: ext(oldData.created_at),
             created_by: ext(oldData.created_by),
             modified_at: new Date().toISOString(),
@@ -924,7 +906,172 @@ export class HeroService {
 
     return this.ajax('UpdateCandidate_job_application', 'http://schemas.cordys.com/RMS_DB_Metadata', payload);
   }
+
+  // ===================== BPM WORKFLOW SERVICES =====================
+
+  /**
+   * Initiate EmployeeTaskBPM process for an interviewer.
+   * This creates a task in the BPM system that shows up on the employee's dashboard.
+   */
+  initiateEmployeeTaskBPM(interviewerId: string): Promise<any> {
+    return this.ajax('EmployeeTaskBPM', 'http://schemas.cordys.com/default', {
+      InterviewerID: interviewerId
+    });
+  }
+
+  /**
+   * Perform a workflow action on a task (COMPLETE, CLAIM, etc.).
+   */
+  async performTaskAction(taskId: string, action: string, memo: string, data?: any): Promise<void> {
+    try {
+      const resp: any = await this.ajax(
+        'PerformTaskAction',
+        'http://schemas.cordys.com/notification/workflow/1.0',
+        {
+          TaskId: taskId,
+          Action: action,
+          Memo: memo,
+          Data: data || {}
+        }
+      );
+      if (this.isSoapFault(resp) && action !== 'START') {
+        console.warn(`Workflow action ${action} returned fault:`, resp);
+      }
+    } catch (e) {
+      if (action === 'START') {
+        console.warn('Task START might have failed (ignoring):', e);
+      } else {
+        throw e;
+      }
+    }
+  }
+
+  /**
+   * Check whether a SOAP response contains a fault.
+   */
+  isSoapFault(resp: any): boolean {
+    if (!resp) return false;
+    try {
+      const faultString = this.xmltojson(resp, 'faultstring');
+      return !!faultString;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Get all interview records.
+   */
+  getInterviews(): Promise<any> {
+    return this.ajax('GetInterviewObjects', 'http://schemas.cordys.com/RMS_DB_Metadata', {
+      preserveSpace: 'no',
+      qAccess: '0',
+      qValues: '',
+      cursor: {
+        '@id': '0',
+        '@position': '0',
+        '@numRows': '',
+        '@maxRows': '99999',
+        '@sameConnection': 'false'
+      },
+      fromInterview_id: '0',
+      toInterview_id: 'zzzzzzzzzz'
+    });
+  }
+
+  // ===================== REFERRAL SERVICES =====================
+
+  getEmployeeReferrals(): Promise<any> {
+    return this.ajax('GetEmployee_referralObjects', 'http://schemas.cordys.com/RMS_DB_Metadata', {
+      preserveSpace: 'no',
+      qAccess: '0',
+      qValues: '',
+      cursor: {
+        '@id': '0',
+        '@position': '0',
+        '@numRows': '',
+        '@maxRows': '99999',
+        '@sameConnection': 'false'
+      },
+      fromReferral_id: 'REF001',
+      toReferral_id: 'REF99999999'
+    });
+  }
+
+  createEmployeeReferral(data: {
+    employee_id: string;
+    candidate_id: string;
+    jr_id: string;
+    referral_status: string;
+    task_id?: string;
+    temp1?: string;
+    temp2?: string;
+    temp3?: string;
+    temp4?: string;
+    temp5?: string;
+  }): Promise<any> {
+    const payload = {
+      tuple: {
+        new: {
+          employee_referral: {
+            employee_id: data.employee_id || '',
+            candidate_id: data.candidate_id || '',
+            jr_id: data.jr_id || '',
+            referral_status: data.referral_status || 'REFERRED',
+            task_id: data.task_id || '',
+            temp1: data.temp1 || '',
+            temp2: data.temp2 || '',
+            temp3: data.temp3 || '',
+            temp4: data.temp4 || '',
+            temp5: data.temp5 || '',
+            created_at: new Date().toISOString(),
+            created_by: sessionStorage.getItem('displayName') || 'HR',
+            modified_at: '',
+            modified_by: ''
+          }
+        }
+      }
+    };
+    return this.ajax('UpdateEmployee_referral', 'http://schemas.cordys.com/RMS_DB_Metadata', payload);
+  }
+
+  updateEmployeeReferral(oldData: any, newData: any): Promise<any> {
+    const ext = (field: any) => field?.text || field?.['#text'] || field || '';
+    const payload = {
+      reply: 'yes',
+      commandUpdate: 'no',
+      preserveSpace: 'no',
+      batchUpdate: 'no',
+      tuple: {
+        old: {
+          employee_referral: {
+            referral_id: ext(oldData.referral_id),
+            employee_id: ext(oldData.employee_id),
+            candidate_id: ext(oldData.candidate_id)
+          }
+        },
+        new: {
+          employee_referral: {
+            referral_id: ext(oldData.referral_id),
+            employee_id: ext(newData.employee_id) || ext(oldData.employee_id),
+            candidate_id: ext(newData.candidate_id) || ext(oldData.candidate_id),
+            jr_id: ext(newData.jr_id) || ext(oldData.jr_id),
+            referral_status: ext(newData.referral_status) || 'REFERRED',
+            task_id: ext(newData.task_id) || '',
+            temp1: ext(newData.temp1) || '',
+            temp2: ext(newData.temp2) || '',
+            temp3: ext(newData.temp3) || '',
+            temp4: ext(newData.temp4) || '',
+            temp5: ext(newData.temp5) || '',
+            created_at: ext(oldData.created_at),
+            created_by: ext(oldData.created_by),
+            modified_at: new Date().toISOString(),
+            modified_by: sessionStorage.getItem('displayName') || 'HR'
+          }
+        }
+      }
+    };
+    return this.ajax('UpdateEmployee_referral', 'http://schemas.cordys.com/RMS_DB_Metadata', payload);
+  }
+
 }
-
-
-

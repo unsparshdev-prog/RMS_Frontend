@@ -746,36 +746,38 @@ textarea.form-input {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 10px 0;
+  padding: 0;
+  gap: 4px; /* Tight gap instead of huge arrows */
 }
 
 .funnel-stage {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 20px;
-  border-radius: 8px;
+  padding: 8px 16px; 
+  border-radius: 6px;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   transition: transform 0.2s;
   cursor: pointer;
 }
 
 .funnel-stage:hover {
-  transform: scale(1.02);
+  transform: scale(1.01);
 }
 
 .funnel-arrow {
-  font-size: 1.5rem;
-  margin: 5px 0;
+  font-size: 1rem;
+  margin: 2px 0;
+  line-height: 1;
 }
 
 .stage-count {
   background: rgba(255, 255, 255, 0.2);
-  padding: 2px 10px;
+  padding: 2px 8px;
   border-radius: 12px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .health-list {

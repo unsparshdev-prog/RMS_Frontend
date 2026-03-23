@@ -222,4 +222,34 @@ export class EmployeeDashboardService {
       return [];
     }
   }
+
+  // ─── Get all panel records for a specific interview ───
+  async getAllPanelsForInterview(interviewId: string): Promise<any[]> {
+    try {
+      const resp = await this.hero.ajax('GetInterview_panelObjects', NAMESPACE, {
+        fromPanel_id: '0',
+        toPanel_id: 'zzzzzzzzzz'
+      });
+      const allPanels = this.extractTuples(resp, 'interview_panel');
+      return allPanels.filter((p: any) => p.interview_id === interviewId);
+    } catch (e) {
+      console.error('[EmployeeService] getAllPanelsForInterview failed:', e);
+      return [];
+    }
+  }
+
+  // ─── BPM: Initiate task for an interviewer ───
+  async initiateEmployeeTaskBPM(interviewerId: string): Promise<any> {
+    return this.hero.initiateEmployeeTaskBPM(interviewerId);
+  }
+
+  // ─── BPM: Perform task action (COMPLETE, etc.) ───
+  async performTaskAction(taskId: string, action: string, memo: string): Promise<void> {
+    return this.hero.performTaskAction(taskId, action, memo);
+  }
+
+  // ─── Update interview record ───
+  async updateInterview(oldData: any, newData: any): Promise<any> {
+    return this.hero.updateInterview(oldData, newData);
+  }
 }

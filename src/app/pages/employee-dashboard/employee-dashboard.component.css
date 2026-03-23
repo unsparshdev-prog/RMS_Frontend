@@ -1418,3 +1418,26 @@
     width: 95vw;
   }
 }
+
+/* ========== DELEGATED BY BADGE ========== */
+.delegated-by-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(var(--accent-warm-rgb), 0.08);
+  border: 1px solid rgba(var(--accent-warm-rgb), 0.15);
+  border-radius: 8px;
+  font-size: 0.78rem;
+  color: var(--accent-warm);
+}
+
+.delegated-by-badge svg {
+  flex-shrink: 0;
+  color: var(--accent-warm);
+}
+
+.delegated-by-badge strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}

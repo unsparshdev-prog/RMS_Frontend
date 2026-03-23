@@ -11,6 +11,7 @@ interface InterviewRequest {
   interviewer_name: string;
   feedback: string;
   rating: number;
+  task_id: string;
   // Enriched data
   candidate_name: string;
   candidate_email: string;
@@ -30,6 +31,9 @@ interface InterviewRequest {
   meeting_link: string;
   interview_status: string;
   accepted: boolean;
+  delegated_by: string;
+  raw_panel: any;
+  raw_interview: any;
 }
 
 interface Referral {
@@ -162,6 +166,7 @@ export class EmployeeDashboardComponent implements OnInit {
           interviewer_name: p.interviewer_name || '',
           feedback: p.feedback || '',
           rating: parseInt(p.rating, 10) || 0,
+          task_id: p.task_id || '',
           candidate_name: candidate.name || '',
           candidate_email: candidate.email || '',
           candidate_id: candidate.candidate_id || interview.candidate_id || '',
@@ -331,9 +336,18 @@ export class EmployeeDashboardComponent implements OnInit {
   // ─── Submit Feedback ───
   async submitFeedback(): Promise<void> {
     if (!this.selectedInterview) return;
+    if (this.feedbackRating < 1 || this.feedbackRating > 5) {
+      alert('Please provide a rating between 1 and 5.');
+      return;
+    }
+    if (!this.feedbackText.trim()) {
+      alert('Please provide your feedback.');
+      return;
+    }
+
     this.isSubmittingFeedback = true;
     try {
-      const oldData = {
+      const oldData = this.selectedInterview.raw_panel || {
         panel_id: this.selectedInterview.panel_id,
         interview_id: this.selectedInterview.interview_id,
         interviewer_id: this.selectedInterview.interviewer_id
@@ -343,7 +357,7 @@ export class EmployeeDashboardComponent implements OnInit {
         interviewer_name: this.selectedInterview.interviewer_name,
         feedback: this.feedbackText,
         rating: this.feedbackRating,
-        temp1: 'ACCEPTED'
+        temp1: 'accepted'
       };
       await this.empService.updateInterviewPanel(oldData, newData);
 

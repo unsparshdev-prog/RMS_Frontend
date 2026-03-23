@@ -81,138 +81,184 @@
       <ng-container *ngIf="activeTab === 'Dashboard'">
         
         <!-- Dashboard Header -->
-        <div class="dashboard-header">
+        <div class="dashboard-header mb-4" style="background: linear-gradient(135deg, #f8faff 0%, #eef2ff 100%); padding: 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
           <div class="greeting-area">
-            <h1>Good Morning, Sarah 👋</h1>
-            <p class="date-subtitle">Thursday, 5 March 2026</p>
+            <h1 style="color: #0F172A; font-weight: 700; font-size: 1.8rem; margin-bottom: 0.2rem;">Good Morning, Sarah 👋</h1>
+            <p class="date-subtitle" style="color: #64748B; font-size: 0.95rem; font-weight: 500;">Thursday, 5 March 2026</p>
           </div>
           <div class="header-actions">
-            <div class="search-bar">
-              <i class="fas fa-search"></i>
-              <input type="text" placeholder="Search people, roles, tasks">
+            <div class="search-bar" style="box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #cbd5e1; border-radius: 8px;">
+              <i class="fas fa-search" style="color: #94a3b8;"></i>
+              <input type="text" placeholder="Search people, roles, tasks" style="border: none; outline: none; background: transparent;">
             </div>
-            <button class="btn btn-primary-blue">
-              <i class="far fa-file-alt"></i> Generate Report
+            <button class="btn btn-primary-blue" (click)="generateReport()" [disabled]="isGeneratingReport" style="box-shadow: 0 4px 6px rgba(11, 34, 101, 0.2); transition: transform 0.2s;">
+              <i class="fas fa-spinner fa-spin" *ngIf="isGeneratingReport" style="margin-right: 5px;"></i>
+              <i class="far fa-file-alt" *ngIf="!isGeneratingReport"></i>
+              {{ isGeneratingReport ? 'Generating...' : 'Generate Report' }}
             </button>
           </div>
         </div>
 
         <!-- KPI Cards -->
         <div class="kpi-grid">
-          <div class="kpi-card">
+          <div class="kpi-card" style="border-top: 4px solid #0B2265; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border-radius: 10px; transition: transform 0.2s ease, box-shadow 0.2s ease;">
             <div class="kpi-header">
-              <span class="kpi-title"><i class="fas fa-briefcase"></i> Open Positions</span>
+              <span class="kpi-title" style="color: #475569; font-weight: 600;"><i class="fas fa-briefcase" style="color: #0B2265;"></i> Open Positions</span>
             </div>
-            <div class="kpi-value">24</div>
-            <div class="kpi-trend positive"><i class="fas fa-arrow-up"></i> +3 this month</div>
+            <div class="kpi-value" style="color: #0F172A; font-size: 2.2rem; font-weight: 800;">{{ dashboardOpenPositions }}</div>
+            <div class="kpi-trend positive" style="font-weight: 500;"><i class="fas fa-arrow-up"></i> +1 this month</div>
           </div>
-          <div class="kpi-card">
+          <div class="kpi-card" style="border-top: 4px solid #10B981; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border-radius: 10px; transition: transform 0.2s ease, box-shadow 0.2s ease;">
             <div class="kpi-header">
-              <span class="kpi-title"><i class="fas fa-users"></i> Active Candidates</span>
+              <span class="kpi-title" style="color: #475569; font-weight: 600;"><i class="fas fa-users" style="color: #10B981;"></i> Active Candidates</span>
             </div>
-            <div class="kpi-value">142</div>
-            <div class="kpi-trend positive"><i class="fas fa-arrow-up"></i> +28 new this week</div>
+            <div class="kpi-value" style="color: #0F172A; font-size: 2.2rem; font-weight: 800;">{{ dashboardActiveCandidates }}</div>
+            <div class="kpi-trend positive" style="font-weight: 500;"><i class="fas fa-arrow-up"></i> pipeline growing</div>
           </div>
-          <div class="kpi-card">
+          <div class="kpi-card" style="border-top: 4px solid #F59E0B; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border-radius: 10px; transition: transform 0.2s ease, box-shadow 0.2s ease;">
             <div class="kpi-header">
-              <span class="kpi-title"><i class="fas fa-check-circle"></i> Pending Approvals</span>
+              <span class="kpi-title" style="color: #475569; font-weight: 600;"><i class="fas fa-check-circle" style="color: #F59E0B;"></i> Pending Approvals</span>
             </div>
-            <div class="kpi-value">7</div>
-            <div class="kpi-trend negative"><i class="fas fa-clock"></i> 3 overdue</div>
+            <div class="kpi-value" style="color: #0F172A; font-size: 2.2rem; font-weight: 800;">{{ dashboardPendingApprovals }}</div>
+            <div class="kpi-trend negative" style="font-weight: 500;"><i class="fas fa-clock"></i> reqs waiting</div>
           </div>
-          <div class="kpi-card">
+          <div class="kpi-card" style="border-top: 4px solid #8B5CF6; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border-radius: 10px; transition: transform 0.2s ease, box-shadow 0.2s ease;">
             <div class="kpi-header">
-              <span class="kpi-title"><i class="fas fa-tachometer-alt"></i> Time-to-Hire</span>
+              <span class="kpi-title" style="color: #475569; font-weight: 600;"><i class="fas fa-tachometer-alt" style="color: #8B5CF6;"></i> Time-to-Hire</span>
             </div>
-            <div class="kpi-value">18d</div>
-            <div class="kpi-trend positive"><i class="fas fa-arrow-down"></i> -2 days avg</div>
+            <div class="kpi-value" style="color: #0F172A; font-size: 2.2rem; font-weight: 800;">{{ dashboardTimeToHire }}</div>
+            <div class="kpi-trend positive" style="font-weight: 500;"><i class="fas fa-arrow-down"></i> tracking avg</div>
           </div>
         </div>
 
         <!-- Dashboard Widgets -->
         <div class="dashboard-grid">
-          <!-- Funnel Chart -->
-          <div class="dashboard-card panel-funnel">
-            <div class="card-header flex-between mb-3">
+          <!-- Pipeline Flow Chart -->
+          <div class="dashboard-card panel-funnel" style="box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0; border-radius: 12px; display: flex; flex-direction: column;">
+            <div class="card-header flex-between mb-2">
               <div class="title-with-badge">
-                <h3 style="margin:0;"><i class="fas fa-filter text-blue"></i> Recruitment Pipeline Funnel</h3>
+                <h3 style="margin:0; font-weight: 700; color: #1E293B;"><i class="fas fa-chart-line" style="color: #0B2265;"></i> Recruitment Pipeline Flow</h3>
               </div>
             </div>
-            <div class="funnel-container">
-              <div class="funnel-stage" style="width: 100%; background: #0B2265; color: white;">
-                <span class="stage-name">Applied</span>
-                <span class="stage-count">840</span>
+            
+            <div class="pipeline-track-wrapper" style="flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; padding-top: 10px;">
+              <div class="pipeline-track" style="position: relative; padding: 1.5rem 0; margin-bottom: 5px;">
+                <!-- Connecting line -->
+                <div style="position: absolute; top: 50%; left: 8%; right: 8%; height: 6px; background: #E2E8F0; z-index: 1; transform: translateY(-50%); border-radius: 3px;">
+                  <div style="width: 100%; height: 100%; background: linear-gradient(90deg, #0B2265, #10B981); border-radius: 3px; opacity: 0.8;"></div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; position: relative; z-index: 2; padding: 0;">
+                  <!-- Applied -->
+                  <div class="pipeline-node text-center" style="display: flex; flex-direction: column; align-items: center; width: 80px;">
+                    <div class="node-circle" style="width: 55px; height: 55px; border-radius: 50%; background: #0B2265; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: bold; margin-bottom: 12px; border: 4px solid white; box-shadow: 0 4px 10px rgba(11,34,101,0.2); transition: transform 0.2s;">
+                      {{ funnelAppliedCount }}
+                    </div>
+                    <div style="font-weight: 700; color: #1E293B; font-size: 0.9rem;">Applied</div>
+                  </div>
+                  
+                  <!-- Screened -->
+                  <div class="pipeline-node text-center" style="display: flex; flex-direction: column; align-items: center; width: 80px;">
+                    <div class="node-circle" style="width: 55px; height: 55px; border-radius: 50%; background: #2F4B8F; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: bold; margin-bottom: 12px; border: 4px solid white; box-shadow: 0 4px 10px rgba(47,75,143,0.2); transition: transform 0.2s;">
+                      {{ funnelScreenedCount }}
+                    </div>
+                    <div style="font-weight: 700; color: #1E293B; font-size: 0.9rem;">Screened</div>
+                  </div>
+                  
+                  <!-- Interviewing -->
+                  <div class="pipeline-node text-center" style="display: flex; flex-direction: column; align-items: center; width: 80px;">
+                    <div class="node-circle" style="width: 55px; height: 55px; border-radius: 50%; background: #0088A8; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: bold; margin-bottom: 12px; border: 4px solid white; box-shadow: 0 4px 10px rgba(0,136,168,0.2); transition: transform 0.2s;">
+                      {{ funnelInterviewingCount }}
+                    </div>
+                    <div style="font-weight: 700; color: #1E293B; font-size: 0.9rem;">Interview</div>
+                  </div>
+                  
+                  <!-- Offered -->
+                  <div class="pipeline-node text-center" style="display: flex; flex-direction: column; align-items: center; width: 80px;">
+                    <div class="node-circle" style="width: 55px; height: 55px; border-radius: 50%; background: #00C4F0; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: bold; margin-bottom: 12px; border: 4px solid white; box-shadow: 0 4px 10px rgba(0,196,240,0.2); transition: transform 0.2s;">
+                      {{ funnelOfferedCount }}
+                    </div>
+                    <div style="font-weight: 700; color: #1E293B; font-size: 0.9rem;">Offered</div>
+                  </div>
+                  
+                  <!-- Joined -->
+                  <div class="pipeline-node text-center" style="display: flex; flex-direction: column; align-items: center; width: 80px;">
+                    <div class="node-circle" style="width: 55px; height: 55px; border-radius: 50%; background: #10B981; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: bold; margin-bottom: 12px; border: 4px solid white; box-shadow: 0 4px 10px rgba(16,185,129,0.2); transition: transform 0.2s;">
+                      {{ funnelJoinedCount }}
+                    </div>
+                    <div style="font-weight: 700; color: #1E293B; font-size: 0.9rem;">Joined</div>
+                  </div>
+                </div>
               </div>
-              <i class="fas fa-caret-down funnel-arrow text-muted"></i>
-              <div class="funnel-stage" style="width: 80%; background: #2F4B8F; color: white;">
-                <span class="stage-name">Screened</span>
-                <span class="stage-count">210</span>
-              </div>
-              <i class="fas fa-caret-down funnel-arrow text-muted"></i>
-              <div class="funnel-stage" style="width: 60%; background: #0088A8; color: white;">
-                <span class="stage-name">Interviewing</span>
-                <span class="stage-count">56</span>
-              </div>
-              <i class="fas fa-caret-down funnel-arrow text-muted"></i>
-              <div class="funnel-stage" style="width: 40%; background: #00C4F0; color: white;">
-                <span class="stage-name">Offered</span>
-                <span class="stage-count">12</span>
-              </div>
-              <i class="fas fa-caret-down funnel-arrow text-muted"></i>
-              <div class="funnel-stage" style="width: 25%; background: #10B981; color: white;">
-                <span class="stage-name">Joined</span>
-                <span class="stage-count">8</span>
+
+              <!-- Conversion Stats Cards -->
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; border-top: 1px solid #E2E8F0; padding-top: 18px;">
+                 <div style="background: #F8FAFC; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #F1F5F9; transition: transform 0.2s; cursor: default;">
+                   <div style="font-size: 0.75rem; color: #64748B; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Passing Screen</div>
+                   <div style="font-size: 1.4rem; color: #2F4B8F; font-weight: 800; margin-top: 4px;">{{ (funnelAppliedCount > 0 ? (funnelScreenedCount/funnelAppliedCount)*100 : 0) | number:'1.0-0' }}%</div>
+                 </div>
+                 <div style="background: #F8FAFC; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #F1F5F9; transition: transform 0.2s; cursor: default;">
+                   <div style="font-size: 0.75rem; color: #64748B; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Interview Rate</div>
+                   <div style="font-size: 1.4rem; color: #0088A8; font-weight: 800; margin-top: 4px;">{{ (funnelScreenedCount > 0 ? (funnelInterviewingCount/funnelScreenedCount)*100 : 0) | number:'1.0-0' }}%</div>
+                 </div>
+                 <div style="background: #F8FAFC; padding: 12px; border-radius: 8px; text-align: center; border: 1px solid #F1F5F9; transition: transform 0.2s; cursor: default;">
+                   <div style="font-size: 0.75rem; color: #64748B; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Offer Accept</div>
+                   <div style="font-size: 1.4rem; color: #10B981; font-weight: 800; margin-top: 4px;">{{ (funnelOfferedCount > 0 ? (funnelJoinedCount/funnelOfferedCount)*100 : 0) | number:'1.0-0' }}%</div>
+                 </div>
               </div>
             </div>
           </div>
 
           <!-- Health Indicators -->
-          <div class="dashboard-card panel-health">
-            <div class="card-header flex-between mb-3">
+          <div class="dashboard-card panel-health" style="box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0; border-radius: 12px;">
+            <div class="card-header flex-between mb-4">
               <div class="title-with-badge">
-                <h3 style="margin:0;"><i class="fas fa-heartbeat text-blue"></i> Health Indicators</h3>
+                <h3 style="margin:0; font-weight: 700; color: #1E293B;"><i class="fas fa-heartbeat" style="color: #EF4444;"></i> Health Indicators</h3>
               </div>
             </div>
             <div class="health-list">
-              <div class="health-item bg-light-gray rounded-lg p-3 mb-2 flex-between">
+              <div class="health-item bg-light-gray rounded-lg p-3 mb-3 flex-between" style="border-left: 4px solid #EF4444; transition: transform 0.2s;">
                 <div class="flex-row items-center gap-3">
-                  <div class="avatar circle" style="background: #FEE2E2; color: #EF4444;"><i class="fas fa-exclamation-triangle"></i></div>
+                  <div class="avatar circle" style="background: #FEE2E2; color: #EF4444; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);"><i class="fas fa-exclamation-triangle"></i></div>
                   <div>
-                    <div class="health-title font-bold text-sm">Overdue Interviews</div>
-                    <div class="text-xs text-muted">3 candidates waiting > 48h</div>
+                    <div class="health-title font-bold text-sm" style="color: #0F172A;">Overdue Interviews</div>
+                    <div class="text-xs text-muted" style="font-weight: 500;">{{ overdueInterviewsCount }} candidate(s) waiting</div>
                   </div>
                 </div>
-                <button class="badge-btn badge-red-soft text-xs border-none cursor-pointer p-1">Resolve</button>
+                <button class="badge-btn badge-red-soft text-xs border-none cursor-pointer p-1" style="font-weight: 600;" *ngIf="overdueInterviewsCount > 0">Resolve</button>
+                <i class="fas fa-check-circle" style="color: #10B981;" *ngIf="overdueInterviewsCount === 0"></i>
               </div>
 
-              <div class="health-item bg-light-gray rounded-lg p-3 mb-2 flex-between">
+              <div class="health-item bg-light-gray rounded-lg p-3 mb-3 flex-between" style="border-left: 4px solid #F59E0B; transition: transform 0.2s;">
                 <div class="flex-row items-center gap-3">
-                  <div class="avatar circle" style="background: #FFEDD5; color: #F59E0B;"><i class="fas fa-clock"></i></div>
+                  <div class="avatar circle" style="background: #FFEDD5; color: #F59E0B; box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);"><i class="fas fa-certificate"></i></div>
                   <div>
-                    <div class="health-title font-bold text-sm">Pending Offers</div>
-                    <div class="text-xs text-muted">2 offers awaiting MD approval</div>
+                    <div class="health-title font-bold text-sm" style="color: #0F172A;">Pending Offers</div>
+                    <div class="text-xs text-muted" style="font-weight: 500;">{{ pendingOffersCount }} offer(s) pending</div>
                   </div>
                 </div>
-                <button class="badge-btn badge-orange-soft text-xs border-none cursor-pointer p-1">Nudge</button>
+                <button class="badge-btn badge-orange-soft text-xs border-none cursor-pointer p-1" style="font-weight: 600;" *ngIf="pendingOffersCount > 0">Nudge</button>
+                <i class="fas fa-check-circle" style="color: #10B981;" *ngIf="pendingOffersCount === 0"></i>
               </div>
 
-              <div class="health-item bg-light-gray rounded-lg p-3 mb-2 flex-between">
+              <div class="health-item bg-light-gray rounded-lg p-3 mb-3 flex-between" style="border-left: 4px solid #00C4F0; transition: transform 0.2s;">
                 <div class="flex-row items-center gap-3">
-                  <div class="avatar circle" style="background: #E0F7FB; color: #00C4F0;"><i class="fas fa-robot"></i></div>
+                  <div class="avatar circle" style="background: #E0F7FB; color: #00C4F0; box-shadow: 0 2px 4px rgba(0, 196, 240, 0.2);"><i class="fas fa-robot"></i></div>
                   <div>
-                    <div class="health-title font-bold text-sm">AI Screening Ready</div>
-                    <div class="text-xs text-muted">45 new resumes parsed</div>
+                    <div class="health-title font-bold text-sm" style="color: #0F172A;">AI Screening Ready</div>
+                    <div class="text-xs text-muted" style="font-weight: 500;">{{ aiScreeningReadyCount }} unparsed resume(s)</div>
                   </div>
                 </div>
-                <button class="badge-btn badge-blue-light text-xs border-none cursor-pointer p-1">Review</button>
+                <button class="badge-btn badge-blue-light text-xs border-none cursor-pointer p-1" style="font-weight: 600;" *ngIf="aiScreeningReadyCount > 0">Review</button>
+                <i class="fas fa-check-circle" style="color: #10B981;" *ngIf="aiScreeningReadyCount === 0"></i>
               </div>
               
-              <div class="health-item bg-light-gray rounded-lg p-3 mb-2 flex-between">
+              <div class="health-item bg-light-gray rounded-lg p-3 flex-between" style="border-left: 4px solid #10B981; transition: transform 0.2s;">
                 <div class="flex-row items-center gap-3">
-                  <div class="avatar circle" style="background: #D1FAE5; color: #10B981;"><i class="fas fa-check"></i></div>
+                  <div class="avatar circle" style="background: #D1FAE5; color: #10B981; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);"><i class="fas fa-laptop-medical"></i></div>
                   <div>
-                    <div class="health-title font-bold text-sm">Pipeline Flow</div>
-                    <div class="text-xs text-muted">Healthy conversion this week</div>
+                    <div class="health-title font-bold text-sm" style="color: #0F172A;">Pipeline Flow</div>
+                    <div class="text-xs text-muted" style="font-weight: 500;">Healthy conversion tracking</div>
                   </div>
                 </div>
               </div>
@@ -501,97 +547,101 @@
             </div>
           </div>
 
-          <!-- Panel Members Table -->
-          <div class="panel-table-wrapper bg-white rounded-lg" style="border: 1px solid #E2E8F0; overflow-x: auto;" *ngIf="!isLoadingPanels">
-            <table class="panel-table" style="min-width: max-content;" *ngIf="filteredInterviewPanels.length > 0">
-              <thead class="bg-gray-50 border-b border-gray-200 text-gray-700 text-xs font-semibold uppercase tracking-wider">
-                <tr>
-                  <th>Panel ID</th>
-                  <th>Interview ID</th>
-                  <th>Interviewer ID</th>
-                  <th>Interviewer Name</th>
-                  <th>Feedback</th>
-                  <th>Rating</th>
-                  <th>Task ID</th>
-                  <th>Temp1</th>
-                  <th>Temp2</th>
-                  <th>Temp3</th>
-                  <th>Temp4</th>
-                  <th>Temp5</th>
-                  <th>Created By</th>
-                  <th>Modified By</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let panel of paginatedInterviewPanels" class="panel-row">
-                  <td><span class="dept-badge">{{ getExt(panel.raw?.panel_id) }}</span></td>
-                  <td>{{ getExt(panel.raw?.interview_id) }}</td>
-                  <td>{{ getExt(panel.raw?.interviewer_id) }}</td>
-                  <td>
-                    <div class="panel-member-cell">
-                      <div class="panel-avatar" [style.background]="getExt(panel.raw?.temp1) === 'active' ? '#0088A8' : '#94A3B8'">
-                        {{ getExt(panel.raw?.interviewer_name).substring(0, 2).toUpperCase() }}
-                      </div>
-                      <span class="panel-member-name">{{ getExt(panel.raw?.interviewer_name) }}</span>
-                    </div>
-                  </td>
-                  <td><span class="expertise-text">{{ getExt(panel.raw?.feedback) || '-' }}</span></td>
-                  <td><span class="interview-count">{{ getExt(panel.raw?.rating) || '-' }}</span></td>
-                  <td>{{ getExt(panel.raw?.task_id) || '-' }}</td>
-                  <td>{{ getExt(panel.raw?.temp1) || '-' }}</td>
-                  <td>{{ getExt(panel.raw?.temp2) || '-' }}</td>
-                  <td>{{ getExt(panel.raw?.temp3) || '-' }}</td>
-                  <td>{{ getExt(panel.raw?.temp4) || '-' }}</td>
-                  <td>{{ getExt(panel.raw?.temp5) || '-' }}</td>
-                  <td>{{ getExt(panel.raw?.created_by) || '-' }}</td>
-                  <td>{{ getExt(panel.raw?.modified_by) || '-' }}</td>
-                  <td>
-                    <div class="action-btns">
-                      <button class="icon-action-btn" title="Edit" (click)="openEditPanelModal(panel)"><i class="fas fa-pen"></i></button>
-                      <button class="icon-action-btn danger" title="Remove" (click)="removePanelist(panel)"><i class="fas fa-trash-alt"></i></button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <div class="empty-state" *ngIf="filteredInterviewPanels.length === 0">
-              <i class="fas fa-user-slash"></i>
-              <p>No interview panels found matching your search.</p>
+          <!-- Panel Groups Container -->
+          <div class="panel-groups-wrapper" *ngIf="!isLoadingPanels && filteredInterviewPanels.length > 0">
+            <!-- Iterate through each interview_id group -->
+            <div *ngFor="let group of paginatedGroupedPanels" class="interview-group-card bg-white rounded-lg mb-4 p-4" style="border: 1px solid #E2E8F0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+              <div class="group-header flex-between mb-3" style="border-bottom: 1px solid #F1F5F9; padding-bottom: 10px;">
+                <h4 style="margin: 0; color: #0F172A; font-weight: 600; font-size: 1.1rem;">
+                  <i class="fas fa-video text-blue" style="margin-right: 8px;"></i>
+                  Interview ID: <span style="color: #00C4F0;">{{ group.interview_id }}</span>
+                </h4>
+                <span class="badge" style="background: #F8FAFC; color: #64748B; border: 1px solid #E2E8F0; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 500;">
+                  {{ group.panels.length }} Panelist(s)
+                </span>
+              </div>
+              
+              <div class="panel-table-wrapper" style="overflow-x: auto;">
+                <table class="panel-table" style="min-width: max-content; width: 100%; border-collapse: separate; border-spacing: 0;">
+                  <thead class="bg-gray-50 border-b border-gray-200 text-gray-700 text-xs font-semibold uppercase tracking-wider" style="background: #F8FAFC;">
+                    <tr>
+                      <th style="padding: 12px 15px; text-align: left; border-bottom: 1px solid #E2E8F0; font-weight: 600; color: #475569;">Interviewer ID</th>
+                      <th style="padding: 12px 15px; text-align: left; border-bottom: 1px solid #E2E8F0; font-weight: 600; color: #475569;">Interviewer Name</th>
+                      <th style="padding: 12px 15px; text-align: left; border-bottom: 1px solid #E2E8F0; font-weight: 600; color: #475569;">Feedback</th>
+                      <th style="padding: 12px 15px; text-align: left; border-bottom: 1px solid #E2E8F0; font-weight: 600; color: #475569;">Rating</th>
+                      <th style="padding: 12px 15px; text-align: right; border-bottom: 1px solid #E2E8F0; font-weight: 600; color: #475569;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let panel of group.panels" class="panel-row" style="transition: background-color 0.2s;">
+                      <td style="padding: 12px 15px; border-bottom: 1px solid #F1F5F9; color: #334155; font-size: 0.9rem;">{{ getExt(panel.raw?.interviewer_id) }}</td>
+                      <td style="padding: 12px 15px; border-bottom: 1px solid #F1F5F9;">
+                        <div class="panel-member-cell" style="display: flex; align-items: center; gap: 12px;">
+                          <div class="panel-avatar" style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.8rem;" [style.background]="getExt(panel.raw?.temp1)?.toLowerCase() === 'accepted' ? '#0088A8' : (getExt(panel.raw?.temp1)?.toLowerCase() === 'pending' ? '#CBD5E1' : '#94A3B8')">
+                            {{ getExt(panel.raw?.interviewer_name).substring(0, 2).toUpperCase() }}
+                          </div>
+                          <span class="panel-member-name" style="font-weight: 500; font-size: 0.95rem; color: #1E293B;">{{ getExt(panel.raw?.interviewer_name) }}</span>
+                        </div>
+                      </td>
+                      <td style="padding: 12px 15px; border-bottom: 1px solid #F1F5F9;"><span class="expertise-text" style="color: #64748B; font-size: 0.85rem;">{{ getExt(panel.raw?.feedback) || '-' }}</span></td>
+                      <td style="padding: 12px 15px; border-bottom: 1px solid #F1F5F9;"><span class="interview-count" style="font-weight: 600; color: #334155;">{{ getExt(panel.raw?.rating) || '-' }}</span></td>
+                      <td style="padding: 12px 15px; text-align: right; border-bottom: 1px solid #F1F5F9;">
+                        <div class="action-btns" style="display: flex; gap: 12px; justify-content: flex-end;">
+                          <button class="icon-action-btn" title="Edit" (click)="openEditPanelModal(panel)" style="background: transparent; border: none; color: #94A3B8; cursor: pointer; transition: color 0.2s;"><i class="fas fa-pen hover-blue"></i></button>
+                          <button class="icon-action-btn danger" title="Remove" (click)="removePanelist(panel)" style="background: transparent; border: none; color: #EF4444; cursor: pointer; transition: color 0.2s;"><i class="fas fa-trash-alt hover-dark-red"></i></button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
             
             <!-- Pagination Controls -->
-            <div class="pagination-controls" style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border-top: 1px solid #E2E8F0;" *ngIf="filteredInterviewPanels.length > 0">
+            <div class="pagination-controls bg-white rounded-lg" style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border: 1px solid #E2E8F0; margin-top: 10px;">
               <div style="color: #64748B; font-size: 0.85rem;">
                 Showing <span style="font-weight: 600; color: #1E293B;">{{ (interviewPanelCurrentPage - 1) * interviewPanelPageSize + 1 }}</span> 
-                to <span style="font-weight: 600; color: #1E293B;">{{ interviewPanelCurrentPage * interviewPanelPageSize > filteredInterviewPanels.length ? filteredInterviewPanels.length : interviewPanelCurrentPage * interviewPanelPageSize }}</span> 
-                of <span style="font-weight: 600; color: #1E293B;">{{ filteredInterviewPanels.length }}</span> panelists
+                to <span style="font-weight: 600; color: #1E293B;">{{ interviewPanelCurrentPage * interviewPanelPageSize > groupedInterviewPanels.length ? groupedInterviewPanels.length : interviewPanelCurrentPage * interviewPanelPageSize }}</span> 
+                of <span style="font-weight: 600; color: #1E293B;">{{ groupedInterviewPanels.length }}</span> interview groups
               </div>
               <div style="display: flex; gap: 8px;">
                 <button class="btn btn-outline-sm" 
                         [disabled]="interviewPanelCurrentPage === 1" 
                         (click)="changeInterviewPanelPage(-1)"
-                        style="padding: 4px 12px;">
-                  <i class="fas fa-chevron-left" style="font-size: 0.75rem;"></i> Prev
+                        style="padding: 4px 12px; border-radius: 6px; border: 1px solid #CBD5E1; background: white; cursor: pointer;">
+                  <i class="fas fa-chevron-left" style="font-size: 0.75rem; color: #64748B;"></i> Prev
                 </button>
                 <div style="display: flex; align-items: center; padding: 0 10px; font-size: 0.9rem; font-weight: 600; color: #1E293B; background: #F1F5F9; border-radius: 6px;">
-                  {{ interviewPanelCurrentPage }} / {{ interviewPanelTotalPages }}
+                  {{ interviewPanelCurrentPage }} / {{ Math.max(1, interviewPanelTotalPages) }}
                 </div>
                 <button class="btn btn-outline-sm" 
-                        [disabled]="interviewPanelCurrentPage === interviewPanelTotalPages" 
+                        [disabled]="interviewPanelCurrentPage === interviewPanelTotalPages || interviewPanelTotalPages === 0" 
                         (click)="changeInterviewPanelPage(1)"
-                        style="padding: 4px 12px;">
-                  Next <i class="fas fa-chevron-right" style="font-size: 0.75rem;"></i>
+                        style="padding: 4px 12px; border-radius: 6px; border: 1px solid #CBD5E1; background: white; cursor: pointer;">
+                  Next <i class="fas fa-chevron-right" style="font-size: 0.75rem; color: #64748B;"></i>
                 </button>
               </div>
             </div>
           </div>
+
+          <div class="empty-state" *ngIf="filteredInterviewPanels.length === 0 && !isLoadingPanels" style="text-align: center; padding: 60px 20px; background: white; border-radius: 12px; border: 1px solid #E2E8F0; display: flex; flex-direction: column; align-items: center;">
+            <div style="background: #F8FAFC; width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+              <i class="fas fa-user-slash" style="font-size: 2.5rem; color: #94A3B8;"></i>
+            </div>
+            <h3 style="margin: 0 0 10px 0; color: #1E293B; font-weight: 600;">No Interview Panels Found</h3>
+            <p style="color: #64748B; font-size: 0.95rem; margin: 0; max-width: 300px;">We couldn't find any interview panels matching your current search criteria.</p>
+          </div>
+
         </div>
 
         <!-- Add Panelist Modal -->
         <div class="modal-backdrop" *ngIf="showAddPanelModal || showEditPanelModal" (click)="closeAddPanelModal()">
-          <div class="modal-dialog" style="max-width: 900px; width: 90vw;" (click)="$event.stopPropagation()">
-            
+          <div class="modal-dialog" style="max-width: 900px; width: 90vw; max-height: 90vh; overflow-y: auto; scrollbar-width: none;" (click)="$event.stopPropagation()">
+            <style>
+              .modal-dialog::-webkit-scrollbar {
+                display: none;
+              }
+            </style>
             <!-- EDIT MODE: Show old form for editing existing panel -->
             <ng-container *ngIf="showEditPanelModal">
               <div class="modal-header-row">
@@ -600,10 +650,6 @@
               </div>
               <form class="req-form" (ngSubmit)="updatePanelist()">
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
-                  <div class="form-group" style="margin-bottom: 0;">
-                    <label>Panel ID</label>
-                    <input type="text" class="form-input" [(ngModel)]="newPanelForm.panel_id" name="panel_id" readonly>
-                  </div>
                   <div class="form-group" style="margin-bottom: 0;">
                     <label>Interview ID</label>
                     <input type="text" class="form-input" [(ngModel)]="newPanelForm.interview_id" name="interview_id" readonly>
@@ -771,79 +817,32 @@
             <div class="scheduling-title-area">
               <h1 style="font-size: 1.5rem; margin: 0;">Scheduling</h1>
             </div>
-            <button class="btn-create-event" (click)="openCreateEventModal()">
-              <i class="fas fa-plus"></i> Create
-            </button>
           </div>
 
-          <!-- Sub Tabs -->
+          <!-- Sub Tabs - Only Event types and Teams Meeting -->
           <div class="scheduling-sub-tabs">
             <button class="sub-tab" [class.active]="schedulingSubTab === 'event-types'" (click)="schedulingSubTab = 'event-types'">Event types</button>
-            <button class="sub-tab" [class.active]="schedulingSubTab === 'single-use'" (click)="schedulingSubTab = 'single-use'">Single-use links</button>
-            <button class="sub-tab" [class.active]="schedulingSubTab === 'meeting-polls'" (click)="schedulingSubTab = 'meeting-polls'">Meeting polls</button>
             <button class="sub-tab" [class.active]="schedulingSubTab === 'teams-meeting'" (click)="schedulingSubTab = 'teams-meeting'" style="color: #6264A7;">
               <i class="fab fa-microsoft"></i> Teams Meeting
             </button>
           </div>
 
           <!-- Search -->
-          <div class="scheduling-search-bar">
+          <div class="scheduling-search-bar" *ngIf="schedulingSubTab === 'event-types'">
             <i class="fas fa-search"></i>
             <input type="text" placeholder="Search event types" [(ngModel)]="schedulingSearchQuery">
           </div>
 
-          <!-- User Row -->
-          <div class="scheduling-user-row">
-            <div class="scheduling-user-info">
-              <div class="scheduling-user-avatar">S</div>
-              <span class="scheduling-user-name">Sarah Lindqvist</span>
-            </div>
-            <div class="scheduling-user-actions">
-              <a class="scheduling-link" href="javascript:void(0)"><i class="fas fa-external-link-alt"></i> View landing page</a>
-              <button class="icon-action-btn"><i class="fas fa-ellipsis-v"></i></button>
-            </div>
-          </div>
-
-          <!-- Event Type Cards -->
-          <div class="event-type-list" *ngIf="schedulingSubTab === 'event-types'">
-            <div class="event-type-card" *ngFor="let event of filteredEventTypes" [class.disabled-event]="!event.active">
-              <div class="event-color-bar" [style.background]="event.color"></div>
-              <div class="event-checkbox">
-                <input type="checkbox" [checked]="event.active" (change)="toggleEventActive(event)">
-              </div>
-              <div class="event-details">
-                <div class="event-title">{{ event.title }}</div>
-                <div class="event-meta">
-                  <span class="event-duration-badge" [style.color]="event.color"><i class="far fa-clock"></i> {{ event.duration }} min</span>
-                  <span class="event-separator">·</span>
-                  <span class="event-type-label">{{ event.type }}</span>
-                </div>
-                <div class="event-availability">{{ event.availability }}</div>
-              </div>
-              <div class="event-actions">
-                <button class="btn-copy-link" (click)="copyEventLink(event)"><i class="fas fa-link"></i> Copy link</button>
-                <button class="icon-action-btn" (click)="deleteEvent(event.id)" title="Delete"><i class="fas fa-ellipsis-v"></i></button>
-              </div>
-            </div>
-            <div class="empty-state" *ngIf="filteredEventTypes.length === 0">
-              <i class="far fa-calendar-times"></i>
-              <p>No event types found.</p>
-            </div>
-          </div>
-
-          <!-- Placeholder for other sub-tabs -->
-          <div class="scheduling-placeholder" *ngIf="schedulingSubTab === 'single-use'">
-            <div class="empty-state">
-              <i class="fas fa-link"></i>
-              <p>Single-use links allow you to create one-time scheduling links for specific candidates.</p>
-              <button class="btn btn-primary-blue" (click)="openCreateEventModal()"><i class="fas fa-plus"></i> Create Single-use Link</button>
-            </div>
-          </div>
-          <div class="scheduling-placeholder" *ngIf="schedulingSubTab === 'meeting-polls'">
-            <div class="empty-state">
-              <i class="fas fa-poll"></i>
-              <p>Meeting polls let panel members vote on available times collaboratively.</p>
-              <button class="btn btn-primary-blue" (click)="openCreateEventModal()"><i class="fas fa-plus"></i> Create Meeting Poll</button>
+          <!-- Event Type Cards - Empty State -->
+          <div *ngIf="schedulingSubTab === 'event-types'">
+            <div class="empty-state" style="padding: 80px 20px;">
+              <i class="far fa-calendar-plus" style="font-size: 3rem; color: #CBD5E1; margin-bottom: 20px;"></i>
+              <p style="font-size: 1rem; color: #64748B; max-width: 500px;">
+                No event types configured yet. Event types allow you to define different interview formats and durations.
+              </p>
+              <p style="font-size: 0.85rem; color: #94A3B8; margin-top: 10px;">
+                Contact your administrator to configure event types.
+              </p>
             </div>
           </div>
 
@@ -1247,7 +1246,7 @@
             <div class="panel-stat-card">
               <div class="panel-stat-icon" style="background: #E0F7FB; color: #00C4F0;"><i class="fas fa-users"></i></div>
               <div>
-                <div class="panel-stat-value">{{ employees.length }}</div>
+                <div class="panel-stat-value">{{ referralEmployees.length }}</div>
                 <div class="panel-stat-label">Total Employees</div>
               </div>
             </div>
@@ -1281,7 +1280,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let employee of filteredEmployees" class="panel-row">
+                <tr *ngFor="let employee of filteredReferralEmployees" class="panel-row">
                   <td>
                     <div class="panel-member-cell">
                       <div class="panel-avatar" style="background: #0B2265">{{ employee.avatar }}</div>
@@ -1309,7 +1308,7 @@
                 </tr>
               </tbody>
             </table>
-            <div class="empty-state" *ngIf="filteredEmployees.length === 0">
+            <div class="empty-state" *ngIf="filteredReferralEmployees.length === 0">
               <i class="fas fa-users-slash"></i>
               <p>No employees found matching your search.</p>
             </div>

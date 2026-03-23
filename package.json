@@ -24,6 +24,8 @@
     "@angular/router": "^16.2.0",
     "bootstrap": "^5.3.8",
     "echarts": "^6.0.0",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
     "lucide-angular": "^0.561.0",
     "ngx-echarts": "^16.2.0",
     "pdfjs-dist": "^3.11.174",

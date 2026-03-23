@@ -5,6 +5,8 @@ import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { HeroService } from '../../hero.service';
 import { AuthService } from '../../auth.service';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 @Component({
   selector: 'app-hr-panel',
@@ -14,8 +16,11 @@ import { AuthService } from '../../auth.service';
   styleUrls: ['./hr-panel.component.css']
 })
 export class HrPanelComponent implements OnInit {
+
+  protected Math = Math;
   isSidebarCollapsed = false;
   activeTab = 'Dashboard';
+  isGeneratingReport = false;
 
   // --- Job Requisition Form Model ---
   requisition = {
@@ -47,6 +52,8 @@ export class HrPanelComponent implements OnInit {
     this.loadJobs();
     this.loadInterviewPanels();
     this.loadCandidates();
+    this.loadInterviewsAndPanels();
+    this.loadReferrals();
   }
 
   logout(): void {
@@ -63,6 +70,49 @@ export class HrPanelComponent implements OnInit {
       this.showToastMsg = false;
     }, 4000);
   }
+
+  // --- Dynamic Dashboard Data ---
+  get dashboardOpenPositions(): number {
+    return this.jobsList.filter(j => ['OPEN', 'ACTIVE', 'APPROVED'].includes(j.status?.toUpperCase())).length;
+  }
+
+  get dashboardActiveCandidates(): number {
+    return this.candidates.filter(c => c.stage !== 'rejected' && c.stage !== 'joined').length;
+  }
+
+  get dashboardPendingApprovals(): number {
+    return this.jobsList.filter(j => j.status?.toUpperCase() === 'PENDING').length;
+  }
+
+  get dashboardTimeToHire(): string {
+    return '18d';
+  }
+
+  get funnelAppliedCount() { return this.candidates.filter(c => c.stage === 'applied' || c.stage === 'rejected').length; }
+  get funnelScreenedCount() { return this.candidates.filter(c => !['applied', 'rejected'].includes(c.stage)).length; }
+  get funnelInterviewingCount() { return this.candidates.filter(c => ['interviewing', 'offered', 'joined'].includes(c.stage)).length; }
+  get funnelOfferedCount() { return this.candidates.filter(c => ['offered', 'joined'].includes(c.stage)).length; }
+  get funnelJoinedCount() { return this.candidates.filter(c => c.stage === 'joined').length; }
+
+  get funnelAppliedWidth() { return 100; }
+  get funnelScreenedWidth() { return this.funnelAppliedCount ? Math.max(15, (this.funnelScreenedCount / this.funnelAppliedCount) * 100) : 0; }
+  get funnelInterviewingWidth() { return this.funnelAppliedCount ? Math.max(15, (this.funnelInterviewingCount / this.funnelAppliedCount) * 100) : 0; }
+  get funnelOfferedWidth() { return this.funnelAppliedCount ? Math.max(15, (this.funnelOfferedCount / this.funnelAppliedCount) * 100) : 0; }
+  get funnelJoinedWidth() { return this.funnelAppliedCount ? Math.max(15, (this.funnelJoinedCount / this.funnelAppliedCount) * 100) : 0; }
+
+  get overdueInterviewsCount() {
+    const today = new Date().toISOString().split('T')[0];
+    return this.allInterviews.filter(i => (i.status === 'SCHEDULED' || i.status === 'PENDING') && i.scheduled_date && i.scheduled_date < today).length;
+  }
+
+  get pendingOffersCount() {
+    return this.candidates.filter(c => c.stage === 'offered').length;
+  }
+
+  get aiScreeningReadyCount() {
+    return this.candidates.filter(c => c.stage === 'applied').length;
+  }
+
 
   sidebarSections = [
     {
@@ -81,21 +131,13 @@ export class HrPanelComponent implements OnInit {
       title: 'Screening & Evaluation',
       items: [
         { name: 'AI Screening', icon: 'fas fa-robot' },
-        { name: 'Candidate Comparison', icon: 'fas fa-balance-scale' },
-        { name: 'Evaluation Scorecards', icon: 'fas fa-clipboard-list' }
+        { name: 'Candidate Comparison', icon: 'fas fa-balance-scale' }
       ]
     },
     {
       title: 'Insights & Network',
       items: [
-        { name: 'Referral Tracking', icon: 'fas fa-project-diagram' },
-        { name: 'Analytics & Reports', icon: 'fas fa-chart-line' }
-      ]
-    },
-    {
-      title: 'Configuration',
-      items: [
-        { name: 'Approval Chain', icon: 'fas fa-sitemap' }
+        { name: 'Referral Tracking', icon: 'fas fa-project-diagram' }
       ]
     }
   ];
@@ -106,19 +148,13 @@ export class HrPanelComponent implements OnInit {
   showAddPanelModal = false;
   showEditPanelModal = false;
   editingPanel: any = null;
-  newPanelForm = {
+  newPanelForm: any = {
     panel_id: '',
     interview_id: '',
     interviewer_id: '',
     interviewer_name: '',
     feedback: '',
-    rating: '',
-    task_id: '',
-    temp1: '',
-    temp2: '',
-    temp3: '',
-    temp4: '',
-    temp5: ''
+    rating: ''
   };
   panelSearchQuery = '';
 
@@ -138,11 +174,11 @@ export class HrPanelComponent implements OnInit {
   isSubmittingInterview = false;
 
   get activePanelistCount() {
-    return this.interviewPanels.filter(m => this.getExt(m.temp1) === 'active').length;
+    return this.interviewPanels.filter(m => this.getExt(m.temp1).toLowerCase() === 'accepted').length;
   }
 
   get inactivePanelistCount() {
-    return this.interviewPanels.filter(m => this.getExt(m.temp1) === 'inactive').length;
+    return this.interviewPanels.filter(m => this.getExt(m.temp1).toLowerCase() === 'pending').length;
   }
 
   get filteredInterviewPanels() {
@@ -163,13 +199,30 @@ export class HrPanelComponent implements OnInit {
   interviewPanelCurrentPage = 1;
   interviewPanelPageSize = 5;
 
-  get paginatedInterviewPanels() {
+  get groupedInterviewPanels() {
+    const groups: { [key: string]: any[] } = {};
+    // Grouping filtered panels by interview_id
+    for (const panel of this.filteredInterviewPanels) {
+      const iId = this.getExt(panel.raw?.interview_id) || 'Unknown Interview';
+      if (!groups[iId]) {
+        groups[iId] = [];
+      }
+      groups[iId].push(panel);
+    }
+    // Return an array of grouped objects
+    return Object.keys(groups).map(key => ({
+      interview_id: key,
+      panels: groups[key]
+    }));
+  }
+
+  get paginatedGroupedPanels() {
     const start = (this.interviewPanelCurrentPage - 1) * this.interviewPanelPageSize;
-    return this.filteredInterviewPanels.slice(start, start + this.interviewPanelPageSize);
+    return this.groupedInterviewPanels.slice(start, start + this.interviewPanelPageSize);
   }
 
   get interviewPanelTotalPages() {
-    return Math.max(1, Math.ceil(this.filteredInterviewPanels.length / this.interviewPanelPageSize));
+    return Math.max(1, Math.ceil(this.groupedInterviewPanels.length / this.interviewPanelPageSize));
   }
 
   changeInterviewPanelPage(delta: number) {
@@ -216,7 +269,7 @@ export class HrPanelComponent implements OnInit {
     this.showAddPanelModal = true;
     this.newPanelForm = {
       panel_id: '', interview_id: '', interviewer_id: '', interviewer_name: '',
-      feedback: '', rating: '', task_id: '', temp1: '', temp2: '', temp3: '', temp4: '', temp5: ''
+      feedback: '', rating: ''
     };
   }
 
@@ -229,13 +282,7 @@ export class HrPanelComponent implements OnInit {
       interviewer_id: this.getExt(panel.raw?.interviewer_id),
       interviewer_name: this.getExt(panel.raw?.interviewer_name),
       feedback: this.getExt(panel.raw?.feedback),
-      rating: this.getExt(panel.raw?.rating),
-      task_id: this.getExt(panel.raw?.task_id),
-      temp1: this.getExt(panel.raw?.temp1),
-      temp2: this.getExt(panel.raw?.temp2),
-      temp3: this.getExt(panel.raw?.temp3),
-      temp4: this.getExt(panel.raw?.temp4),
-      temp5: this.getExt(panel.raw?.temp5)
+      rating: this.getExt(panel.raw?.rating)
     };
   }
 
@@ -458,21 +505,37 @@ export class HrPanelComponent implements OnInit {
             const interviewerName = interviewer?.employee_name || interviewerId;
 
             await this.heroService.createInterviewPanel({
-              panel_id: this.generateId(),
               interview_id: interviewId,
               interviewer_id: interviewerId,
               interviewer_name: interviewerName,
               feedback: '',
               rating: '',
-              task_id: '',
-              temp1: 'active',
-              temp2: '',
-              temp3: '',
-              temp4: '',
-              temp5: '',
-              created_at: new Date().toISOString(),
-              created_by: sessionStorage.getItem('displayName') || 'HR'
+              temp1: 'pending'
             });
+          }
+
+          // Call BPM EmployeeTaskBPM for each interviewer
+          for (const interviewerId of this.selectedInterviewerIds) {
+            try {
+              await this.heroService.initiateEmployeeTaskBPM(interviewerId);
+              console.log('[HrPanel] BPM task initiated for interviewer:', interviewerId);
+            } catch (bpmErr) {
+              console.warn('[HrPanel] BPM task initiation failed for interviewer:', interviewerId, bpmErr);
+              // Don't fail the whole flow if BPM task fails
+            }
+          }
+
+          // Update candidate application stage to 'interviewing'
+          const candidate = this.jobCandidates.find(c => c.candidate_id === candidateId);
+          if (candidate?.raw) {
+            try {
+              await this.heroService.updateCandidateApplication(
+                candidate.raw,
+                { application_status: 'IN_PROGRESS', stage: 'interviewing' }
+              );
+            } catch (stageErr) {
+              console.warn('[HrPanel] Failed to update candidate stage:', stageErr);
+            }
           }
 
           successCount++;
@@ -486,6 +549,7 @@ export class HrPanelComponent implements OnInit {
         this.showToast(`Successfully created ${successCount} interview(s)!`, 'success');
         this.closeAddPanelModal();
         this.loadInterviewPanels();
+        this.loadCandidates();
       } else {
         this.showToast('Failed to create interviews. Please try again.', 'error');
       }
@@ -497,18 +561,15 @@ export class HrPanelComponent implements OnInit {
     }
   }
 
-  generateId(): string {
-    return 'PAN-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-  }
-
   async addPanelist() {
-    if (!this.newPanelForm.panel_id || !this.newPanelForm.interviewer_id) {
-      this.showToast('Panel ID and Interviewer ID are required.', 'error');
+    if (!this.newPanelForm.interviewer_id) {
+      this.showToast('Interviewer ID is required.', 'error');
       return;
     }
     try {
       await this.heroService.createInterviewPanel({
         ...this.newPanelForm,
+        temp1: 'pending',
         created_at: new Date().toISOString(),
         created_by: sessionStorage.getItem('displayName') || 'HR'
       });
@@ -950,6 +1011,7 @@ export class HrPanelComponent implements OnInit {
     this.showConfirmModal = false;
   }
 
+
   // --- Candidate Comparison ---
   comparatorList: any[] = [];
   showComparatorModal = false;
@@ -993,21 +1055,13 @@ export class HrPanelComponent implements OnInit {
 
   // --- Referral Tracking ---
   referralSearchQuery = '';
-  employees = [
-    { id: 'E001', name: 'Rajesh Kumar', department: 'Engineering', role: 'Engineering Manager', avatar: 'RK', referralCount: 5, successfulReferrals: 2 },
-    { id: 'E002', name: 'Priya Sharma', department: 'Engineering', role: 'Senior Developer', avatar: 'PS', referralCount: 3, successfulReferrals: 1 },
-    { id: 'E003', name: 'Amit Verma', department: 'Engineering', role: 'Tech Lead', avatar: 'AV', referralCount: 8, successfulReferrals: 4 },
-    { id: 'E004', name: 'Sneha Patel', department: 'HR & Ops', role: 'HR Business Partner', avatar: 'SP', referralCount: 1, successfulReferrals: 0 },
-    { id: 'E005', name: 'Vikram Joshi', department: 'Product', role: 'Product Manager', avatar: 'VJ', referralCount: 0, successfulReferrals: 0 },
-    { id: 'E006', name: 'Neha Gupta', department: 'Design', role: 'Design Lead', avatar: 'NG', referralCount: 4, successfulReferrals: 2 },
-    { id: 'E007', name: 'Ravi Singh', department: 'Marketing', role: 'Marketing Head', avatar: 'RS', referralCount: 2, successfulReferrals: 1 },
-    { id: 'E008', name: 'Kavita Menon', department: 'Sales', role: 'Sales Executive', avatar: 'KM', referralCount: 6, successfulReferrals: 3 }
-  ];
+  isLoadingReferrals = false;
+  referralEmployees: any[] = [];
 
-  get filteredEmployees() {
-    if (!this.referralSearchQuery.trim()) return this.employees;
+  get filteredReferralEmployees() {
+    if (!this.referralSearchQuery.trim()) return this.referralEmployees;
     const q = this.referralSearchQuery.toLowerCase();
-    return this.employees.filter(e =>
+    return this.referralEmployees.filter(e =>
       e.name.toLowerCase().includes(q) ||
       e.role.toLowerCase().includes(q) ||
       e.department.toLowerCase().includes(q)
@@ -1015,11 +1069,109 @@ export class HrPanelComponent implements OnInit {
   }
 
   get totalReferrals() {
-    return this.employees.reduce((acc, curr) => acc + curr.referralCount, 0);
+    return this.referralEmployees.reduce((acc, curr) => acc + curr.referralCount, 0);
   }
 
   get totalSuccessfulHires() {
-    return this.employees.reduce((acc, curr) => acc + curr.successfulReferrals, 0);
+    return this.referralEmployees.reduce((acc, curr) => acc + curr.successfulReferrals, 0);
+  }
+
+  async loadReferrals() {
+    this.isLoadingReferrals = true;
+    try {
+      const [referralsResp, employeesResp, applicationsResp] = await Promise.all([
+        this.heroService.getEmployeeReferrals(),
+        this.heroService.getEmployees(),
+        this.heroService.getCandidateApplications()
+      ]);
+
+      const refData = this.heroService.xmltojson(referralsResp, 'tuple');
+      const refArray = refData ? (Array.isArray(refData) ? refData : [refData]) : [];
+
+      const empData = this.heroService.xmltojson(employeesResp, 'tuple');
+      const empArray = empData ? (Array.isArray(empData) ? empData : [empData]) : [];
+
+      const appData = this.heroService.xmltojson(applicationsResp, 'tuple');
+      const appArray = appData ? (Array.isArray(appData) ? appData : [appData]) : [];
+
+      const ext = (field: any) => field?.text || field?.['#text'] || field || '';
+
+      // Create employee map
+      const employeeMap = new Map<string, any>();
+      empArray.forEach((e: any) => {
+        const record = e.old?.employee || e.new?.employee || e.employee || e;
+        const empId = ext(record.employee_id);
+        if (empId) {
+          employeeMap.set(empId, {
+            employee_id: empId,
+            name: ext(record.employee_name),
+            department: ext(record.department),
+            role: ext(record.designation)
+          });
+        }
+      });
+
+      // Create application map for checking hired status
+      const hiredCandidateIds = new Set<string>();
+      appArray.forEach((a: any) => {
+        const record = a.old?.candidate_job_application || a.new?.candidate_job_application || a.candidate_job_application || a;
+        const stage = ext(record.stage).toLowerCase();
+        const candidateId = ext(record.candidate_id);
+        if (stage === 'joined' && candidateId) {
+          hiredCandidateIds.add(candidateId);
+        }
+      });
+
+      // Count referrals per employee
+      const referralCounts = new Map<string, { total: number; successful: number }>();
+      
+      refArray.forEach((r: any) => {
+        const record = r.old?.employee_referral || r.new?.employee_referral || r.employee_referral || r;
+        const empId = ext(record.employee_id);
+        const candidateId = ext(record.candidate_id);
+
+        if (!empId) return;
+
+        const current = referralCounts.get(empId) || { total: 0, successful: 0 };
+        current.total++;
+
+        if (hiredCandidateIds.has(candidateId)) {
+          current.successful++;
+        }
+
+        referralCounts.set(empId, current);
+      });
+
+      // Build referral employees list
+      this.referralEmployees = Array.from(referralCounts.entries()).map(([empId, counts]) => {
+        const emp = employeeMap.get(empId) || {};
+        const name = emp.name || empId;
+        const nameParts = name.split(' ');
+        const initials = nameParts.map((n: string) => n[0]).join('').toUpperCase().substring(0, 2);
+
+        return {
+          id: empId,
+          name: name,
+          department: emp.department || 'General',
+          role: emp.role || 'Not specified',
+          avatar: initials,
+          referralCount: counts.total,
+          successfulReferrals: counts.successful
+        };
+      });
+
+      console.log('[HrPanel] Loaded referral employees:', this.referralEmployees);
+    } catch (e) {
+      console.error('[HrPanel] Error loading referrals:', e);
+      this.showToast('Failed to load referral data.', 'error');
+    } finally {
+      this.isLoadingReferrals = false;
+    }
+  }
+
+  // For backward compatibility with template
+  get employees() {
+    return this.referralEmployees;
   }
 
   // --- Jobs List ---
@@ -1031,15 +1183,12 @@ export class HrPanelComponent implements OnInit {
     this.isLoadingJobs = true;
     try {
       const resp = await this.heroService.showAllJobRequisition();
-      
       let jobData = this.heroService.xmltojson(resp, 'job_requisition');
       if (!jobData) {
-         jobData = this.heroService.xmltojson(resp, 'tuple');
+        jobData = this.heroService.xmltojson(resp, 'tuple');
       }
-
       if (jobData) {
         const jobsArray = Array.isArray(jobData) ? jobData : [jobData];
-        
         const ext = (field: any) => {
           if (!field) return '';
           if (typeof field === 'string') return field;
@@ -1047,7 +1196,6 @@ export class HrPanelComponent implements OnInit {
           if (field['#text']) return field['#text'];
           return String(field);
         };
-
         this.jobsList = jobsArray.map((j: any) => {
           const record = j.old?.job_requisition || j.new?.job_requisition || j.job_requisition || j;
           return {
@@ -1056,13 +1204,11 @@ export class HrPanelComponent implements OnInit {
             department: ext(record.department),
             location: ext(record.location) || 'Remote',
             status: ext(record.status) || 'Open',
-            applicants: 0, 
+            applicants: 0,
             datePosted: ext(record.closing_date),
             raw: record
           };
         });
-        
-        // Sort newest first based on ID (assuming sequential)
         this.jobsList.sort((a, b) => {
           const idA = parseInt(String(a.id).replace(/\D/g, '')) || 0;
           const idB = parseInt(String(b.id).replace(/\D/g, '')) || 0;
@@ -1082,8 +1228,6 @@ export class HrPanelComponent implements OnInit {
     if (!job.raw) return;
     this.editingJobId = job.id;
     this.activeTab = 'Job Requisition';
-    
-    // Fill form safely
     const ext = (field: any) => field?.text || field?.['#text'] || field || '';
     this.requisition = {
       job_title: ext(job.raw.job_title),
@@ -1106,7 +1250,6 @@ export class HrPanelComponent implements OnInit {
   deleteJob(job: any) {
     if (confirm(`Are you sure you want to mark '${job.title}' as INACTIVE?`)) {
       if (!job.raw) return;
-      
       const ext = (field: any) => field?.text || field?.['#text'] || field || '';
       const updatedData = {
         job_title: ext(job.raw.job_title),
@@ -1121,20 +1264,19 @@ export class HrPanelComponent implements OnInit {
         priority: ext(job.raw.priority),
         approval_status: ext(job.raw.approval_status),
         closing_date: ext(job.raw.closing_date),
-        status: 'INACTIVE', // Mutating status
+        status: 'INACTIVE',
         modified_at: new Date().toISOString()
       };
-
       this.isLoadingJobs = true;
       this.heroService.updateJobRequisition(job.id, updatedData)
         .then(() => {
           this.showToast(`Job ${job.title} marked as INACTIVE.`, 'success');
-          this.loadJobs(); // Refresh table
+          this.loadJobs();
         })
         .catch((error: any) => {
           console.error('Error disabling job requisition:', error);
           this.showToast('Failed to mark job as INACTIVE.', 'error');
-          this.isLoadingJobs = false; 
+          this.isLoadingJobs = false;
         });
     }
   }
@@ -1143,8 +1285,8 @@ export class HrPanelComponent implements OnInit {
     let filtered = this.jobsList;
     if (this.jobsSearchQuery.trim()) {
       const q = this.jobsSearchQuery.toLowerCase();
-      filtered = this.jobsList.filter(j => 
-        j.title.toLowerCase().includes(q) || 
+      filtered = this.jobsList.filter(j =>
+        j.title.toLowerCase().includes(q) ||
         j.department.toLowerCase().includes(q) ||
         j.status.toLowerCase().includes(q) ||
         j.location.toLowerCase().includes(q)
@@ -1176,5 +1318,333 @@ export class HrPanelComponent implements OnInit {
   onJobsSearchChange() {
     this.jobsCurrentPage = 1;
   }
-}
 
+  // ===================== INTERVIEW WORKFLOW =====================
+
+  allInterviews: any[] = [];
+  allPanelRecords: any[] = [];
+
+  showFeedbackReviewModal = false;
+  reviewingCandidate: any = null;
+  candidateInterviewHistory: any[] = [];
+
+  showScheduleFromPipelineModal = false;
+  schedulingCandidate: any = null;
+  scheduleRoundNumber = 'Round 1';
+  scheduleIsHRRound = false;
+
+  async loadInterviewsAndPanels() {
+    try {
+      const [interviewResp, panelResp] = await Promise.all([
+        this.heroService.getInterviews(),
+        this.heroService.getInterviewPanels()
+      ]);
+      let intData = this.heroService.xmltojson(interviewResp, 'tuple');
+      if (!intData) intData = this.heroService.xmltojson(interviewResp, 'interview');
+      if (!intData) intData = [];
+      const intArr = Array.isArray(intData) ? intData : [intData];
+      this.allInterviews = intArr.map((t: any) => {
+        const r = t.old?.interview || t.new?.interview || t.interview || t;
+        return this.flattenRecord(r);
+      }).filter((i: any) => i.interview_id);
+
+      let panData = this.heroService.xmltojson(panelResp, 'tuple');
+      if (!panData) panData = this.heroService.xmltojson(panelResp, 'interview_panel');
+      if (!panData) panData = [];
+      const panArr = Array.isArray(panData) ? panData : [panData];
+      this.allPanelRecords = panArr.map((t: any) => {
+        const r = t.old?.interview_panel || t.new?.interview_panel || t.interview_panel || t;
+        return this.flattenRecord(r);
+      }).filter((p: any) => p.panel_id);
+
+      console.log('[HrPanel] Loaded interviews:', this.allInterviews.length, 'panels:', this.allPanelRecords.length);
+    } catch (e) {
+      console.error('[HrPanel] Error loading interviews/panels:', e);
+    }
+  }
+
+  private flattenRecord(record: any): any {
+    if (!record || typeof record !== 'object') return {};
+    const result: any = {};
+    for (const key of Object.keys(record)) {
+      result[key] = this.getExt(record[key]);
+    }
+    return result;
+  }
+
+  getInterviewsForCandidate(candidateId: string, jrId?: string): any[] {
+    return this.allInterviews.filter((i: any) =>
+      i.candidate_id === candidateId && (!jrId || i.jr_id === jrId)
+    ).sort((a: any, b: any) => {
+      const roundA = parseInt((a.round || '').replace(/\D/g, '')) || 0;
+      const roundB = parseInt((b.round || '').replace(/\D/g, '')) || 0;
+      return roundA - roundB;
+    });
+  }
+
+  getPanelsForInterview(interviewId: string): any[] {
+    return this.allPanelRecords.filter((p: any) => p.interview_id === interviewId);
+  }
+
+  isAllFeedbackReceived(interviewId: string): boolean {
+    const panels = this.getPanelsForInterview(interviewId);
+    if (panels.length === 0) return false;
+    return panels.every((p: any) => p.feedback && p.rating);
+  }
+
+  getLatestInterview(candidateId: string, jrId?: string): any | null {
+    const interviews = this.getInterviewsForCandidate(candidateId, jrId);
+    return interviews.length > 0 ? interviews[interviews.length - 1] : null;
+  }
+
+  getInterviewAvgScore(interviewId: string): number {
+    const panels = this.getPanelsForInterview(interviewId);
+    const rated = panels.filter((p: any) => p.rating);
+    if (rated.length === 0) return 0;
+    const total = rated.reduce((sum: number, p: any) => sum + (parseInt(p.rating, 10) || 0), 0);
+    return Math.round((total / rated.length) * 100) / 100;
+  }
+
+  getCandidateInterviewStatus(candidate: any): string {
+    const latest = this.getLatestInterview(candidate.candidate_id);
+    if (!latest) return '';
+    if (latest.status === 'COMPLETED') {
+      return `${latest.round} - Completed (Score: ${latest.final_score || this.getInterviewAvgScore(latest.interview_id)})`;
+    }
+    if (latest.status === 'SCHEDULED' || latest.status === 'IN_PROGRESS') {
+      const panels = this.getPanelsForInterview(latest.interview_id);
+      const submitted = panels.filter((p: any) => p.feedback && p.rating).length;
+      return `${latest.round} - ${submitted}/${panels.length} feedback received`;
+    }
+    return latest.status || '';
+  }
+
+  async shortlistCandidate(candidate: any) {
+    this.schedulingCandidate = candidate;
+    this.showScheduleFromPipelineModal = true;
+    const existingInterviews = this.getInterviewsForCandidate(candidate.candidate_id);
+    const roundNum = existingInterviews.length + 1;
+    this.scheduleRoundNumber = `Round ${roundNum}`;
+    this.scheduleIsHRRound = false;
+    await Promise.all([
+      this.loadJobsForInterview(),
+      this.loadEmployeesForInterview()
+    ]);
+    const jrId = this.getExt(candidate.raw?.application?.jr_id);
+    if (jrId) {
+      this.selectedJobId = jrId;
+      await this.onJobSelectForInterview();
+      this.selectedCandidateIds = [candidate.candidate_id];
+    }
+    this.interviewSchedule = {
+      round: this.scheduleRoundNumber,
+      scheduled_date: '',
+      scheduled_time: '',
+      meeting_link: ''
+    };
+  }
+
+  toggleHRRound() {
+    this.scheduleIsHRRound = !this.scheduleIsHRRound;
+    this.interviewSchedule.round = this.scheduleIsHRRound ? 'HR Round' : this.scheduleRoundNumber;
+  }
+
+  closeScheduleFromPipelineModal() {
+    this.showScheduleFromPipelineModal = false;
+    this.schedulingCandidate = null;
+    this.selectedCandidateIds = [];
+    this.selectedInterviewerIds = [];
+  }
+
+  async rejectCandidate(candidate: any) {
+    if (!confirm(`Are you sure you want to reject ${candidate.name}?`)) return;
+    try {
+      const oldApp = candidate.raw?.application || candidate;
+      await this.heroService.updateCandidateApplication(
+        oldApp,
+        { application_status: 'REJECTED', stage: 'applied' }
+      );
+      const email = candidate.email || this.getExt(candidate.raw?.candidate?.email);
+      if (email) {
+        const jobTitle = this.getJobTitleById(this.getExt(candidate.raw?.application?.jr_id)) || 'the position';
+        await this.heroService.sendMail(
+          email,
+          candidate.name,
+          '', '',
+          `Application Update - ${jobTitle}`,
+          `<div style="font-family: Arial, sans-serif; padding: 20px;"><h2>Dear ${candidate.name},</h2><p>Thank you for your interest in <strong>${jobTitle}</strong> at Adnate IT Solutions.</p><p>After careful consideration, we regret to inform you that we will not be moving forward with your application at this time.</p><p>We appreciate the time you invested and encourage you to apply for future openings.</p><br><p>Best regards,<br>HR Team<br>Adnate IT Solutions</p></div>`
+        );
+      }
+      const idx = this.candidates.findIndex((c: any) => c.application_id === candidate.application_id);
+      if (idx !== -1) {
+        this.candidates.splice(idx, 1);
+      }
+      this.showToast(`${candidate.name} has been rejected and notified via email.`, 'success');
+    } catch (e) {
+      console.error('[HrPanel] Error rejecting candidate:', e);
+      this.showToast('Failed to reject candidate. Please try again.', 'error');
+    }
+  }
+
+  async viewCandidateFeedback(candidate: any) {
+    this.reviewingCandidate = candidate;
+    await this.loadInterviewsAndPanels();
+    const jrId = this.getExt(candidate.raw?.application?.jr_id);
+    const interviews = this.getInterviewsForCandidate(candidate.candidate_id, jrId);
+    this.candidateInterviewHistory = interviews.map((interview: any) => {
+      const panels = this.getPanelsForInterview(interview.interview_id);
+      const allSubmitted = panels.length > 0 && panels.every((p: any) => p.feedback && p.rating);
+      const avgScore = this.getInterviewAvgScore(interview.interview_id);
+      return { ...interview, panels, allSubmitted, avgScore };
+    });
+    this.showFeedbackReviewModal = true;
+  }
+
+  closeFeedbackReviewModal() {
+    this.showFeedbackReviewModal = false;
+    this.reviewingCandidate = null;
+    this.candidateInterviewHistory = [];
+  }
+
+  async scheduleNextRound(candidate: any) {
+    this.closeFeedbackReviewModal();
+    await this.shortlistCandidate(candidate);
+  }
+
+  async finalAcceptCandidate(candidate: any) {
+    if (!confirm(`Accept ${candidate.name} and move to Offered stage?`)) return;
+    try {
+      const oldApp = candidate.raw?.application || candidate;
+      await this.heroService.updateCandidateApplication(
+        oldApp,
+        { application_status: 'OFFERED', stage: 'offered' }
+      );
+      const idx = this.candidates.findIndex((c: any) => c.application_id === candidate.application_id);
+      if (idx !== -1) {
+        this.candidates[idx].stage = 'offered';
+      }
+      this.closeFeedbackReviewModal();
+      this.showToast(`${candidate.name} has been accepted and moved to Offered!`, 'success');
+    } catch (e) {
+      console.error('[HrPanel] Error accepting candidate:', e);
+      this.showToast('Failed to accept candidate. Please try again.', 'error');
+    }
+  }
+
+  async finalRejectCandidate(candidate: any) {
+    this.closeFeedbackReviewModal();
+    await this.rejectCandidate(candidate);
+  }
+
+  hasPendingFeedback(candidate: any): boolean {
+    const jrId = this.getExt(candidate.raw?.application?.jr_id);
+    const latest = this.getLatestInterview(candidate.candidate_id, jrId);
+    if (!latest) return false;
+    return latest.status === 'COMPLETED' || this.isAllFeedbackReceived(latest.interview_id);
+  }
+
+  isInInterviewStage(candidate: any): boolean {
+    return candidate.stage === 'interviewing';
+  }
+
+  async generateReport() {
+    this.isGeneratingReport = true;
+    
+    try {
+      // Small delay for UI to show loading state
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const doc = new jsPDF();
+      
+      // Theme colors
+      const primaryColor: [number, number, number] = [11, 34, 101]; // #0B2265
+      const secondaryColor: [number, number, number] = [0, 196, 240]; // #00C4F0
+      
+      // Title
+      doc.setFontSize(22);
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.text('HR Recruitment Report', 14, 22);
+      
+      // Subtitle/Date
+      doc.setFontSize(11);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+      
+      // --- Section 1: Dashboard KPIs ---
+      doc.setFontSize(14);
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.text('1. Key Performance Indicators', 14, 45);
+      
+      const kpiData = [
+        ['Open Positions', this.dashboardOpenPositions.toString()],
+        ['Active Candidates', this.dashboardActiveCandidates.toString()],
+        ['Pending Approvals', this.dashboardPendingApprovals.toString()],
+        ['Avg Time-to-Hire', this.dashboardTimeToHire]
+      ];
+      
+      autoTable(doc, {
+        startY: 50,
+        head: [['Metric', 'Value']],
+        body: kpiData,
+        theme: 'grid',
+        headStyles: { fillColor: primaryColor, textColor: 255 },
+        styles: { fontSize: 10, cellPadding: 5 }
+      });
+      
+      // --- Section 2: Job Requisitions ---
+      const finalY = (doc as any).lastAutoTable.finalY || 50;
+      doc.setFontSize(14);
+      doc.text('2. Active Job Requisitions', 14, finalY + 15);
+      
+      const jobData = this.jobsList.map(j => [
+        j.jr_id || '-',
+        j.job_title || '-',
+        j.department || '-',
+        j.status || '-',
+        j.vacancies || '1'
+      ]);
+      
+      autoTable(doc, {
+        startY: finalY + 20,
+        head: [['JR ID', 'Job Title', 'Department', 'Status', 'Vacancies']],
+        body: jobData,
+        theme: 'striped',
+        headStyles: { fillColor: secondaryColor, textColor: 255 },
+        styles: { fontSize: 9 }
+      });
+      
+      // --- Section 3: Recruitment Pipeline ---
+      doc.addPage();
+      doc.setFontSize(14);
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.text('3. Candidate Pipeline Overview', 14, 22);
+      
+      const pipelineData = [
+        ['Applied', this.funnelAppliedCount.toString()],
+        ['Screened', this.funnelScreenedCount.toString()],
+        ['Interviewing', this.funnelInterviewingCount.toString()],
+        ['Offered', this.funnelOfferedCount.toString()],
+        ['Joined', this.funnelJoinedCount.toString()]
+      ];
+      
+      autoTable(doc, {
+        startY: 28,
+        head: [['Pipeline Stage', 'Count']],
+        body: pipelineData,
+        theme: 'striped',
+        headStyles: { fillColor: [47, 75, 143], textColor: 255 },
+        styles: { fontSize: 10 }
+      });
+      
+      // Save the PDF
+      doc.save(`HR_Report_${new Date().getTime()}.pdf`);
+      
+      this.showToast('Report generated and downloaded successfully.', 'success');
+    } catch (error) {
+      console.error('Error generating report:', error);
+      this.showToast('Failed to generate report.', 'error');
+    } finally {
+      this.isGeneratingReport = false;
+    }
+  }
+}

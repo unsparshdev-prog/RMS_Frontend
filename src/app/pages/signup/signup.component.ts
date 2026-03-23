@@ -64,19 +64,19 @@ export class SignupComponent {
           userName: this.email,
           description: this.fullName,
           userId: this.email,
-          password: 'TEST', // Strictly use 'TEST' as requested
+          password: this.password,
           role: 'Candidate_RMS'
         });
       })
       .then((userResponse: any) => {
-        console.log('User created in organization successfully. Response:', userResponse);
+        // console.log('User created in organization successfully. Response:', userResponse);
         
         // Step 3: Create the Candidate record using UpdateCandidate service
         // We do this while still under sysadmin SSO to have write permissions.
         return this.heroService.createCandidate(this.fullName, this.email);
       })
       .then((candidateResp: any) => {
-        console.log('Candidate record created successfully. Response:', candidateResp);
+        // console.log('Candidate record created successfully. Response:', candidateResp);
 
         let candidateId: string | undefined = undefined;
         try {
@@ -84,29 +84,43 @@ export class SignupComponent {
           let extId = this.heroService.xmltojson(candidateResp, 'candidate_id');
           if (!extId) { extId = this.heroService.xmltojson(candidateResp, 'Candidate_id'); }
           if (!extId) { extId = this.heroService.xmltojson(candidateResp, 'CANDIDATE_ID'); }
+
+          const extractIdText = (r: any): string => {
+            if (Array.isArray(r)) r = r[0];
+            if (!r) return '';
+            if (typeof r === 'string') return r;
+            if (r?.text) return r.text;
+            if (r?.['#text']) return r['#text'];
+            if (r?.['$t']) return r['$t'];
+            return String(r);
+          };
           
           if (extId) {
-            candidateId = typeof extId === 'object' && extId.text ? extId.text : String(extId);
+            let extracted = extractIdText(extId);
+            if (extracted && extracted !== '[object Object]') {
+              candidateId = extracted;
+            }
           }
         } catch (e) {
           console.warn('Silent error extracting candidateId:', e);
         }
 
         if (!candidateId) {
-          console.warn('Warning: candidate_id could not be extracted from UpdateCandidate response. Records may be unlinked.');
+          console.warn('Warning: candidate_id could not be extracted. Falling back to email to prevent unlinked records.');
+          candidateId = this.email;
         }
 
         // Step 4: Call the UpdateCandidate_login service
         return this.heroService.createCandidateLogin(this.fullName, this.email, this.password, candidateId);
       })
       .then((loginResponse: any) => {
-        console.log('Candidate login record created successfully. Response:', loginResponse);
+        // console.log('Candidate login record created successfully. Response:', loginResponse);
         
         // Step 5: Logout sysadmin and redirect to login page for the user to login with their new credentials
         return this.heroService.logoutAndRedirect('/login');
       })
       .then(() => {
-        console.log('Logout and redirected to login successfully.');
+        // console.log('Logout and redirected to login successfully.');
         this.loading = false;
       })
       .catch((err: any) => {

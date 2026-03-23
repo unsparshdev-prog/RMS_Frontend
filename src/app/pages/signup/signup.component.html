@@ -222,9 +222,20 @@
                 </div>
 
                 <!-- Submit -->
-                <button type="submit" id="signup-submit-btn" [disabled]="!agreeToTerms"
-                    class="w-full py-3.5 text-sm font-semibold text-primary-foreground bg-primary rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
-                    Create Account
+                <button type="submit" id="signup-submit-btn" [disabled]="!agreeToTerms || loading"
+                    class="w-full py-3.5 text-sm font-semibold text-primary-foreground bg-primary rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100">
+                    <span *ngIf="!loading">Create Account</span>
+                    <span *ngIf="loading" class="flex items-center justify-center gap-2">
+                        <svg class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none"
+                            viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                            </circle>
+                            <path class="opacity-75" fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                            </path>
+                        </svg>
+                        Creating Account…
+                    </span>
                 </button>
             </form>
         </div>
