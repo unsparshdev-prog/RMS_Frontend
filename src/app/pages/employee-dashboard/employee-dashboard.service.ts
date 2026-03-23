@@ -47,7 +47,13 @@ export class EmployeeDashboardService {
         toPanel_id: 'zzzzzzzzzz'
       });
       const allPanels = this.extractTuples(resp, 'interview_panel');
-      return allPanels.filter((p: any) => p.interviewer_id === employeeId);
+      console.log('[EmployeeService] All panels from DB:', allPanels);
+      console.log('[EmployeeService] Looking for interviewer_id:', employeeId);
+      const filtered = allPanels.filter((p: any) =>
+        (p.interviewer_id || '').toLowerCase() === employeeId.toLowerCase()
+      );
+      console.log('[EmployeeService] Filtered panels for this employee:', filtered);
+      return filtered;
     } catch (e) {
       console.error('[EmployeeService] GetInterview_panelObjects failed:', e);
       return [];
@@ -149,7 +155,12 @@ export class EmployeeDashboardService {
         toReferral_id: 'zzzzzzzzzz'
       });
       const all = this.extractTuples(resp, 'employee_referral');
-      return all.filter((r: any) => r.employee_id === employeeId);
+      console.log('[EmployeeService] All referrals from DB:', all);
+      const filtered = all.filter((r: any) =>
+        (r.employee_id || '').toLowerCase() === employeeId.toLowerCase()
+      );
+      console.log('[EmployeeService] Referrals for employee', employeeId, ':', filtered.length);
+      return filtered;
     } catch (e) {
       console.error('[EmployeeService] GetEmployee_referralObjects failed:', e);
       return [];
@@ -162,6 +173,15 @@ export class EmployeeDashboardService {
       tuple: {
         old: { interview_panel: oldData },
         new: { interview_panel: newData }
+      }
+    });
+  }
+
+  // ─── Create a new Interview Panel entry (for delegation) ───
+  async createInterviewPanelEntry(data: any): Promise<any> {
+    return this.hero.ajax('UpdateInterview_panel', NAMESPACE, {
+      tuple: {
+        new: { interview_panel: data }
       }
     });
   }

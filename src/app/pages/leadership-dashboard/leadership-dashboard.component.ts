@@ -90,7 +90,7 @@ export class LeadershipDashboardComponent implements OnInit {
   jobSearch = '';
   employeeSearch = '';
   candidateSearch = '';
-  departmentFilter = '';
+  departmentFilter = 'All Departments';
   selectedJobForCandidates = '';
 
   // Job detail panel
@@ -149,7 +149,12 @@ export class LeadershipDashboardComponent implements OnInit {
 
       // Active jobs: approval_status is APPROVED or status is OPEN/ACTIVE
       this.jobs = allJobs.filter(j => j.approval_status === 'APPROVED' || j.status === 'OPEN' || j.status === 'ACTIVE');
-      this.pendingApprovals = allJobs.filter(j => j.approval_status === 'PENDING');
+      this.pendingApprovals = allJobs.filter(j => j.approval_status === 'PENDING')
+        .sort((a, b) => {
+          const aNum = parseInt(a.jr_id.replace(/\D/g, ''), 10) || 0;
+          const bNum = parseInt(b.jr_id.replace(/\D/g, ''), 10) || 0;
+          return bNum - aNum;
+        });
 
       console.log('[Dashboard] Active jobs:', this.jobs.length);
       console.log('[Dashboard] Pending approvals:', this.pendingApprovals.length);
@@ -416,7 +421,11 @@ export class LeadershipDashboardComponent implements OnInit {
       j.department.toLowerCase().includes(q) ||
       j.location.toLowerCase().includes(q) ||
       j.jr_id.toLowerCase().includes(q)
-    );
+    ).sort((a, b) => {
+      const aNum = parseInt(a.jr_id.replace(/\D/g, ''), 10) || 0;
+      const bNum = parseInt(b.jr_id.replace(/\D/g, ''), 10) || 0;
+      return bNum - aNum;
+    });
   }
 
   get filteredEmployees(): Employee[] {
