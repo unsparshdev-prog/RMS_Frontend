@@ -241,12 +241,22 @@ export class LeadershipDashboardService {
   }
 
   // ─── Update Offer Status ───
-  async updateOffer(data: any): Promise<any> {
-    return this.hero.updateOffer(data);
+  async updateOffer(offerId: string, data: any): Promise<any> {
+    return this.hero.updateOfferById(offerId, data);
+  }
+
+  // ─── Approve/Reject Offer by offer_id (old/new tuple pattern) ───
+  async approveOfferStatus(offerId: string, approvalStatus: string, offerSentDate: string): Promise<any> {
+    return this.hero.approveOfferStatus(offerId, approvalStatus, offerSentDate);
   }
 
   // ─── Send Offer Email ───
   async sendOfferEmail(toEmail: string, toName: string, subject: string, htmlBody: string): Promise<any> {
+    try {
+      await this.hero.setEmailProfile();
+    } catch (e) {
+      console.warn('[DashboardService] Failed to set email profile, proceeding anyway...', e);
+    }
     return this.hero.sendMail(
       toEmail,
       toName,
@@ -255,6 +265,35 @@ export class LeadershipDashboardService {
       htmlBody,
       'Adnate IT Solutions - HR',
       'hr@adnateitsolutions.com'
+    );
+  }
+
+  // ─── Send Offer Email With PDF Attachment ───
+  async sendOfferEmailWithAttachment(
+    toEmail: string,
+    toName: string,
+    subject: string,
+    htmlBody: string,
+    pdfBase64: string,
+    attachmentName: string
+  ): Promise<any> {
+    try {
+      await this.hero.setEmailProfile();
+    } catch (e) {
+      console.warn('[DashboardService] Failed to set email profile, proceeding anyway...', e);
+    }
+    return this.hero.sendMailWithAttachment(
+      toEmail,
+      toName,
+      subject,
+      htmlBody,
+      pdfBase64,
+      attachmentName,
+      'Adnate IT Solutions - HR',
+      'hr@adnateitsolutions.com',
+      'hr@adnateitsolutions.com',
+      'muditmwork@gmail.com',
+      'Mudit M'
     );
   }
 }

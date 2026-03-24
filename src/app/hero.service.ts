@@ -171,6 +171,64 @@ export class HeroService {
   }
 
   /**
+   * SendMailWithAttachment: Sends an email with a Base64-encoded PDF attachment.
+   * Maps to: <SendMail xmlns="http://schemas.cordys.com/1.0/email">
+   * The attachment is sent as Base64 with encoded="true".
+   */
+  sendMailWithAttachment(
+    toEmail: string,
+    toDisplayName: string,
+    subject: string,
+    body: string,
+    attachmentBase64: string,
+    attachmentName: string,
+    fromDisplayName?: string,
+    fromEmail?: string,
+    replyTo?: string,
+    ccEmail?: string,
+    ccDisplayName?: string
+  ): Promise<any> {
+    const normalizedBody: any = (typeof body === 'string')
+      ? { '@type': 'html', text: body }
+      : (body || '');
+
+    const payload: any = {
+      to: {
+        address: {
+          emailAddress: toEmail || '',
+          displayName: toDisplayName || ''
+        }
+      },
+      subject: subject || '',
+      body: normalizedBody,
+      attachments: {
+        attachment: {
+          '@name': attachmentName || 'attachment.pdf',
+          '@encoded': 'true',
+          text: attachmentBase64 || ''
+        }
+      },
+      from: {
+        displayName: fromDisplayName || 'RMS Notification',
+        emailAddress: fromEmail || 'no-reply@rms-system.com',
+        replyTo: replyTo || (fromEmail || 'no-reply@rms-system.com')
+      }
+    };
+
+    // Add CC if provided
+    if (ccEmail) {
+      payload.cc = {
+        address: {
+          emailAddress: ccEmail,
+          displayName: ccDisplayName || ''
+        }
+      };
+    }
+
+    return this.ajax('SendMail', 'http://schemas.cordys.com/1.0/email', payload);
+  }
+
+  /**
    * Create a Job Requisition by calling the UpdateJob_requisition SOAP service.
    * Maps to: <UpdateJob_requisition xmlns="http://schemas.cordys.com/RMS_DB_Metadata">
    */
@@ -1107,7 +1165,11 @@ export class HeroService {
     return this.ajax('GetOfferedApplications', 'http://schemas.cordys.com/RMS_DB_Metadata', payload);
   }
 
-  updateOffer(data: any): Promise<any> {
+  /**
+   * CREATE a new offer row (INSERT — new-only tuple).
+   * Use this only when creating the offer for the first time.
+   */
+  createOffer(data: any): Promise<any> {
     const payload = {
       reply: 'yes',
       commandUpdate: 'no',
@@ -1116,6 +1178,52 @@ export class HeroService {
       tuple: {
         new: {
           offer: {
+            '@qAccess': '0',
+            '@qConstraint': '0',
+            '@qInit': '0',
+            '@qValues': '',
+            candidate_id: data.candidate_id || '',
+            jr_id: data.jr_id || '',
+            ...(data.offer_date ? { offer_date: data.offer_date } : {}),
+            ...(data.offer_sent_date ? { offer_sent_date: data.offer_sent_date } : {}),
+            ...(data.candidate_response_date ? { candidate_response_date: data.candidate_response_date } : {}),
+            ...(data.date_of_joining ? { date_of_joining: data.date_of_joining } : {}),
+            ...(data.salary_offered ? { salary_offered: data.salary_offered } : {}),
+            ...(data.offer_letter_path ? { offer_letter_path: data.offer_letter_path } : {}),
+            ...(data.offer_status ? { offer_status: data.offer_status } : {}),
+            approval_status: data.approval_status || 'PENDING'
+          }
+        }
+      }
+    };
+    return this.ajax('UpdateOffer', 'http://schemas.cordys.com/RMS_DB_Metadata', payload);
+  }
+
+  /**
+   * UPDATE an existing offer row by offer_id (old/new tuple pattern).
+   * Use this for all subsequent changes (e.g. changing offer_status, approval_status).
+   * IMPORTANT: All fields must be included — Cordys NULLs any omitted column in the new block.
+   */
+  updateOfferById(offerId: string, data: any): Promise<any> {
+    const payload = {
+      reply: 'yes',
+      commandUpdate: 'no',
+      preserveSpace: 'no',
+      batchUpdate: 'no',
+      tuple: {
+        old: {
+          offer: {
+            '@qConstraint': '0',
+            offer_id: offerId
+          }
+        },
+        new: {
+          offer: {
+            '@qAccess': '0',
+            '@qConstraint': '0',
+            '@qInit': '0',
+            '@qValues': '',
+            offer_id: offerId,
             candidate_id: data.candidate_id || '',
             jr_id: data.jr_id || '',
             offer_date: data.offer_date || '',
@@ -1126,6 +1234,39 @@ export class HeroService {
             offer_letter_path: data.offer_letter_path || '',
             offer_status: data.offer_status || '',
             approval_status: data.approval_status || 'PENDING'
+          }
+        }
+      }
+    };
+    return this.ajax('UpdateOffer', 'http://schemas.cordys.com/RMS_DB_Metadata', payload);
+  }
+
+  /**
+   * Approve/Reject an existing offer by offer_id.
+   * Uses old/new tuple pattern — only updates offer_sent_date and approval_status.
+   * Maps to: <UpdateOffer xmlns="http://schemas.cordys.com/RMS_DB_Metadata">
+   */
+  approveOfferStatus(offerId: string, approvalStatus: string, offerSentDate: string): Promise<any> {
+    const payload = {
+      reply: 'yes',
+      commandUpdate: 'no',
+      preserveSpace: 'no',
+      batchUpdate: 'no',
+      tuple: {
+        old: {
+          offer: {
+            '@qConstraint': '0',
+            offer_id: offerId
+          }
+        },
+        new: {
+          offer: {
+            '@qAccess': '0',
+            '@qConstraint': '0',
+            '@qInit': '0',
+            '@qValues': '',
+            offer_sent_date: offerSentDate,
+            approval_status: approvalStatus
           }
         }
       }

@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
 import { EChartsOption } from 'echarts';
 import { LeadershipDashboardService } from './leadership-dashboard.service';
+import { jsPDF } from 'jspdf';
 
 interface JobRequisition {
   jr_id: string;
@@ -119,6 +120,11 @@ export class LeadershipDashboardComponent implements OnInit {
   toastMessage = '';
   toastType: 'success' | 'error' = 'success';
   showToastFlag = false;
+
+  // Approval confirmation modal & loader
+  showApproveConfirmModal = false;
+  isApprovalLoading = false;
+  approvalLoadingMessage = 'Processing...';
 
   ngOnInit(): void {
     this.loadAllData();
@@ -235,6 +241,7 @@ export class LeadershipDashboardComponent implements OnInit {
           experience: cand.experience || 0,
           education: cand.education || '',
           // Offer details
+          offer_id: offerData.offer_id || '',
           offer_date: offerData.offer_date || '',
           date_of_joining: offerData.date_of_joining || '',
           salary_offered: offerData.salary_offered || '',
@@ -660,47 +667,76 @@ export class LeadershipDashboardComponent implements OnInit {
     this.selectedOffer = null;
   }
 
-  async approveOffer() {
-    if (!this.selectedOffer || this.isProcessingOffer) return;
-    this.isProcessingOffer = true;
+  // ─── Approve Confirmation Modal ───
+  openApproveConfirmModal() {
+    if (!this.selectedOffer) return;
+    this.showApproveConfirmModal = true;
+  }
+
+  closeApproveConfirmModal() {
+    this.showApproveConfirmModal = false;
+  }
+
+  async confirmApproveOffer() {
+    // Close the confirmation modal and show the loader
+    this.showApproveConfirmModal = false;
+    this.showOfferDetailModal = false;
+    this.isApprovalLoading = true;
+    this.approvalLoadingMessage = 'Updating offer status...';
 
     try {
-      // 1. Update offer status to APPROVED
-      await this.dashboardService.updateOffer({
-        candidate_id: this.selectedOffer.candidate_id,
-        jr_id: this.selectedOffer.jr_id,
-        offer_date: this.selectedOffer.offer_date || new Date().toISOString().split('T')[0],
-        date_of_joining: this.selectedOffer.date_of_joining || '',
-        salary_offered: this.selectedOffer.salary_offered || '',
-        offer_letter_path: '',
-        offer_status: 'APPROVED',
-        approval_status: 'APPROVED',
-        offer_sent_date: new Date().toISOString().split('T')[0],
-        candidate_response_date: ''
-      });
+      // 1. Update offer status to APPROVED via UpdateOffer WS (old/new tuple pattern)
+      const offerId = this.selectedOffer.offer_id;
+      if (!offerId) {
+        this.isApprovalLoading = false;
+        this.showToast2('Offer ID not found. Cannot update status.', 'error');
+        return;
+      }
+      const todayDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      await this.dashboardService.approveOfferStatus(offerId, 'APPROVED', todayDate);
 
-      // 2. Send offer letter email if candidate has email
+      let emailSent = false;
+      // 2. Generate PDF and send offer letter email with attachment
       if (this.selectedOffer.email) {
-        const htmlBody = this.buildOfferLetterHTML(this.selectedOffer);
-        await this.dashboardService.sendOfferEmail(
-          this.selectedOffer.email,
-          this.selectedOffer.candidate_name,
-          `Offer Letter - ${this.selectedOffer.job_title} | Adnate IT Solutions`,
-          htmlBody
-        );
+        try {
+          this.approvalLoadingMessage = 'Generating offer letter PDF...';
+          const pdfBase64 = this.generateOfferLetterPDFBase64(this.selectedOffer);
+          const htmlBody = this.buildOfferLetterHTML(this.selectedOffer);
+          const jobTitle = (this.selectedOffer.job_title || 'Position').replace(/[^a-zA-Z0-9]/g, '_');
+          const attachmentName = `OfferLetter_${jobTitle}_AdnateITSolution.pdf`;
+
+          this.approvalLoadingMessage = 'Sending offer letter with PDF attachment...';
+          await this.dashboardService.sendOfferEmailWithAttachment(
+            this.selectedOffer.email,
+            this.selectedOffer.candidate_name,
+            `Offer Letter - ${this.selectedOffer.job_title} | Adnate IT Solutions`,
+            htmlBody,
+            pdfBase64,
+            attachmentName
+          );
+          emailSent = true;
+        } catch (mailError) {
+          console.warn('[Leadership] Failed to send offer letter email:', mailError);
+        }
       }
 
       // 3. Update local state
       this.selectedOffer.approval_status = 'APPROVED';
       this.selectedOffer.offer_status = 'APPROVED';
-      this.showToast2('Offer approved and email sent successfully!', 'success');
-      this.closeOfferDetailModal();
+
+      // 4. Hide loader and show success toast
+      this.isApprovalLoading = false;
+      if (emailSent) {
+        this.showToast2('Offer approved and email with PDF attachment sent successfully!', 'success');
+      } else {
+        this.showToast2('Offer approved! (Email could not be sent — check recipient address)', 'success');
+      }
+      this.selectedOffer = null;
       this.loadAllData(); // refresh
     } catch (e) {
       console.error('[Leadership] Error approving offer:', e);
+      this.isApprovalLoading = false;
       this.showToast2('Failed to approve offer. Please try again.', 'error');
-    } finally {
-      this.isProcessingOffer = false;
     }
   }
 
@@ -710,7 +746,13 @@ export class LeadershipDashboardComponent implements OnInit {
     this.isProcessingOffer = true;
 
     try {
-      await this.dashboardService.updateOffer({
+      const offerId = this.selectedOffer.offer_id;
+      if (!offerId) {
+        this.showToast2('Offer ID not found. Cannot reject.', 'error');
+        this.isProcessingOffer = false;
+        return;
+      }
+      await this.dashboardService.updateOffer(offerId, {
         candidate_id: this.selectedOffer.candidate_id,
         jr_id: this.selectedOffer.jr_id,
         offer_date: this.selectedOffer.offer_date || '',
@@ -723,31 +765,41 @@ export class LeadershipDashboardComponent implements OnInit {
         candidate_response_date: ''
       });
 
+      let emailSent = false;
       // Send rejection notification if email exists
       if (this.selectedOffer.email) {
-        await this.dashboardService.sendOfferEmail(
-          this.selectedOffer.email,
-          this.selectedOffer.candidate_name,
-          `Application Update - ${this.selectedOffer.job_title} | Adnate IT Solutions`,
-          `<div style="font-family:'Inter',Arial,sans-serif;max-width:600px;margin:0 auto;padding:40px 24px;">
-            <div style="background:#0B2265;padding:24px 32px;border-radius:12px 12px 0 0;text-align:center;">
-              <h1 style="color:#fff;margin:0;font-size:20px;">Adnate IT Solutions</h1>
-            </div>
-            <div style="background:#fff;padding:32px;border:1px solid #e1e8ed;border-top:none;border-radius:0 0 12px 12px;">
-              <h2 style="color:#0B2265;margin-top:0;">Dear ${this.selectedOffer.candidate_name},</h2>
-              <p style="color:#4a5d75;line-height:1.7;">Thank you for your interest in the position of <strong>${this.selectedOffer.job_title}</strong> at Adnate IT Solutions.</p>
-              <p style="color:#4a5d75;line-height:1.7;">After careful review, we regret to inform you that we will not be moving forward with the offer at this time.</p>
-              <p style="color:#4a5d75;line-height:1.7;">We appreciate the time you invested and encourage you to apply for future openings.</p>
-              <br>
-              <p style="color:#4a5d75;">Best regards,<br><strong>HR Team</strong><br>Adnate IT Solutions</p>
-            </div>
-          </div>`
-        );
+        try {
+          await this.dashboardService.sendOfferEmail(
+            this.selectedOffer.email,
+            this.selectedOffer.candidate_name,
+            `Application Update - ${this.selectedOffer.job_title} | Adnate IT Solutions`,
+            `<div style="font-family:'Inter',Arial,sans-serif;max-width:600px;margin:0 auto;padding:40px 24px;">
+              <div style="background:#0B2265;padding:24px 32px;border-radius:12px 12px 0 0;text-align:center;">
+                <h1 style="color:#fff;margin:0;font-size:20px;">Adnate IT Solutions</h1>
+              </div>
+              <div style="background:#fff;padding:32px;border:1px solid #e1e8ed;border-top:none;border-radius:0 0 12px 12px;">
+                <h2 style="color:#0B2265;margin-top:0;">Dear ${this.selectedOffer.candidate_name},</h2>
+                <p style="color:#4a5d75;line-height:1.7;">Thank you for your interest in the position of <strong>${this.selectedOffer.job_title}</strong> at Adnate IT Solutions.</p>
+                <p style="color:#4a5d75;line-height:1.7;">After careful review, we regret to inform you that we will not be moving forward with the offer at this time.</p>
+                <p style="color:#4a5d75;line-height:1.7;">We appreciate the time you invested and encourage you to apply for future openings.</p>
+                <br>
+                <p style="color:#4a5d75;">Best regards,<br><strong>HR Team</strong><br>Adnate IT Solutions</p>
+              </div>
+            </div>`
+          );
+          emailSent = true;
+        } catch (mailError) {
+          console.warn('[Leadership] Failed to send rejection email due to invalid/test address:', mailError);
+        }
       }
 
       this.selectedOffer.approval_status = 'REJECTED';
       this.selectedOffer.offer_status = 'REJECTED';
-      this.showToast2('Offer rejected successfully.', 'success');
+      if (emailSent) {
+        this.showToast2('Offer rejected successfully and the candidate was notified.', 'success');
+      } else {
+        this.showToast2('Offer rejected! (Rejection email could not be sent to test/invalid address)', 'success');
+      }
       this.closeOfferDetailModal();
       this.loadAllData();
     } catch (e) {
@@ -756,6 +808,110 @@ export class LeadershipDashboardComponent implements OnInit {
     } finally {
       this.isProcessingOffer = false;
     }
+  }
+
+  /**
+   * Generates a branded offer letter PDF using jsPDF and returns the
+   * raw Base64-encoded string (without the data:application/pdf prefix)
+   * so it can be attached to an email.
+   */
+  private generateOfferLetterPDFBase64(offer: any): string {
+    const doc = new jsPDF();
+    const candidateName = offer.candidate_name || 'Candidate';
+    const jobTitle = offer.job_title || 'Employee';
+    const companyName = 'Adnate IT Solutions';
+    const salary = offer.salary_offered || 'as discussed';
+    const doj = offer.date_of_joining
+      ? new Date(offer.date_of_joining).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })
+      : 'a date to be decided';
+    const offerDate = offer.offer_date
+      ? new Date(offer.offer_date).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })
+      : new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    // --- Theme Colors ---
+    const primaryColor: [number, number, number] = [11, 34, 101]; // #0B2265
+    const secondaryColor: [number, number, number] = [0, 196, 240]; // #00C4F0
+
+    // Light background wash
+    doc.setFillColor(248, 250, 255);
+    doc.rect(0, 0, 210, 297, 'F');
+
+    // Top corner geometric branding
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.triangle(0, 0, 90, 0, 0, 60, 'F');
+    doc.setFillColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+    doc.triangle(0, 60, 0, 65, 8, 60, 'F');
+
+    // Bottom right geometric branding
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.triangle(210, 297, 120, 297, 210, 237, 'F');
+    doc.setFillColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+    doc.triangle(210, 237, 210, 232, 202, 237, 'F');
+
+    // Header
+    doc.setFontSize(22);
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.text(companyName, 190, 25, { align: 'right' });
+
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text('2nd Floor, SLC Building, Amrapali Circle, Vaishali Nagar, Jaipur, Rajasthan, India', 190, 35, { align: 'right' });
+    doc.text('Email: hr@adnateitsolutions.com | Phone: +91-800-123-4567', 190, 40, { align: 'right' });
+
+    doc.setDrawColor(200, 200, 200);
+    doc.line(20, 48, 190, 48);
+
+    // Date & Recipient
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Date: ${offerDate}`, 20, 60);
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`To: ${candidateName}`, 20, 72);
+
+    // Subject
+    doc.text(`Subject: Offer of Employment - ${jobTitle}`, 20, 84);
+
+    // Body
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+
+    const bodyLines = [
+      `Dear ${candidateName},`,
+      '',
+      `We are thrilled to formally offer you the position of ${jobTitle} at ${companyName}.`,
+      `Based on our discussions and your interviews, we are confident you will be a great addition`,
+      `to our team.`,
+      '',
+      `Position: ${jobTitle}`,
+      `Start Date: ${doj}`,
+      `Compensation: Your annual Total Target Cash (TTC) compensation will be Rs. ${salary}/-.`,
+      '',
+      `This offer is contingent upon the successful completion of a background check, reference`,
+      `checks, and verification of your employment eligibility. Please let us know if you require any`,
+      `further details prior to your date of joining.`,
+      '',
+      `We are excited to welcome you aboard to ${companyName} and look forward to building`,
+      `great products together.`,
+      '',
+      `Sincerely,`,
+      '',
+      `Human Resources`,
+      `${companyName}`
+    ];
+
+    doc.text(bodyLines, 20, 100);
+
+    // Footer
+    doc.setFontSize(9);
+    doc.setTextColor(150, 150, 150);
+    doc.text('This is a highly confidential document and is electronically generated.', 105, 280, { align: 'center' });
+
+    // Return Base64 string (strip the data:…;base64, prefix)
+    const dataUri = doc.output('datauristring');
+    const base64 = dataUri.split(',')[1];
+    return base64;
   }
 
   private buildOfferLetterHTML(offer: any): string {
