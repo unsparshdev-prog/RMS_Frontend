@@ -1223,6 +1223,7 @@ export class HrPanelComponent implements OnInit {
   showPreviewOfferModal = false;
   selectedOfferCandidate: any = null;
   selectedOfferJob: any = null;
+  createdOfferId: string = '';
 
   offerForm = {
     offer_date: '',
@@ -1318,11 +1319,23 @@ export class HrPanelComponent implements OnInit {
       const candId = this.selectedOfferCandidate.candidate_id;
       const jrId = this.selectedOfferCandidate.jr_id;
       
-      await this.heroService.updateOffer({
+      const resp = await this.heroService.createOffer({
         candidate_id: candId,
         jr_id: jrId,
         ...this.offerForm
       });
+      
+      // Extract the offer_id from the INSERT response so we can UPDATE the same row later
+      try {
+        const tupleData = this.heroService.xmltojson(resp, 'offer');
+        const offerId = this.getExt(tupleData?.offer_id || tupleData?.['offer_id']);
+        if (offerId) {
+          this.createdOfferId = offerId;
+          console.log('[HrPanel] Created offer with offer_id:', this.createdOfferId);
+        }
+      } catch (parseErr) {
+        console.warn('[HrPanel] Could not extract offer_id from response:', parseErr);
+      }
       
       this.showToast('Offer details successfully saved!', 'success');
       
@@ -1480,20 +1493,31 @@ export class HrPanelComponent implements OnInit {
 
   async sendOfferForApproval() {
     try {
-      const candId = this.selectedOfferCandidate.candidate_id;
-      const jrId = this.selectedOfferCandidate.jr_id;
-      
       // Dynamically override statuses for approval send
       this.offerForm.offer_status = 'PENDING';
       this.offerForm.approval_status = 'PENDING';
 
-      await this.heroService.updateOffer({
-        candidate_id: candId,
-        jr_id: jrId,
-        ...this.offerForm
-      });
+      if (this.createdOfferId) {
+        // UPDATE the existing offer row using offer_id (old/new tuple pattern)
+        await this.heroService.updateOfferById(this.createdOfferId, {
+          candidate_id: this.selectedOfferCandidate.candidate_id,
+          jr_id: this.selectedOfferCandidate.jr_id,
+          ...this.offerForm
+        });
+      } else {
+        // Fallback: if we don't have an offer_id, create a new one
+        console.warn('[HrPanel] No createdOfferId found, falling back to createOffer');
+        const candId = this.selectedOfferCandidate.candidate_id;
+        const jrId = this.selectedOfferCandidate.jr_id;
+        await this.heroService.createOffer({
+          candidate_id: candId,
+          jr_id: jrId,
+          ...this.offerForm
+        });
+      }
       
       this.showToast('Offer status changed to PENDING and sent for approval successfully!', 'success');
+      this.createdOfferId = ''; // reset after successful update
       this.closePreviewOfferModal();
       this.loadOfferedApplications(); // reload the data
     } catch (e) {
@@ -1792,22 +1816,34 @@ export class HrPanelComponent implements OnInit {
         oldApp,
         { application_status: 'REJECTED', stage: 'applied' }
       );
+      let emailSent = false;
       const email = candidate.email || this.getExt(candidate.raw?.candidate?.email);
       if (email) {
         const jobTitle = this.getJobTitleById(this.getExt(candidate.raw?.application?.jr_id)) || 'the position';
-        await this.heroService.sendMail(
-          email,
-          candidate.name,
-          '', '',
-          `Application Update - ${jobTitle}`,
-          `<div style="font-family: Arial, sans-serif; padding: 20px;"><h2>Dear ${candidate.name},</h2><p>Thank you for your interest in <strong>${jobTitle}</strong> at Adnate IT Solutions.</p><p>After careful consideration, we regret to inform you that we will not be moving forward with your application at this time.</p><p>We appreciate the time you invested and encourage you to apply for future openings.</p><br><p>Best regards,<br>HR Team<br>Adnate IT Solutions</p></div>`
-        );
+        try { await this.heroService.setEmailProfile(); } catch (e) { console.warn('Failed setting email profile', e); }
+        
+        try {
+          await this.heroService.sendMail(
+            email,
+            candidate.name,
+            '', '',
+            `Application Update - ${jobTitle}`,
+            `<div style="font-family: Arial, sans-serif; padding: 20px;"><h2>Dear ${candidate.name},</h2><p>Thank you for your interest in <strong>${jobTitle}</strong> at Adnate IT Solutions.</p><p>After careful consideration, we regret to inform you that we will not be moving forward with your application at this time.</p><p>We appreciate the time you invested and encourage you to apply for future openings.</p><br><p>Best regards,<br>HR Team<br>Adnate IT Solutions</p></div>`
+          );
+          emailSent = true;
+        } catch (mailError) {
+          console.warn('[HrPanel] Failed to send rejection email due to invalid/test address:', mailError);
+        }
       }
       const idx = this.candidates.findIndex((c: any) => c.application_id === candidate.application_id);
       if (idx !== -1) {
         this.candidates.splice(idx, 1);
       }
-      this.showToast(`${candidate.name} has been rejected and notified via email.`, 'success');
+      if (emailSent) {
+        this.showToast(`${candidate.name} has been rejected and notified via email.`, 'success');
+      } else {
+        this.showToast(`${candidate.name} has been rejected! (Email could not be sent to test/invalid address)`, 'success');
+      }
     } catch (e) {
       console.error('[HrPanel] Error rejecting candidate:', e);
       this.showToast('Failed to reject candidate. Please try again.', 'error');

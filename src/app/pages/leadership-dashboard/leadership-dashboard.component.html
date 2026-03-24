@@ -405,7 +405,7 @@
         </div>
         <div class="accordion-body" *ngIf="offerAccordionOpen">
           <div class="approval-list">
-            <div *ngFor="let offer of offeredCandidates" class="approval-card">
+            <div *ngFor="let offer of offeredCandidates" class="approval-card" style="cursor: pointer;" (click)="openOfferDetailModal(offer)">
               <div class="approval-card-top">
                 <div class="approval-info">
                   <div class="approval-title-row">
@@ -413,6 +413,9 @@
                     <h3 class="approval-job-title">{{ offer.candidate_name }}</h3>
                     <span class="status-badge status-pending">{{ offer.application_status }}</span>
                   </div>
+                  <p class="approval-desc" style="margin-top: 8px; font-size: 0.85rem; color: var(--text-secondary);">
+                    Email: {{ offer.email || 'N/A' }} | Phone: {{ offer.phone || 'N/A' }} | Experience: {{ offer.experience }} yrs
+                  </p>
                 </div>
               </div>
               <div class="approval-details-grid">
@@ -425,8 +428,12 @@
                   <span class="detail-value">{{ offer.jr_id }}</span>
                 </div>
                 <div class="approval-detail">
-                  <span class="detail-label">Stage</span>
-                  <span class="detail-value" style="text-transform: capitalize;">{{ offer.stage }}</span>
+                  <span class="detail-label">Salary Offered</span>
+                  <span class="detail-value">Rs. {{ offer.salary_offered }}/-</span>
+                </div>
+                <div class="approval-detail">
+                  <span class="detail-label">DOJ</span>
+                  <span class="detail-value">{{ offer.date_of_joining }}</span>
                 </div>
               </div>
             </div>
@@ -444,5 +451,106 @@
 
   </main>
 
+</div>
 
+<!-- Offer Detail Modal -->
+<div class="modal-overlay" *ngIf="showOfferDetailModal">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2>Offer Details for {{ selectedOffer?.candidate_name }}</h2>
+      <button class="modal-close" (click)="closeOfferDetailModal()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:24px;height:24px;">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="label">Candidate ID</span>
+          <span class="val">{{ selectedOffer?.candidate_id }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Job ID</span>
+          <span class="val">{{ selectedOffer?.jr_id }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Email</span>
+          <span class="val">{{ selectedOffer?.email || 'N/A' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Phone</span>
+          <span class="val">{{ selectedOffer?.phone || 'N/A' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Experience</span>
+          <span class="val">{{ selectedOffer?.experience }} yrs</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Salary Offered</span>
+          <span class="val">Rs. {{ selectedOffer?.salary_offered }}/-</span>
+        </div>
+        <div class="detail-item">
+          <span class="label">Date of Joining</span>
+          <span class="val">{{ selectedOffer?.date_of_joining }}</span>
+        </div>
+      </div>
+
+      <div class="detail-item" style="margin-bottom: 24px;">
+        <span class="label">Skills</span>
+        <span class="val">{{ selectedOffer?.skills || 'N/A' }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="label">Education</span>
+        <span class="val">{{ selectedOffer?.education || 'N/A' }}</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-reject" (click)="rejectOffer()" [disabled]="isProcessingOffer">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+        Reject
+      </button>
+      <button class="btn-approve" (click)="openApproveConfirmModal()" [disabled]="isProcessingOffer">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+        Approve & Send Mail
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Approve Confirmation Modal -->
+<div class="confirm-modal-overlay" *ngIf="showApproveConfirmModal">
+  <div class="confirm-modal-container">
+    <div class="confirm-modal-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+      </svg>
+    </div>
+    <h3>Confirm Offer Approval</h3>
+    <p>Are you sure you want to approve the offer for <strong>{{ selectedOffer?.candidate_name }}</strong> and send the offer letter via email with PDF attachment?</p>
+    <div class="confirm-modal-details">
+      <span><strong>Position:</strong> {{ selectedOffer?.job_title }}</span>
+      <span><strong>Salary:</strong> Rs. {{ selectedOffer?.salary_offered }}/-</span>
+      <span><strong>Email:</strong> {{ selectedOffer?.email || 'N/A' }}</span>
+    </div>
+    <div class="confirm-modal-actions">
+      <button class="btn-confirm-cancel" (click)="closeApproveConfirmModal()">Cancel</button>
+      <button class="btn-confirm-ok" (click)="confirmApproveOffer()">Yes, Approve & Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- Full-screen Loader Overlay -->
+<div class="loader-overlay" *ngIf="isApprovalLoading">
+  <div class="loader-content">
+    <div class="loader-spinner"></div>
+    <p class="loader-text">{{ approvalLoadingMessage }}</p>
+  </div>
+</div>
+
+<!-- Toast Notification -->
+<div class="toast-container" *ngIf="showToastFlag" [ngClass]="{'toast-success': toastType === 'success', 'toast-error': toastType === 'error'}">
+  <svg *ngIf="toastType === 'success'" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="toast-icon"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+  <svg *ngIf="toastType === 'error'" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="toast-icon"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+  <span>{{ toastMessage }}</span>
 </div>
