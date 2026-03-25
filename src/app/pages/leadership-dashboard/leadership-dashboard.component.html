@@ -284,7 +284,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let emp of filteredEmployees">
+              <tr *ngFor="let emp of paginatedEmployees">
                 <td><span class="id-badge">{{ emp.employee_id }}</span></td>
                 <td class="font-semibold">{{ emp.employee_name }}</td>
                 <td class="text-muted">{{ emp.email }}</td>
@@ -296,8 +296,18 @@
             </tbody>
           </table>
         </div>
-        <div class="table-footer">
-          <span>Showing {{ filteredEmployees.length }} of {{ employees.length }} employees</span>
+        <div class="table-footer" style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="text-sm text-muted">Showing {{ (employeePage-1)*employeePageSize + 1 }} to {{ Math.min(employeePage*employeePageSize, filteredEmployees.length) }} of {{ filteredEmployees.length }} employees</span>
+          
+          <div class="pagination-actions" style="display: flex; gap: 8px; align-items: center;" *ngIf="employeeTotalPages > 1">
+            <button class="btn-icon" [disabled]="employeePage === 1" (click)="changeEmployeePage(-1)" style="padding: 4px 8px; border-radius: 6px; border: 1px solid #e2e8f0; background: white; cursor: pointer; color: #64748b;">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" style="width: 14px; height: 14px;"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+            </button>
+            <span class="text-xs font-semibold" style="color: #0f172a; min-width: 40px; text-align: center;">{{ employeePage }} / {{ employeeTotalPages }}</span>
+            <button class="btn-icon" [disabled]="employeePage === employeeTotalPages" (click)="changeEmployeePage(1)" style="padding: 4px 8px; border-radius: 6px; border: 1px solid #e2e8f0; background: white; cursor: pointer; color: #64748b;">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" style="width: 14px; height: 14px;"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+            </button>
+          </div>
         </div>
       </div>
 

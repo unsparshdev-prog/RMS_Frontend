@@ -67,6 +67,7 @@ interface Candidate {
 export class LeadershipDashboardComponent implements OnInit {
   activeTab: 'overview' | 'jobs' | 'employees' | 'approvals' | 'candidates' = 'overview';
 
+  Math = Math;
   // Loading & error states
   isLoading = true;
   errorMessage = '';
@@ -108,6 +109,10 @@ export class LeadershipDashboardComponent implements OnInit {
   offers: any[] = [];
   candidateApplications: any[] = [];
   offeredCandidates: any[] = [];
+
+  // Pagination for Employees
+  employeePage = 1;
+  employeePageSize = 10;
 
   // Accordion toggle states
   jobAccordionOpen = true;
@@ -503,6 +508,22 @@ export class LeadershipDashboardComponent implements OnInit {
       );
     }
     return result;
+  }
+
+  get paginatedEmployees(): Employee[] {
+    const start = (this.employeePage - 1) * this.employeePageSize;
+    return this.filteredEmployees.slice(start, start + this.employeePageSize);
+  }
+
+  get employeeTotalPages(): number {
+    return Math.ceil(this.filteredEmployees.length / this.employeePageSize);
+  }
+
+  changeEmployeePage(delta: number) {
+    const next = this.employeePage + delta;
+    if (next >= 1 && next <= this.employeeTotalPages) {
+      this.employeePage = next;
+    }
   }
 
   get filteredCandidates(): Candidate[] {

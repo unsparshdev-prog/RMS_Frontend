@@ -87,10 +87,10 @@
             <p class="date-subtitle" style="color: #64748B; font-size: 0.95rem; font-weight: 500;">{{ currentDate | date:'EEEE, d MMMM y' }}</p>
           </div>
           <div class="header-actions">
-            <div class="search-bar" style="box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #cbd5e1; border-radius: 8px;">
+            <!-- <div class="search-bar" style="box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #cbd5e1; border-radius: 8px;">
               <i class="fas fa-search" style="color: #94a3b8;"></i>
               <input type="text" placeholder="Search people, roles, tasks" style="border: none; outline: none; background: transparent;">
-            </div>
+            </div> -->
             <button class="btn btn-primary-blue" (click)="generateReport()" [disabled]="isGeneratingReport" style="box-shadow: 0 4px 6px rgba(11, 34, 101, 0.2); transition: transform 0.2s;">
               <i class="fas fa-spinner fa-spin" *ngIf="isGeneratingReport" style="margin-right: 5px;"></i>
               <i class="far fa-file-alt" *ngIf="!isGeneratingReport"></i>
@@ -341,12 +341,9 @@
                 </div>
               </div>
 
-              <div class="form-row">
-                <div class="form-group half-width">               <label>Status</label><input type="text" class="form-input bg-gray-50 text-gray-500 cursor-not-allowed" [(ngModel)]="requisition.status" name="status" disabled readonly></div>
-                <div class="form-group half-width">
-                  <label>Closing Date</label>
-                  <input type="date" class="form-input" [(ngModel)]="requisition.closing_date" name="closing_date">
-                </div>
+              <div class="form-group">
+                <label>Closing Date</label>
+                <input type="date" class="form-input" [(ngModel)]="requisition.closing_date" name="closing_date">
               </div>
 
               <div class="form-group">
@@ -993,9 +990,9 @@
                   <div class="pipeline-card-name">{{ candidate.name }}</div>
                   <div class="pipeline-card-role">{{ candidate.role }}</div>
                 </div>
-                <div class="pipeline-card-score" [style.color]="candidate.score >= 85 ? '#10B981' : candidate.score >= 70 ? '#F59E0B' : '#EF4444'">
+                <!-- <div class="pipeline-card-score" [style.color]="candidate.score >= 85 ? '#10B981' : candidate.score >= 70 ? '#F59E0B' : '#EF4444'">
                   {{ candidate.score }}%
-                </div>
+                </div> -->
               </div>
               <div class="pipeline-card-meta">
                 <span class="pipeline-stage-badge" [style.background]="getStageColor(candidate.stage) + '18'" [style.color]="getStageColor(candidate.stage)">
