@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HeroService } from '../../../hero.service';
 import { Router } from '@angular/router';
-import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-resume-upload',
@@ -86,7 +85,6 @@ export class ResumeUploadComponent implements OnInit {
   async toggleStoredDetails() {
     this.showStoredDetails = !this.showStoredDetails;
 
-    // If opening and we haven't loaded yet (or want to refresh), fetch from DB
     if (this.showStoredDetails && this.storedCandidateFields.length === 0) {
       const candidateId = sessionStorage.getItem('candidate_id');
       if (!candidateId) return;
@@ -103,13 +101,13 @@ export class ResumeUploadComponent implements OnInit {
           };
           this.storedCandidateFields = [
             { label: 'Candidate ID', value: ext(candidate.candidate_id) },
-            { label: 'Name',         value: ext(candidate.name) },
-            { label: 'Email',        value: ext(candidate.email) },
-            { label: 'Phone',        value: ext(candidate.phone) },
-            { label: 'Skills',       value: ext(candidate.skills) },
-            { label: 'Experience',   value: ext(candidate.experience) ? ext(candidate.experience) + ' years' : '' },
-            { label: 'Education',    value: ext(candidate.education) },
-            { label: 'Resume File',  value: ext(candidate.resume_path) }
+            { label: 'Name', value: ext(candidate.name) },
+            { label: 'Email', value: ext(candidate.email) },
+            { label: 'Phone', value: ext(candidate.phone) },
+            { label: 'Skills', value: ext(candidate.skills) },
+            { label: 'Experience', value: ext(candidate.experience) ? ext(candidate.experience) + ' years' : '' },
+            { label: 'Education', value: ext(candidate.education) },
+            { label: 'Resume File', value: ext(candidate.resume_path) }
           ];
         }
       } catch (err) {
@@ -127,7 +125,8 @@ export class ResumeUploadComponent implements OnInit {
   onDragLeave() { this.isDragging = false; }
 
   onDrop(e: DragEvent) {
-    e.preventDefault(); this.isDragging = false;
+    e.preventDefault();
+    this.isDragging = false;
     const files = e.dataTransfer?.files;
     if (files && files.length > 0) this.handleFile(files[0]);
   }
@@ -158,160 +157,58 @@ export class ResumeUploadComponent implements OnInit {
     this.currentStep = 0;
     this.showToast('File selected: ' + file.name, 'info');
 
-    this.parseResumeWithApyHub(file);
+    this.parseResumeWithAffinda(file);
   }
 
   // =====================================================================
-  //  RESUME PARSING via ApyHub SharpAPI  (Step 1)
+  //  RESUME PARSING via Affinda  (Step 1)
   // =====================================================================
-  async parseResumeWithApyHub(file: File) {
+  async parseResumeWithAffinda(file: File) {
     this.isParsing = true;
     this.parsedData = null;
     this.currentStep = 1;
 
-    const apiKey = (environment as any).apyhubApiKey;
-    if (!apiKey) {
-      this.showToast('ApyHub API key not configured.', 'error');
-      this.isParsing = false;
-      return;
-    }
-
     try {
-      this.showToast('Submitting resume to ApyHub AI…', 'info');
-      
+      this.showToast('Submitting resume to Affinda AI...', 'info');
+
       const formData = new FormData();
       formData.append('file', file);
 
-      // Step 1: Submit file to API
-      const submitResponse = await fetch('https://api.apyhub.com/sharpapi/api/v1/hr/parse_resume', {
+      const response = await fetch('/api/affinda/parse-resume', {
         method: 'POST',
-        headers: {
-          'apy-token': apiKey
-        },
         body: formData
       });
 
-      if (!submitResponse.ok) {
-        throw new Error('Failed to submit resume for parsing.');
-      }
-
-      const submitData = await submitResponse.json();
-      const statusUrl = submitData.status_url;
-
-      if (!statusUrl) {
-         throw new Error('Invalid response from parsing API.');
-      }
-
-      this.showToast('Resume submitted successfully. Waiting for AI processing...', 'info');
-
-      // Step 2: Poll status until complete
-      let jobResult: any = null;
-      let attempts = 0;
-
-      // Extract Job ID to proxy through local backend and bypass CORS
-      const parts = statusUrl.split('/');
-      const jobId = parts[parts.length - 1];
-      const proxyUrl = `/api/apyhub/status/${jobId}`;
-      
-      while (attempts < 30) {
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        // Fetch via Node backend
-        const statusResponse = await fetch(proxyUrl);
-        
-        if (!statusResponse.ok) continue;
-        
-        const statusData = await statusResponse.json();
-        const status = statusData.data?.attributes?.status;
-        
-        if (status === 'success') {
-           jobResult = statusData.data.attributes.result;
-           break;
-        } else if (status === 'failed') {
-           throw new Error('Parsing job failed at server.');
+      if (!response.ok) {
+        let errorMessage = 'Failed to submit resume for parsing.';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch {
+          // Ignore response parsing failure and keep default message.
         }
-        
-        attempts++;
+        throw new Error(errorMessage);
       }
 
-      if (!jobResult) {
-        throw new Error('Parsing timed out.');
-      }
-
-      // Map ApyHub result to our format exactly based on SharpAPI signature
-      let name = jobResult.candidate_name || null;
-      let email = jobResult.candidate_email || null;
-      let phone = jobResult.candidate_phone || null;
-      let experienceNum = jobResult.years_of_experience || 0;
-
-      // Extract skills from all positions and flatten into a unique list
-      let allSkills = new Set<string>();
-      if (Array.isArray(jobResult.positions)) {
-        jobResult.positions.forEach((pos: any) => {
-          if (Array.isArray(pos.skills)) {
-            pos.skills.forEach((skill: string) => allSkills.add(skill));
-          }
-        });
-      }
-      // If skills array exists at the root (just in case), add those too
-      if (Array.isArray(jobResult.skills)) {
-        jobResult.skills.forEach((skill: any) => {
-          if (typeof skill === 'string') allSkills.add(skill);
-        });
-      }
-      let skills = allSkills.size > 0 ? Array.from(allSkills).join(', ') : null;
-
-      // Extract Education
-      let education = null;
-      if (Array.isArray(jobResult.education_qualifications) && jobResult.education_qualifications.length > 0) {
-        const edu = jobResult.education_qualifications[0];
-        const degree = edu.degree_type || '';
-        const spec = edu.specialization_subjects ? ` in ${edu.specialization_subjects}` : '';
-        const school = edu.school_name || '';
-        education = `${degree}${spec} - ${school}`.trim();
-        if (education.startsWith('- ')) education = education.substring(2);
-      } else if (Array.isArray(jobResult.education) && jobResult.education.length > 0) {
-        // Fallback for different version
-        const edu = jobResult.education[0];
-        education = `${edu.degree || edu.title || ''} - ${edu.institution_name || edu.school || ''}`.trim();
-      }
-
-      // Robust fallback search for Email and Phone if they were blank
-      const extractRegex = (obj: any, regex: RegExp): string | null => {
-        if (!obj) return null;
-        if (typeof obj === 'string') {
-          const m = obj.match(regex);
-          if (m) return m[0];
-        }
-        if (typeof obj === 'object') {
-          for (const k of Object.keys(obj)) {
-            const found = extractRegex(obj[k], regex);
-            if (found) return found;
-          }
-        }
-        return null;
-      };
-
-      if (!email) email = extractRegex(jobResult, /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-      if (!phone) phone = extractRegex(jobResult, /\+?\d[\d\s\-\(\)]{8,}/);
+      const affindaResponse = await response.json();
+      const documentData = affindaResponse?.data || affindaResponse;
 
       const mappedData = {
-        name: name,
-        email: email,
-        phone: phone ? String(phone) : null,
-        skills: skills,
-        experience: experienceNum,
-        education: education
+        name: this.extractAffindaName(documentData),
+        email: this.extractAffindaEmail(documentData),
+        phone: this.extractAffindaPhone(documentData),
+        skills: this.extractAffindaSkills(documentData),
+        experience: this.extractAffindaExperience(documentData),
+        education: this.extractAffindaEducation(documentData)
       };
 
       this.parsedData = this.normalizeNulls(mappedData);
-      this.currentStep = 2; // Advance to review step
-      this.showToast('Resume parsed successfully with ApyHub AI!', 'success');
+      this.currentStep = 2;
+      this.showToast('Resume parsed successfully with Affinda AI!', 'success');
 
     } catch (err: any) {
-      console.error('ApyHub parse error:', err);
+      console.error('Affinda parse error:', err);
       this.showToast('Failed to parse Resume: ' + (err.message || err), 'error');
-      // Fallback
       this.parsedData = { name: null, email: null, phone: null, skills: null, experience: null, education: null };
       this.currentStep = 2;
       this.isApproved = false;
@@ -329,25 +226,27 @@ export class ResumeUploadComponent implements OnInit {
   }
 
   // =====================================================================
-  //  MAIN FLOW: UPLOAD → SAVE → FETCH  (Steps 3, 4, 5)
+  //  MAIN FLOW: UPLOAD -> SAVE -> FETCH  (Steps 3, 4, 5)
   // =====================================================================
   async processUploadAndSave() {
     if (!this.selectedFile || !this.parsedData) {
-      this.showToast('Please upload a resume first.', 'error'); return;
+      this.showToast('Please upload a resume first.', 'error');
+      return;
     }
     if (!this.isApproved) {
-      this.showToast('Please approve the parsed details before saving.', 'error'); return;
+      this.showToast('Please approve the parsed details before saving.', 'error');
+      return;
     }
     const candidateId = sessionStorage.getItem('candidate_id');
     if (!candidateId) {
-      this.showToast('You must be logged in. Please login and try again.', 'error'); return;
+      this.showToast('You must be logged in. Please login and try again.', 'error');
+      return;
     }
 
     this.isSaving = true;
-    this.showToast('Uploading resume to server…', 'info');
+    this.showToast('Uploading resume to server...', 'info');
 
     try {
-      // --- Step 3: Convert to Base64 and upload ---
       this.currentStep = 3;
       const base64 = await this.fileToBase64(this.selectedFile);
       console.log(`Uploading: ${this.selectedFile.name} (${this.selectedFile.size} bytes, base64 len=${base64.length})`);
@@ -355,15 +254,12 @@ export class ResumeUploadComponent implements OnInit {
       const uploadResp = await this.heroService.uploadDocumentsRMS(this.selectedFile.name, base64);
       console.log('Upload response (XMLDocument):', uploadResp);
 
-      // Extract path from the XML Document response
       let serverPath = '';
       if (uploadResp instanceof Document) {
-        // Try to find the UploadDocuments_RMS element text
         const el = uploadResp.getElementsByTagName('UploadDocuments_RMS')[0];
         if (el) serverPath = el.textContent || '';
       }
 
-      // Use the server path if found, otherwise fall back to original filename
       if (serverPath) {
         this.resumeFileName = this.bareFileName(serverPath);
       } else {
@@ -372,33 +268,28 @@ export class ResumeUploadComponent implements OnInit {
       }
 
       console.log('Resume file name:', this.resumeFileName);
-      this.showToast('File uploaded! Saving to profile…', 'info');
+      this.showToast('File uploaded! Saving to profile...', 'info');
 
-      // --- Step 4: Save resume_path + parsed fields ---
       this.currentStep = 4;
       const fields: any = {
-        name:        this.parsedData.name || '',
-        phone:       this.parsedData.phone || '',
-        skills:      this.parsedData.skills || '',
-        experience:  this.parsedData.experience ?? 0,
-        education:   this.parsedData.education || '',
+        name: this.parsedData.name || '',
+        phone: this.parsedData.phone || '',
+        skills: this.parsedData.skills || '',
+        experience: this.parsedData.experience ?? 0,
+        education: this.parsedData.education || '',
         resume_path: this.resumeFileName
       };
       await this.heroService.updateCandidate(candidateId, fields);
 
-      // --- Step 5: Fetch updated candidate to verify ---
       const freshResp = await this.heroService.getCandidateObject(candidateId);
       console.log('Verified candidate:', freshResp);
 
-      // Build the final candidate object for Step 6
       const candidateObj = this.heroService.xmltojson(freshResp, 'candidate');
       this.buildFinalOutput(candidateObj);
 
-      // --- Step 6: Done ---
       this.currentStep = 5;
       this.showToast('Resume uploaded and saved successfully!', 'success');
 
-      // Reload the page after a short delay so the user sees the success toast
       setTimeout(() => {
         window.location.reload();
       }, 1500);
@@ -430,13 +321,13 @@ export class ResumeUploadComponent implements OnInit {
 
     this.finalCandidateFields = [
       { label: 'Candidate ID', value: ext(candidate.candidate_id) },
-      { label: 'Name',         value: ext(candidate.name) },
-      { label: 'Email',        value: ext(candidate.email) },
-      { label: 'Phone',        value: ext(candidate.phone) },
-      { label: 'Skills',       value: ext(candidate.skills) },
-      { label: 'Experience',   value: ext(candidate.experience) ? ext(candidate.experience) + ' years' : '' },
-      { label: 'Education',    value: ext(candidate.education) },
-      { label: 'Resume File',  value: ext(candidate.resume_path) }
+      { label: 'Name', value: ext(candidate.name) },
+      { label: 'Email', value: ext(candidate.email) },
+      { label: 'Phone', value: ext(candidate.phone) },
+      { label: 'Skills', value: ext(candidate.skills) },
+      { label: 'Experience', value: ext(candidate.experience) ? ext(candidate.experience) + ' years' : '' },
+      { label: 'Education', value: ext(candidate.education) },
+      { label: 'Resume File', value: ext(candidate.resume_path) }
     ];
   }
 
@@ -494,6 +385,127 @@ export class ResumeUploadComponent implements OnInit {
     if (!field) return '';
     if (typeof field === 'string') return field;
     return field.text || field['#text'] || '';
+  }
+
+  private extractAffindaName(data: any): string | null {
+    const rawName = data?.candidateName || data?.name;
+    if (typeof rawName === 'string') return rawName;
+    if (rawName?.raw) return rawName.raw;
+    if (rawName?.parsed?.firstName?.parsed || rawName?.parsed?.familyName?.parsed) {
+      return [
+        rawName?.parsed?.firstName?.parsed || '',
+        rawName?.parsed?.middleName?.parsed || '',
+        rawName?.parsed?.familyName?.parsed || ''
+      ].filter(Boolean).join(' ').trim();
+    }
+    if (rawName?.text) return rawName.text;
+    return null;
+  }
+
+  private extractAffindaEmail(data: any): string | null {
+    const email = data?.email?.[0] || data?.email || data?.emails?.[0] || data?.candidateEmail;
+    if (typeof email === 'string') return email;
+    if (email?.parsed) return email.parsed;
+    if (email?.raw) return email.raw;
+    return this.extractRegex(data, /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+  }
+
+  private extractAffindaPhone(data: any): string | null {
+    const phone = data?.phoneNumber?.[0] || data?.phoneNumber || data?.phone || data?.phoneNumbers?.[0] || data?.candidatePhone;
+    if (typeof phone === 'string') return phone;
+    if (phone?.parsed?.formattedNumber) return phone.parsed.formattedNumber;
+    if (phone?.parsed?.rawText) return phone.parsed.rawText;
+    if (phone?.parsed?.nationalNumber) return phone.parsed.nationalNumber;
+    if (phone?.raw) return phone.raw;
+    return this.extractRegex(data, /\+?\d[\d\s\-\(\)]{8,}/);
+  }
+
+  private extractAffindaExperience(data: any): number | null {
+    const direct = data?.totalYearsExperience?.parsed
+      ?? data?.totalYearsExperience
+      ?? data?.yearsOfExperience
+      ?? data?.years_experience;
+    if (typeof direct === 'number') return Math.floor(direct);
+    if (typeof direct === 'string' && direct.trim() !== '') {
+      const parsed = Number(direct);
+      return Number.isNaN(parsed) ? null : Math.floor(parsed);
+    }
+    return null;
+  }
+
+  private extractAffindaSkills(data: any): string | null {
+    const collected = new Set<string>();
+    const addSkill = (value: any) => {
+      if (!value) return;
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (trimmed) collected.add(trimmed);
+        return;
+      }
+      if (value?.name) addSkill(value.name);
+      if (value?.raw) addSkill(value.raw);
+      if (value?.parsed?.name) addSkill(value.parsed.name);
+    };
+
+    if (Array.isArray(data?.skill)) {
+      data.skill.forEach((skill: any) => addSkill(skill));
+    }
+
+    if (Array.isArray(data?.skills)) {
+      data.skills.forEach((skill: any) => addSkill(skill));
+    }
+
+    return collected.size > 0 ? Array.from(collected).join(', ') : null;
+  }
+
+  private extractAffindaEducation(data: any): string | null {
+    const entries = Array.isArray(data?.education) ? data.education : data?.educationQualifications;
+    if (!Array.isArray(entries) || entries.length === 0) return null;
+
+    const formatted = entries
+      .map((entry: any) => {
+        const parsed = entry?.parsed || entry;
+        const degree = parsed?.educationAccreditation?.parsed
+          || parsed?.accreditation?.education
+          || entry?.degree
+          || entry?.degree_type
+          || '';
+        const majors = Array.isArray(parsed?.educationMajor)
+          ? parsed.educationMajor.map((m: any) => m?.parsed || m?.raw || '').filter(Boolean).join(', ')
+          : (parsed?.accreditation?.inputStr || parsed?.specialization_subjects || '');
+        const school = parsed?.educationOrganization?.parsed
+          || parsed?.organization
+          || parsed?.institution_name
+          || parsed?.school_name
+          || '';
+        const year = parsed?.educationDates?.parsed?.end?.year || parsed?.educationDates?.raw || '';
+        return [degree, majors, school, year].filter(Boolean).join(' - ').trim();
+      })
+      .filter(Boolean);
+
+    return formatted.length > 0 ? formatted[0] : null;
+  }
+
+  private extractRegex(obj: any, regex: RegExp): string | null {
+    if (!obj) return null;
+    if (typeof obj === 'string') {
+      const match = obj.match(regex);
+      return match ? match[0] : null;
+    }
+    if (Array.isArray(obj)) {
+      for (const item of obj) {
+        const found = this.extractRegex(item, regex);
+        if (found) return found;
+      }
+      return null;
+    }
+    if (typeof obj === 'object') {
+      for (const key of Object.keys(obj)) {
+        const found = this.extractRegex(obj[key], regex);
+        if (found) return found;
+      }
+    }
+    return null;
   }
 
   /** Ensure missing parsed fields are explicitly null (not empty string) */
