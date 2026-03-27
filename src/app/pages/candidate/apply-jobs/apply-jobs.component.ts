@@ -32,9 +32,9 @@ export class ApplyJobsComponent implements OnInit {
     this.loadJobs();
   }
 
-  loadJobs(): void {
+  async loadJobs(): Promise<void> {
     this.heroService.showAllJobRequisition()
-      .then(resp => {
+      .then(async resp => {
         // Attempt to find the array of tuples or job requisitions
         let rawData = this.heroService.xmltojson(resp, 'tuple');
         if (!rawData) {
@@ -43,7 +43,7 @@ export class ApplyJobsComponent implements OnInit {
 
         if (rawData) {
           const dataArray = Array.isArray(rawData) ? rawData : [rawData];
-          this.jobs = dataArray.map((item: any) => {
+          const baseJobs = dataArray.map((item: any) => {
             // Data could be in item.old.job_requisition (standard Cordys tuple)
             // or directly in item if xmltojson found job_requisition array
             const j = item.old?.job_requisition || item.job_requisition || item;
@@ -57,10 +57,31 @@ export class ApplyJobsComponent implements OnInit {
               department: j.department,
               salary: j.salary_range || 'Competitive',
               posted: this.calculateTimeAgo(j.created_at),
-              description: j.job_description
+              description: j.job_description,
+              applicationStatus: '',
+              isRevoked: false
             };
           }).filter((j: any) => j.id && j.type?.toLowerCase() === 'active'); // Filter for Active marks
 
+          const candidateId = this.authService.getCandidateId();
+          if (candidateId) {
+            await Promise.all(baseJobs.map(async (job: any) => {
+              try {
+                const appResp = await this.heroService.getApplicationByCandidateAndJR(candidateId, job.id);
+                const existingApp = this.heroService.xmltojson(appResp, 'candidate_job_application');
+                if (existingApp) {
+                  const appRecord = Array.isArray(existingApp) ? existingApp[0] : existingApp;
+                  const rawStatus = (appRecord.application_status || appRecord.stage || '').toString().toUpperCase();
+                  job.applicationStatus = rawStatus;
+                  job.isRevoked = rawStatus === 'REVOKED';
+                }
+              } catch (err) {
+                console.warn('Failed to resolve application status for job', job.id, err);
+              }
+            }));
+          }
+
+          this.jobs = baseJobs;
           this.filteredJobs = [...this.jobs];
         }
       })
@@ -106,6 +127,10 @@ export class ApplyJobsComponent implements OnInit {
 
     // Find the job title for the confirmation modal
     const job = this.filteredJobs.find(j => j.id === jobId);
+    if (job?.isRevoked) {
+      this.toast.warning('You revoked this application. Reapplying is not allowed.');
+      return;
+    }
     this.confirmJobTitle = job?.title || 'this job';
     this.confirmJobId = jobId;
     this.showConfirmModal = true;

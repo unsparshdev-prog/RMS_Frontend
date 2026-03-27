@@ -71,8 +71,11 @@
             </div>
 
             <button (click)="applyForJob(job.id)"
-                class="w-full py-2.5 text-sm font-semibold text-primary-foreground bg-primary rounded-xl shadow-md hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] transition-all duration-300">
-                Apply Now
+                [disabled]="job.isRevoked"
+                [ngClass]="job.isRevoked
+                  ? 'w-full py-2.5 text-sm font-semibold text-slate-500 bg-slate-200 rounded-xl cursor-not-allowed'
+                  : 'w-full py-2.5 text-sm font-semibold text-primary-foreground bg-primary rounded-xl shadow-md hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] transition-all duration-300'">
+                {{ job.isRevoked ? 'Application Revoked' : 'Apply Now' }}
             </button>
         </div>
     </div>

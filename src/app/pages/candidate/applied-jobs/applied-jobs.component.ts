@@ -9,6 +9,9 @@ interface PipelineStep {
 }
 
 interface AppliedJob {
+  applicationId: string;
+  candidateId: string;
+  jrId: string;
   title: string;
   company: string;
   location: string;
@@ -17,6 +20,8 @@ interface AppliedJob {
   statusColor: string;
   expanded: boolean;
   pipeline: PipelineStep[];
+  canRevoke: boolean;
+  isRevoking: boolean;
 }
 
 @Component({
@@ -59,7 +64,9 @@ export class AppliedJobsComponent implements OnInit {
           const finalData = j.job_requisition || j;
 
           const cjaFallback = item.old?.candidate_job_application || item.candidate_job_application;
-          const jrId = ext(finalData.jr_id) || ext(finalData.requisition_id) || ext(finalData.id) || (cjaFallback ? ext(cjaFallback.jr_id) : '');
+          let jrId = ext(finalData.jr_id) || ext(finalData.requisition_id) || ext(finalData.id) || (cjaFallback ? ext(cjaFallback.jr_id) : '');
+          let applicationId = cjaFallback ? ext(cjaFallback.application_id) : '';
+          let candidateId = cjaFallback ? ext(cjaFallback.candidate_id) || this.candidateId : this.candidateId;
           
           let applicationStatus = 'Applied';
           
@@ -81,6 +88,9 @@ export class AppliedJobsComponent implements OnInit {
                if (cjaObj) {
                  const appRecord = Array.isArray(cjaObj) ? cjaObj[0] : cjaObj;
                  const rawStatus = ext(appRecord.application_status) || ext(appRecord.stage);
+                 applicationId = ext(appRecord.application_id) || applicationId;
+                 candidateId = ext(appRecord.candidate_id) || candidateId;
+                 jrId = ext(appRecord.jr_id) || jrId;
                  if (rawStatus && rawStatus !== 'null' && rawStatus !== 'undefined') {
                    applicationStatus = rawStatus;
                  }
@@ -113,6 +123,9 @@ export class AppliedJobsComponent implements OnInit {
           const formattedStatus = formatStr(applicationStatus);
 
           this.appliedJobs.push({
+             applicationId: applicationId,
+             candidateId: candidateId,
+             jrId: jrId,
              title: titleStr,
              company: 'RMS',
              location: locStr,
@@ -120,7 +133,9 @@ export class AppliedJobsComponent implements OnInit {
              status: formattedStatus,
              statusColor: this.getStatusColor(formattedStatus),
              expanded: false,
-             pipeline: this.generatePipeline(formattedStatus)
+             pipeline: this.generatePipeline(formattedStatus),
+             canRevoke: this.canRevokeStatus(formattedStatus),
+             isRevoking: false
           });
         }
         
@@ -143,6 +158,7 @@ export class AppliedJobsComponent implements OnInit {
     const s = status.toLowerCase();
     if (s.includes('shortlist') || s.includes('review')) return 'bg-yellow-500/10 text-yellow-600';
     if (s.includes('progress') || s.includes('interview')) return 'bg-blue-500/10 text-blue-600';
+    if (s.includes('revoke') || s.includes('withdraw')) return 'bg-slate-500/10 text-slate-600';
     if (s.includes('reject')) return 'bg-destructive/10 text-destructive';
     if (s.includes('join')) return 'bg-green-500/10 text-green-600';
     if (s.includes('offer')) return 'bg-indigo-500/10 text-indigo-600';
@@ -163,11 +179,17 @@ export class AppliedJobsComponent implements OnInit {
     else if (s.includes('screen')) currentIndex = 1;
     else if (s.includes('applied')) currentIndex = 0;
 
-    // Handle Rejected special case
+    // Handle terminal special cases
     if (s.includes('rejected')) {
         return [
             { label: 'Applied', completed: true, current: false },
             { label: 'Rejected', completed: false, current: true }
+        ];
+    }
+    if (s.includes('revoke') || s.includes('withdraw')) {
+        return [
+            { label: 'Applied', completed: true, current: false },
+            { label: 'Revoked', completed: false, current: true }
         ];
     }
 
@@ -184,5 +206,49 @@ export class AppliedJobsComponent implements OnInit {
 
   countByStatus(status: string): number {
     return this.appliedJobs.filter(j => j.status === status).length;
+  }
+
+  canRevokeStatus(status: string): boolean {
+    const s = (status || '').toLowerCase();
+    return s === 'applied' || s === 'screened';
+  }
+
+  async revokeApplication(job: AppliedJob, event: Event): Promise<void> {
+    event.stopPropagation();
+
+    if (!job.canRevoke || job.isRevoking) return;
+    if (!job.applicationId || !job.jrId) {
+      console.error('Missing identifiers required to revoke application:', job);
+      alert('This application could not be revoked because its record identifiers were not loaded. Please refresh and try again.');
+      return;
+    }
+
+    const confirmed = confirm(`Revoke your application for "${job.title}"?`);
+    if (!confirmed) return;
+
+    job.isRevoking = true;
+    try {
+      await this.heroService.updateCandidateApplication(
+        {
+          application_id: job.applicationId,
+          candidate_id: job.candidateId || this.candidateId,
+          jr_id: job.jrId
+        },
+        {
+          application_status: 'REVOKED',
+          stage: 'revoked'
+        }
+      );
+
+      job.status = 'Revoked';
+      job.statusColor = this.getStatusColor(job.status);
+      job.pipeline = this.generatePipeline(job.status);
+      job.canRevoke = false;
+    } catch (err) {
+      console.error('Failed to revoke application:', err);
+      alert('Failed to revoke application. Please try again.');
+    } finally {
+      job.isRevoking = false;
+    }
   }
 }

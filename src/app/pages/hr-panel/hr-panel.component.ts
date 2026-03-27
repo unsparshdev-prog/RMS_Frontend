@@ -117,7 +117,7 @@ export class HrPanelComponent implements OnInit {
   }
 
   get dashboardActiveCandidates(): number {
-    return this.candidates.filter(c => c.stage !== 'rejected' && c.stage !== 'joined').length;
+    return this.candidates.filter(c => !['rejected', 'joined', 'revoked', 'withdrawn'].includes(c.stage)).length;
   }
 
   get dashboardPendingApprovals(): number {
@@ -129,7 +129,7 @@ export class HrPanelComponent implements OnInit {
   }
 
   get funnelAppliedCount() { return this.candidates.filter(c => c.stage === 'applied' || c.stage === 'rejected').length; }
-  get funnelScreenedCount() { return this.candidates.filter(c => !['applied', 'rejected'].includes(c.stage)).length; }
+  get funnelScreenedCount() { return this.candidates.filter(c => !['applied', 'rejected', 'revoked', 'withdrawn'].includes(c.stage)).length; }
   get funnelInterviewingCount() { return this.candidates.filter(c => ['interviewing', 'offered', 'joined'].includes(c.stage)).length; }
   get funnelOfferedCount() { return this.candidates.filter(c => ['offered', 'joined'].includes(c.stage)).length; }
   get funnelJoinedCount() { return this.candidates.filter(c => c.stage === 'joined').length; }
@@ -871,7 +871,7 @@ export class HrPanelComponent implements OnInit {
   }
 
   get activeCandidates() {
-    return this.filteredCandidates.filter(c => c.stage !== 'joined');
+    return this.filteredCandidates.filter(c => !['joined', 'revoked', 'withdrawn'].includes(c.stage));
   }
 
   getCandidatesByStage(stageId: string) {

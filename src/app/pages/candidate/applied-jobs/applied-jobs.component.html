@@ -58,6 +58,13 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-3">
+                    <button
+                        *ngIf="job.canRevoke"
+                        (click)="revokeApplication(job, $event)"
+                        [disabled]="job.isRevoking"
+                        class="shrink-0 px-3 py-1.5 text-xs font-semibold rounded-lg border border-destructive/30 text-destructive hover:bg-destructive/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                        {{ job.isRevoking ? 'Revoking...' : 'Revoke' }}
+                    </button>
                     <span class="shrink-0 px-4 py-1.5 text-xs font-semibold rounded-full" [ngClass]="job.statusColor">
                         {{ job.status }}
                     </span>
@@ -129,6 +136,10 @@
                             }">
                         </div>
                     </ng-container>
+                </div>
+
+                <div *ngIf="job.status === 'Revoked'" class="max-w-2xl mx-auto mt-5 text-sm text-slate-600 text-center">
+                    This application has been revoked and is no longer part of the active recruitment pipeline.
                 </div>
             </div>
         </div>
