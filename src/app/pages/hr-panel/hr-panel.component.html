@@ -122,13 +122,6 @@
             <div class="kpi-value" style="color: #0F172A; font-size: 2.2rem; font-weight: 800;">{{ dashboardPendingApprovals }}</div>
             <div class="kpi-trend negative" style="font-weight: 500;"><i class="fas fa-clock"></i> reqs waiting</div>
           </div>
-          <div class="kpi-card" style="border-top: 4px solid #8B5CF6; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border-radius: 10px; transition: transform 0.2s ease, box-shadow 0.2s ease;">
-            <div class="kpi-header">
-              <span class="kpi-title" style="color: #475569; font-weight: 600;"><i class="fas fa-tachometer-alt" style="color: #8B5CF6;"></i> Time-to-Hire</span>
-            </div>
-            <div class="kpi-value" style="color: #0F172A; font-size: 2.2rem; font-weight: 800;">{{ dashboardTimeToHire }}</div>
-            <div class="kpi-trend positive" style="font-weight: 500;"><i class="fas fa-arrow-down"></i> tracking avg</div>
-          </div>
         </div>
 
         <!-- Dashboard Widgets -->
@@ -296,12 +289,16 @@
               
               <div class="form-row">
                 <div class="form-group half-width">
-                  <label>Location</label>
-                  <select class="form-input" [(ngModel)]="requisition.location" name="location">
-                    <option>Remote</option>
-                    <option>Jaipur, Rajasthan</option>
-                    <option>Pune, Maharashtra</option>
-                  </select>
+                  <label>Location <span style="font-weight: normal; color: #64748B; font-size: 0.75rem;">(Select multiple)</span></label>
+                  <div style="border: 1px solid #E2E8F0; border-radius: 6px; padding: 8px; max-height: 120px; overflow-y: auto; background: white;">
+                    <div *ngFor="let loc of availableLocations" style="display: flex; align-items: center; gap: 8px; padding: 6px; cursor: pointer;" (click)="toggleLocation(loc)">
+                      <input type="checkbox" [checked]="isLocationSelected(loc)" style="accent-color: #0B2265;">
+                      <span style="font-size: 0.9rem;">{{ loc }}</span>
+                    </div>
+                  </div>
+                  <div *ngIf="requisition.location" style="margin-top: 6px; font-size: 0.8rem; color: #64748B;">
+                    <i class="fas fa-map-marker-alt" style="margin-right: 4px;"></i> {{ requisition.location }}
+                  </div>
                 </div>
                 <div class="form-group half-width">
                   <label>Priority</label>
@@ -545,52 +542,62 @@
           </div>
 
           <!-- Panel Groups Container -->
-          <div class="panel-groups-wrapper" *ngIf="!isLoadingPanels && filteredInterviewPanels.length > 0">
-            <!-- Iterate through each interview_id group -->
+          <div class="panel-groups-wrapper" *ngIf="!isLoadingPanels && groupedInterviewPanels.length > 0">
+            <!-- Iterate through each interview (grouped by candidate) -->
             <div *ngFor="let group of paginatedGroupedPanels" class="interview-group-card bg-white rounded-lg mb-4 p-4" style="border: 1px solid #E2E8F0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
               <div class="group-header flex-between mb-3" style="border-bottom: 1px solid #F1F5F9; padding-bottom: 10px;">
                 <h4 style="margin: 0; color: #0F172A; font-weight: 600; font-size: 1.1rem;">
-                  <i class="fas fa-video text-blue" style="margin-right: 8px;"></i>
-                  Interview ID: <span style="color: #00C4F0;">{{ group.interview_id }}</span>
+                  <i class="fas fa-user text-blue" style="margin-right: 8px;"></i>
+                  <span style="color: #00C4F0;">{{ group.candidate_name }}</span>
                 </h4>
-                <span class="badge" style="background: #F8FAFC; color: #64748B; border: 1px solid #E2E8F0; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 500;">
-                  {{ group.panels.length }} Panelist(s)
+                <span class="badge" [style.background]="group.status === 'COMPLETED' ? '#D1FAE5' : group.status === 'CANCELLED' ? '#FEE2E2' : '#FEF3C7'" [style.color]="group.status === 'COMPLETED' ? '#065F46' : group.status === 'CANCELLED' ? '#991B1B' : '#92400E'" style="padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 500;">
+                  {{ group.status }}
                 </span>
               </div>
               
-              <div class="panel-table-wrapper" style="overflow-x: auto;">
-                <table class="panel-table" style="min-width: max-content; width: 100%; border-collapse: separate; border-spacing: 0;">
-                  <thead class="bg-gray-50 border-b border-gray-200 text-gray-700 text-xs font-semibold uppercase tracking-wider" style="background: #F8FAFC;">
-                    <tr>
-                      <th style="padding: 12px 15px; text-align: left; border-bottom: 1px solid #E2E8F0; font-weight: 600; color: #475569;">Interviewer ID</th>
-                      <th style="padding: 12px 15px; text-align: left; border-bottom: 1px solid #E2E8F0; font-weight: 600; color: #475569;">Interviewer Name</th>
-                      <th style="padding: 12px 15px; text-align: left; border-bottom: 1px solid #E2E8F0; font-weight: 600; color: #475569;">Feedback</th>
-                      <th style="padding: 12px 15px; text-align: left; border-bottom: 1px solid #E2E8F0; font-weight: 600; color: #475569;">Rating</th>
-                      <th style="padding: 12px 15px; text-align: right; border-bottom: 1px solid #E2E8F0; font-weight: 600; color: #475569;">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr *ngFor="let panel of group.panels" class="panel-row" style="transition: background-color 0.2s;">
-                      <td style="padding: 12px 15px; border-bottom: 1px solid #F1F5F9; color: #334155; font-size: 0.9rem;">{{ getExt(panel.raw?.interviewer_id) }}</td>
-                      <td style="padding: 12px 15px; border-bottom: 1px solid #F1F5F9;">
-                        <div class="panel-member-cell" style="display: flex; align-items: center; gap: 12px;">
-                          <div class="panel-avatar" style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.8rem;" [style.background]="getExt(panel.raw?.temp1)?.toLowerCase() === 'accepted' ? '#0088A8' : (getExt(panel.raw?.temp1)?.toLowerCase() === 'pending' ? '#CBD5E1' : '#94A3B8')">
-                            {{ getExt(panel.raw?.interviewer_name).substring(0, 2).toUpperCase() }}
-                          </div>
-                          <span class="panel-member-name" style="font-weight: 500; font-size: 0.95rem; color: #1E293B;">{{ getExt(panel.raw?.interviewer_name) }}</span>
-                        </div>
-                      </td>
-                      <td style="padding: 12px 15px; border-bottom: 1px solid #F1F5F9;"><span class="expertise-text" style="color: #64748B; font-size: 0.85rem;">{{ getExt(panel.raw?.feedback) || '-' }}</span></td>
-                      <td style="padding: 12px 15px; border-bottom: 1px solid #F1F5F9;"><span class="interview-count" style="font-weight: 600; color: #334155;">{{ getExt(panel.raw?.rating) || '-' }}</span></td>
-                      <td style="padding: 12px 15px; text-align: right; border-bottom: 1px solid #F1F5F9;">
-                        <div class="action-btns" style="display: flex; gap: 12px; justify-content: flex-end;">
-                          <button class="icon-action-btn" title="Edit" (click)="openEditPanelModal(panel)" style="background: transparent; border: none; color: #94A3B8; cursor: pointer; transition: color 0.2s;"><i class="fas fa-pen hover-blue"></i></button>
-                          <button class="icon-action-btn danger" title="Remove" (click)="removePanelist(panel)" style="background: transparent; border: none; color: #EF4444; cursor: pointer; transition: color 0.2s;"><i class="fas fa-trash-alt hover-dark-red"></i></button>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 15px; padding: 12px; background: #F8FAFC; border-radius: 8px;">
+                <div>
+                  <div style="font-size: 0.75rem; color: #64748B; font-weight: 600; text-transform: uppercase;">Interview ID</div>
+                  <div style="font-size: 0.9rem; color: #1E293B; font-weight: 500;">{{ group.interview_id }}</div>
+                </div>
+                <div>
+                  <div style="font-size: 0.75rem; color: #64748B; font-weight: 600; text-transform: uppercase;">Round</div>
+                  <div style="font-size: 0.9rem; color: #1E293B; font-weight: 500;">{{ group.round }}</div>
+                </div>
+                <div>
+                  <div style="font-size: 0.75rem; color: #64748B; font-weight: 600; text-transform: uppercase;">Scheduled</div>
+                  <div style="font-size: 0.9rem; color: #1E293B; font-weight: 500;">{{ group.scheduled_date }} {{ group.scheduled_time ? 'at ' + group.scheduled_time : '' }}</div>
+                </div>
+                <div>
+                  <div style="font-size: 0.75rem; color: #64748B; font-weight: 600; text-transform: uppercase;">Job ID</div>
+                  <div style="font-size: 0.9rem; color: #1E293B; font-weight: 500;">{{ group.jr_id || 'N/A' }}</div>
+                </div>
+              </div>
+
+              <!-- Interviewers for this interview -->
+              <div style="margin-top: 10px;">
+                <div style="font-size: 0.8rem; color: #64748B; font-weight: 600; margin-bottom: 8px; text-transform: uppercase;">Interviewers</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                  <div *ngFor="let panel of getPanelsForInterview(group.interview_id)" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: white; border: 1px solid #E2E8F0; border-radius: 20px;">
+                    <div style="width: 28px; height: 28px; border-radius: 50%; background: #0B2265; color: white; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 600;">
+                      {{ panel.interviewer_name?.substring(0, 2).toUpperCase() || 'IN' }}
+                    </div>
+                    <span style="font-size: 0.85rem; color: #334155;">{{ panel.interviewer_name || panel.interviewer_id }}</span>
+                    <span *ngIf="panel.feedback" class="badge" [style.background]="panel.rating ? '#D1FAE5' : '#FEF3C7'" [style.color]="panel.rating ? '#065F46' : '#92400E'" style="font-size: 0.7rem; padding: 2px 6px;">
+                      {{ panel.rating || 'Pending' }}
+                    </span>
+                  </div>
+                  <div *ngIf="getPanelsForInterview(group.interview_id).length === 0" style="font-size: 0.85rem; color: #94A3B8; font-style: italic;">
+                    No interviewers assigned yet
+                  </div>
+                </div>
+              </div>
+              
+              <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #F1F5F9; display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn btn-outline-sm" *ngIf="group.meeting_link" (click)="openMeetingLink(group.meeting_link)" style="display: flex; align-items: center; gap: 6px;">
+                  <i class="fas fa-video"></i> Join Meeting
+                </button>
+                <button class="btn btn-outline-sm" (click)="viewInterviewDetails(group)">View Details</button>
               </div>
             </div>
             
@@ -599,7 +606,7 @@
               <div style="color: #64748B; font-size: 0.85rem;">
                 Showing <span style="font-weight: 600; color: #1E293B;">{{ (interviewPanelCurrentPage - 1) * interviewPanelPageSize + 1 }}</span> 
                 to <span style="font-weight: 600; color: #1E293B;">{{ interviewPanelCurrentPage * interviewPanelPageSize > groupedInterviewPanels.length ? groupedInterviewPanels.length : interviewPanelCurrentPage * interviewPanelPageSize }}</span> 
-                of <span style="font-weight: 600; color: #1E293B;">{{ groupedInterviewPanels.length }}</span> interview groups
+                of <span style="font-weight: 600; color: #1E293B;">{{ groupedInterviewPanels.length }}</span> interviews
               </div>
               <div style="display: flex; gap: 8px;">
                 <button class="btn btn-outline-sm" 
@@ -621,12 +628,12 @@
             </div>
           </div>
 
-          <div class="empty-state" *ngIf="filteredInterviewPanels.length === 0 && !isLoadingPanels" style="text-align: center; padding: 60px 20px; background: white; border-radius: 12px; border: 1px solid #E2E8F0; display: flex; flex-direction: column; align-items: center;">
+          <div class="empty-state" *ngIf="groupedInterviewPanels.length === 0 && !isLoadingPanels" style="text-align: center; padding: 60px 20px; background: white; border-radius: 12px; border: 1px solid #E2E8F0; display: flex; flex-direction: column; align-items: center;">
             <div style="background: #F8FAFC; width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
               <i class="fas fa-user-slash" style="font-size: 2.5rem; color: #94A3B8;"></i>
             </div>
-            <h3 style="margin: 0 0 10px 0; color: #1E293B; font-weight: 600;">No Interview Panels Found</h3>
-            <p style="color: #64748B; font-size: 0.95rem; margin: 0; max-width: 300px;">We couldn't find any interview panels matching your current search criteria.</p>
+            <h3 style="margin: 0 0 10px 0; color: #1E293B; font-weight: 600;">No Interviews Scheduled</h3>
+            <p style="color: #64748B; font-size: 0.95rem; margin: 0; max-width: 300px;">Click "Schedule Interview" to create new interviews for candidates.</p>
           </div>
 
         </div>
@@ -784,8 +791,8 @@
                   <i class="fas fa-briefcase" style="margin-right: 6px;"></i> 
                   <strong>{{ getJobTitleById(selectedJobId) }}</strong>
                   <br>
-                  <i class="fas fa-users" style="margin-right: 6px;"></i> 
-                  {{ selectedCandidateIds.length }} candidate(s) selected
+                  <i class="fas fa-user" style="margin-right: 6px;"></i> 
+                  {{ getSelectedCandidateNames() }}
                   <br>
                   <i class="fas fa-user-tie" style="margin-right: 6px;"></i> 
                   {{ selectedInterviewerIds.length }} interviewer(s) selected
@@ -804,6 +811,72 @@
             </ng-container>
           </div>
         </div>
+        <!-- View Details Modal -->
+        <div class="modal-backdrop" *ngIf="showInterviewDetailsModal" (click)="closeInterviewDetailsModal()">
+          <div class="modal-dialog" style="max-width: 700px;" (click)="$event.stopPropagation()">
+            <div class="modal-header-row" style="margin-bottom: 20px;">
+              <h3><i class="fas fa-info-circle text-blue"></i> Interview Details</h3>
+              <button class="modal-close-btn" (click)="closeInterviewDetailsModal()"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div *ngIf="selectedInterviewDetails">
+              <div style="background: #F8FAFC; padding: 15px; border-radius: 8px; border: 1px solid #E2E8F0; margin-bottom: 20px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                  <div><span style="color: #64748B; font-size: 0.8rem; text-transform: uppercase;">Candidate</span><div style="font-weight: 600; font-size: 1rem;">{{ selectedInterviewDetails.candidate_name }}</div></div>
+                  <div><span style="color: #64748B; font-size: 0.8rem; text-transform: uppercase;">Job Requisition</span><div style="font-weight: 500;">{{ selectedInterviewDetails.jr_id || 'N/A' }}</div></div>
+                  <div><span style="color: #64748B; font-size: 0.8rem; text-transform: uppercase;">Round</span><div style="font-weight: 500;">{{ selectedInterviewDetails.round }}</div></div>
+                  <div><span style="color: #64748B; font-size: 0.8rem; text-transform: uppercase;">Scheduled</span><div style="font-weight: 500;">{{ selectedInterviewDetails.scheduled_date }} <ng-container *ngIf="selectedInterviewDetails.scheduled_time">at {{ selectedInterviewDetails.scheduled_time }}</ng-container></div></div>
+                  <div><span style="color: #64748B; font-size: 0.8rem; text-transform: uppercase;">Status</span><div><span class="badge" [style.background]="selectedInterviewDetails.status === 'COMPLETED' ? '#D1FAE5' : selectedInterviewDetails.status === 'CANCELLED' ? '#FEE2E2' : '#FEF3C7'" [style.color]="selectedInterviewDetails.status === 'COMPLETED' ? '#065F46' : selectedInterviewDetails.status === 'CANCELLED' ? '#991B1B' : '#92400E'">{{ selectedInterviewDetails.status }}</span></div></div>
+                  <div>
+                    <span style="color: #64748B; font-size: 0.8rem; text-transform: uppercase;">Meeting Link</span>
+                    <div>
+                      <a *ngIf="selectedInterviewDetails.meeting_link" [href]="selectedInterviewDetails.meeting_link" target="_blank" style="color: #00C4F0; text-decoration: underline; font-weight: 600;"><i class="fas fa-video"></i> Join Meeting</a>
+                      <span *ngIf="!selectedInterviewDetails.meeting_link" style="color: #94A3B8;">N/A</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <h4 style="margin: 0 0 10px 0; font-size: 1rem; color: #1E293B;">Panelists Overview</h4>
+              <div class="panel-table-wrapper" style="border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden; background: white;">
+                <table class="panel-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                  <thead style="background: #F1F5F9; border-bottom: 1px solid #E2E8F0;">
+                    <tr>
+                      <th style="padding: 10px 15px; color: #475569; font-weight: 600;">Interviewer</th>
+                      <th style="padding: 10px 15px; color: #475569; font-weight: 600;">Feedback</th>
+                      <th style="padding: 10px 15px; color: #475569; font-weight: 600; white-space: nowrap;">Rating</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let panel of selectedInterviewPanels" style="border-bottom: 1px solid #F1F5F9;">
+                      <td style="padding: 10px 15px; font-weight: 500;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                          <div style="width: 24px; height: 24px; border-radius: 50%; background: #0B2265; color: white; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 600;">
+                            {{ panel.interviewer_name?.substring(0, 2).toUpperCase() || 'IN' }}
+                          </div>
+                          {{ panel.interviewer_name || panel.interviewer_id }}
+                        </div>
+                      </td>
+                      <td style="padding: 10px 15px; color: #334155; max-width: 300px; word-wrap: break-word;">{{ panel.feedback || 'Pending' }}</td>
+                      <td style="padding: 10px 15px;">
+                        <span *ngIf="panel.rating" class="badge" [style.background]="'#D1FAE5'" [style.color]="'#065F46'">{{ panel.rating }}</span>
+                        <span *ngIf="!panel.rating" class="text-muted" style="font-style: italic; font-size: 0.85rem;">Pending</span>
+                      </td>
+                    </tr>
+                    <tr *ngIf="selectedInterviewPanels.length === 0">
+                      <td colspan="3" style="padding: 15px; text-align: center; color: #64748B;">No panelists assigned yet.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="form-actions mt-4" style="display: flex; gap: 15px; justify-content: flex-end;">
+              <button type="button" class="btn btn-outline-sm" (click)="closeInterviewDetailsModal()">Close</button>
+            </div>
+          </div>
+        </div>
+
       </ng-container>
 
       <!-- ==================== SCHEDULING TAB ==================== -->
@@ -1050,6 +1123,9 @@
                   <div class="kanban-column-title-row">
                     <div class="kanban-column-dot" [style.background]="stage.color"></div>
                     <span class="kanban-column-title">{{ stage.name }}</span>
+                    <button *ngIf="stage.id === 'interviewing'" class="btn btn-icon btn-sm btn-outline-primary ml-2" (click)="addInterviewStage()">
+                      <i class="fas fa-plus"></i>
+                    </button>
                     <span class="kanban-column-count">{{ getCandidatesByStage(stage.id).length }}</span>
                   </div>
                 </div>
@@ -1077,6 +1153,17 @@
                       </span>
                       <span class="kanban-card-date"><i class="far fa-clock"></i> {{ c.appliedDate }}</span>
                     </div>
+                    <div *ngIf="getPanelsForInterview(getLatestInterview(c.candidate_id)?.interview_id).length > 0">
+                      <hr>
+                      <div *ngFor="let panel of getPanelsForInterview(getLatestInterview(c.candidate_id)?.interview_id)">
+                        <p><strong>Feedback:</strong> {{panel.feedback}}</p>
+                        <p><strong>Rating:</strong> {{panel.rating}}</p>
+                        <p><strong>Temp2:</strong> {{panel.temp2}}</p>
+                        <p><strong>Temp3:</strong> {{panel.temp3}}</p>
+                        <p><strong>Temp4:</strong> {{panel.temp4}}</p>
+                        <p><strong>Temp5:</strong> {{panel.temp5}}</p>
+                      </div>
+                    </div>
                   </div>
 
                   <!-- Drop zone when empty -->
@@ -1091,6 +1178,21 @@
         </div>
 
         <!-- ===== CONFIRMATION POPUP ===== -->
+        <div class="modal-backdrop confirm-backdrop" *ngIf="showAddInterviewStageModal" (click)="cancelMove()">
+          <div class="confirm-dialog" (click)="$event.stopPropagation()">
+            <div class="confirm-icon-wrapper">
+              <div class="confirm-icon"><i class="fas fa-exchange-alt"></i></div>
+            </div>
+            <h3 class="confirm-title">Confirm Stage creation</h3>
+            <p class="confirm-message">
+              Are you sure you want to create a new interview stage?
+            </p>
+            <div class="confirm-actions">
+              <button class="btn btn-outline-sm" (click)="showAddInterviewStageModal = false">Cancel</button>
+              <button class="btn btn-primary-blue" (click)="confirmAddNewInterviewStage()"><i class="fas fa-check"></i> Confirm Move</button>
+            </div>
+          </div>
+        </div>
         <div class="modal-backdrop confirm-backdrop" *ngIf="showConfirmModal" (click)="cancelMove()">
           <div class="confirm-dialog" (click)="$event.stopPropagation()">
             <div class="confirm-icon-wrapper">
