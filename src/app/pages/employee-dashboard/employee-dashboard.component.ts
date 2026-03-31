@@ -48,6 +48,7 @@ interface Referral {
   candidate_email: string;
   job_title: string;
   job_department: string;
+  raw_referral: any;
 }
 
 @Component({
@@ -213,7 +214,8 @@ export class EmployeeDashboardComponent implements OnInit {
           candidate_name: candidate.name || '',
           candidate_email: candidate.email || '',
           job_title: job.job_title || '',
-          job_department: job.department || ''
+          job_department: job.department || '',
+          raw_referral: r
         };
       });
 
@@ -393,11 +395,50 @@ export class EmployeeDashboardComponent implements OnInit {
     this.feedbackRating = rating;
   }
 
+  // ─── Approve / Reject Referral ───
+  async approveReferral(ref: Referral): Promise<void> {
+    try {
+      const oldData = ref.raw_referral || {
+        referral_id: ref.referral_id,
+        employee_id: ref.employee_id,
+        candidate_id: ref.candidate_id
+      };
+      const newData = {
+        ...oldData,
+        referral_status: 'APPROVED'
+      };
+      await this.empService.updateEmployeeReferral(oldData, newData);
+      ref.referral_status = 'APPROVED';
+    } catch (error) {
+      console.error('Failed to approve referral:', error);
+      alert('Failed to approve referral. Please try again.');
+    }
+  }
+
+  async rejectReferral(ref: Referral): Promise<void> {
+    try {
+      const oldData = ref.raw_referral || {
+        referral_id: ref.referral_id,
+        employee_id: ref.employee_id,
+        candidate_id: ref.candidate_id
+      };
+      const newData = {
+        ...oldData,
+        referral_status: 'REJECTED'
+      };
+      await this.empService.updateEmployeeReferral(oldData, newData);
+      ref.referral_status = 'REJECTED';
+    } catch (error) {
+      console.error('Failed to reject referral:', error);
+      alert('Failed to reject referral. Please try again.');
+    }
+  }
+
   // ─── Helpers ───
   getReferralStatusClass(status: string): string {
     switch (status) {
-      case 'HIRED': case 'SELECTED': return 'status-active';
-      case 'IN_PROGRESS': case 'INTERVIEW': return 'status-in-progress';
+      case 'HIRED': case 'SELECTED': case 'APPROVED': return 'status-active';
+      case 'IN_PROGRESS': case 'INTERVIEW': case 'REFERRED': return 'status-in-progress';
       case 'PENDING': case 'APPLIED': return 'status-pending';
       case 'REJECTED': return 'status-on-leave';
       default: return 'status-pending';

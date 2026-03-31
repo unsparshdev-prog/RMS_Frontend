@@ -240,4 +240,9 @@ export class EmployeeDashboardService {
   async updateInterview(oldData: any, newData: any): Promise<any> {
     return this.hero.updateInterview(oldData, newData);
   }
+
+  // ─── Update Employee Referral (approve / reject) ───
+  async updateEmployeeReferral(oldData: any, newData: any): Promise<any> {
+    return this.hero.updateEmployeeReferral(oldData, newData);
+  }
 }

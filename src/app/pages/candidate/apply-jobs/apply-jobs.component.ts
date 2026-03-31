@@ -22,6 +22,10 @@ export class ApplyJobsComponent implements OnInit {
   relevantSkills: string = '';
   selectedJobDetails: any = null;
 
+  // Referral fields
+  hasReferral: boolean = false;
+  referralEmployeeId: string = '';
+
   // Confirmation modal state
   showConfirmModal = false;
   confirmJobId = '';
@@ -139,10 +143,13 @@ export class ApplyJobsComponent implements OnInit {
     }
     this.confirmJobTitle = job?.title || 'this job';
     this.confirmJobId = jobId;
+    this.selectedJobDetails = job || null;
     
     // Reset form fields
     this.expectedSalary = '';
     this.relevantSkills = '';
+    this.hasReferral = false;
+    this.referralEmployeeId = '';
     this.confirmApplicationId = '';
 
     // Check if there's an existing application to get the Application ID
@@ -177,6 +184,12 @@ export class ApplyJobsComponent implements OnInit {
       return;
     }
 
+    // Validate referral employee ID if referral is checked
+    if (this.hasReferral && !this.referralEmployeeId.trim()) {
+      this.toast.warning('Please enter the referring employee\'s Employee ID.');
+      return;
+    }
+
     this.showConfirmModal = false;
     const candidateId = this.authService.getCandidateId();
     const jobId = this.confirmJobId;
@@ -184,12 +197,16 @@ export class ApplyJobsComponent implements OnInit {
     
     const salary = this.expectedSalary;
     const skills = this.relevantSkills;
+    const isReferral = this.hasReferral;
+    const refEmployeeId = this.referralEmployeeId.trim();
 
     this.confirmJobId = '';
     this.confirmJobTitle = '';
     this.confirmApplicationId = '';
     this.expectedSalary = '';
     this.relevantSkills = '';
+    this.hasReferral = false;
+    this.referralEmployeeId = '';
 
     // CREATE OR UPDATE APPLICATION
     const applicationData = {
@@ -206,7 +223,7 @@ export class ApplyJobsComponent implements OnInit {
     const jobTitleForEmail = this.confirmJobTitle;
 
     this.heroService.updateCandidateJobApplication(applicationData)
-      .then(() => {
+      .then(async () => {
         // SUCCESS RESPONSE
         const response = {
           status: "success",
@@ -214,6 +231,41 @@ export class ApplyJobsComponent implements OnInit {
         };
         console.log(JSON.stringify(response, null, 2));
         this.toast.success(response.message);
+
+        // ===== REFERRAL HANDLING =====
+        if (isReferral && refEmployeeId) {
+          try {
+            // 1. Create employee_referral record
+            const referralResp = await this.heroService.createEmployeeReferral({
+              employee_id: refEmployeeId,
+              candidate_id: candidateId,
+              jr_id: jobId,
+              referral_status: 'REFERRED'
+            });
+
+            // 2. Extract the generated referral_id from response
+            const refData = this.heroService.xmltojson(referralResp, 'employee_referral');
+            let referralId = '';
+            if (refData) {
+              const refObj = Array.isArray(refData) ? refData[0] : refData;
+              referralId = refObj.referral_id || '';
+            }
+
+            // 3. Update candidate record with has_referral = true and referral_id
+            await this.heroService.updateCandidate(candidateId, {
+              candidate_id: candidateId,
+              has_referral: 'true',
+              referral_id: referralId,
+              source: 'Employee Referral'
+            });
+
+            console.log('Referral created successfully. Referral ID:', referralId);
+            this.toast.success('Referral recorded successfully!');
+          } catch (refErr) {
+            console.error('Error creating referral:', refErr);
+            this.toast.warning('Application submitted but referral could not be recorded. Please contact HR.');
+          }
+        }
 
         // SEND MAIL FOR JOB APPLIED
         const sessionEmail = sessionStorage.getItem('displayName') || '';

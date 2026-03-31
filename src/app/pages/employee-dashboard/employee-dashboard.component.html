@@ -224,6 +224,7 @@
                 <th>Department</th>
                 <th>Referred On</th>
                 <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -239,6 +240,19 @@
                 <td>{{ ref.job_department }}</td>
                 <td>{{ ref.created_at | date:'mediumDate' }}</td>
                 <td><span class="status-badge" [ngClass]="getReferralStatusClass(ref.referral_status)">{{ ref.referral_status }}</span></td>
+                <td>
+                  <div class="referral-actions" *ngIf="ref.referral_status === 'REFERRED'">
+                    <button class="btn-approve-sm" (click)="approveReferral(ref)" title="Approve Referral">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                      Approve
+                    </button>
+                    <button class="btn-reject-sm" (click)="rejectReferral(ref)" title="Reject Referral">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                      Reject
+                    </button>
+                  </div>
+                  <span *ngIf="ref.referral_status !== 'REFERRED'" class="text-muted text-sm">—</span>
+                </td>
               </tr>
             </tbody>
           </table>
