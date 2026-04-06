@@ -1115,6 +1115,8 @@ export class HrPanelComponent implements OnInit {
   pipelineSearchQuery = '';
   selectedCandidate: any = null;
   showKanbanModal = false;
+  selectedCandidateMaxVisibleRound: number | null = null;
+  overviewCreatedVisibleRound: number | null = null;
 
   // Drag & drop state
   draggedCandidate: any = null;
@@ -1170,17 +1172,34 @@ export class HrPanelComponent implements OnInit {
 
   getVisiblePipelineStages() {
     if (!this.selectedCandidate) {
-      return this.pipelineStages;
+      const activeInterviewStageIds = new Set(
+        this.activeCandidates
+          .map(c => c.stage)
+          .filter((stage: string) => this.isInterviewStageId(stage))
+      );
+
+      return this.pipelineStages.filter(stage => {
+        if (!this.isInterviewStageId(stage.id)) {
+          return true;
+        }
+
+        if (stage.id === 'interviewing') {
+          return true;
+        }
+
+        const roundNumber = this.getRoundNumberFromStage(stage.id);
+        return activeInterviewStageIds.has(stage.id) || (!!this.overviewCreatedVisibleRound && roundNumber === this.overviewCreatedVisibleRound);
+      });
     }
 
     const currentStage = this.selectedCandidate.stage || '';
-    const currentRoundMatch = currentStage.match(/^interviewing(\d+)$/);
+    const currentRound = this.getRoundNumberFromStage(currentStage);
 
-    if (!currentRoundMatch) {
+    if (!currentRound) {
       return this.pipelineStages.filter(stage => !/^interviewing\d+$/.test(stage.id));
     }
 
-    const maxVisibleRound = parseInt(currentRoundMatch[1], 10);
+    const maxVisibleRound = Math.max(currentRound, this.selectedCandidateMaxVisibleRound || 0);
     return this.pipelineStages.filter(stage => {
       if (!/^interviewing\d+$/.test(stage.id)) {
         return true;
@@ -1220,17 +1239,23 @@ export class HrPanelComponent implements OnInit {
 
   openKanbanModal(candidate: any) {
     this.selectedCandidate = candidate;
+    this.selectedCandidateMaxVisibleRound = null;
+    this.overviewCreatedVisibleRound = null;
     this.showKanbanModal = true;
   }
 
   openPipelineOverviewModal() {
     this.selectedCandidate = null;
+    this.selectedCandidateMaxVisibleRound = null;
+    this.overviewCreatedVisibleRound = null;
     this.showKanbanModal = true;
   }
 
   closeKanbanModal() {
     this.showKanbanModal = false;
     this.selectedCandidate = null;
+    this.selectedCandidateMaxVisibleRound = null;
+    this.overviewCreatedVisibleRound = null;
   }
 
   // --- Drag & Drop ---
@@ -1281,26 +1306,41 @@ export class HrPanelComponent implements OnInit {
   }
 
   async confirmAddNewInterviewStage() {
-    const interviewingStages = this.pipelineStages.filter(stage => stage.id.startsWith('interviewing'));
-    const newRoundNumber = interviewingStages.length + 1;
+    const currentRoundNumber = this.selectedCandidate
+      ? this.getRoundNumberFromStage(this.selectedCandidate?.stage || '')
+      : Math.max(
+          ...this.getVisiblePipelineStages()
+            .filter(stage => this.isInterviewStageId(stage.id))
+            .map(stage => this.getRoundNumberFromStage(stage.id) || 1)
+        );
+    const nextRoundNumber = (currentRoundNumber || 1) + 1;
+    const newRoundNumber = nextRoundNumber;
     const newStageId = `interviewing${newRoundNumber}`;
     const newStageName = `Round ${newRoundNumber}`;
+    const stageAlreadyExists = this.pipelineStages.some(stage => stage.id === newStageId);
 
-    const newStage = { id: newStageId, name: newStageName, icon: 'fas fa-comments', color: '#0088A8' };
-
-    const interviewingIndex = this.pipelineStages.findIndex(stage => stage.id === 'interviewing');
-    this.pipelineStages.splice(interviewingIndex + interviewingStages.length, 0, newStage);
+    if (!stageAlreadyExists) {
+      const newStage = { id: newStageId, name: newStageName, icon: 'fas fa-comments', color: '#0088A8' };
+      const interviewingIndex = this.pipelineStages.findIndex(stage => stage.id === 'interviewing');
+      const insertIndex = interviewingIndex + Math.max(newRoundNumber - 1, 1);
+      this.pipelineStages.splice(insertIndex, 0, newStage);
+    }
 
     try {
-      await this.heroService.createInterview({
-        candidate_id: this.selectedCandidate.candidate_id,
-        jr_id: this.selectedCandidate.raw.application.jr_id,
-        round: newStageName,
-        scheduled_date: '',
-        scheduled_time: '',
-        meeting_link: '',
-        status: 'PENDING'
-      });
+      if (this.selectedCandidate) {
+        await this.heroService.createInterview({
+          candidate_id: this.selectedCandidate.candidate_id,
+          jr_id: this.selectedCandidate.raw.application.jr_id,
+          round: newStageName,
+          scheduled_date: '',
+          scheduled_time: '',
+          meeting_link: '',
+          status: 'PENDING'
+        });
+        this.selectedCandidateMaxVisibleRound = newRoundNumber;
+      } else {
+        this.overviewCreatedVisibleRound = newRoundNumber;
+      }
       this.showToast('New interview stage created successfully!', 'success');
     } catch (error) {
       this.showToast('Failed to create new interview stage.', 'error');
