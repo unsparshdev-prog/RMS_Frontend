@@ -1289,17 +1289,6 @@
                     <div class="kanban-card-bottom">
                       <span class="kanban-card-date"><i class="far fa-clock"></i> {{ c.appliedDate }}</span>
                     </div>
-                    <div *ngIf="getPanelsForInterview(getLatestInterview(c.candidate_id)?.interview_id).length > 0">
-                      <hr>
-                      <div *ngFor="let panel of getPanelsForInterview(getLatestInterview(c.candidate_id)?.interview_id)">
-                        <p><strong>Feedback:</strong> {{panel.feedback}}</p>
-                        <p><strong>Rating:</strong> {{panel.rating}}</p>
-                        <p><strong>Temp2:</strong> {{panel.temp2}}</p>
-                        <p><strong>Temp3:</strong> {{panel.temp3}}</p>
-                        <p><strong>Temp4:</strong> {{panel.temp4}}</p>
-                        <p><strong>Temp5:</strong> {{panel.temp5}}</p>
-                      </div>
-                    </div>
                   </div>
 
                   <!-- Drop zone when empty -->
