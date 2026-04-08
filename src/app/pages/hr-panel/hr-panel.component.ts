@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -9,6 +9,16 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Chart from 'chart.js/auto';
 
+interface HrNotificationItem {
+  id: string;
+  source: 'job_requisition' | 'offer';
+  sourceId: string;
+  message: string;
+  temp1Value: string;
+  createdAt: string;
+  payload?: any;
+}
+
 @Component({
   selector: 'app-hr-panel',
   standalone: true,
@@ -16,13 +26,17 @@ import Chart from 'chart.js/auto';
   templateUrl: './hr-panel.component.html',
   styleUrls: ['./hr-panel.component.css']
 })
-export class HrPanelComponent implements OnInit {
+export class HrPanelComponent implements OnInit, OnDestroy {
 
   protected Math = Math;
   isSidebarCollapsed = false;
   activeTab = 'Dashboard';
   isGeneratingReport = false;
   currentDate = new Date();
+  showNotificationsPopup = false;
+  notifications: HrNotificationItem[] = [];
+  private notificationPollingHandle: any = null;
+  private readonly notificationPollMs = 5000;
 
 
   // --- Job Requisition Form Model ---
@@ -192,6 +206,14 @@ export class HrPanelComponent implements OnInit {
     this.loadReferrals();
     this.loadOfferedApplications();
     this.loadAllOffers();
+    this.startNotificationsPolling();
+  }
+
+  ngOnDestroy(): void {
+    if (this.notificationPollingHandle) {
+      clearInterval(this.notificationPollingHandle);
+      this.notificationPollingHandle = null;
+    }
   }
 
   private readonly RESUME_DOWNLOAD_BASE = 'http://43.242.214.239:81/home/training2025/MAHINDRA_UPLOADS/Intern_Uploads';
@@ -280,6 +302,162 @@ export class HrPanelComponent implements OnInit {
     setTimeout(() => {
       this.showToastMsg = false;
     }, 4000);
+  }
+
+  get unreadNotificationCount(): number {
+    return this.notifications.length;
+  }
+
+  toggleNotifications(event: MouseEvent): void {
+    event.stopPropagation();
+    this.showNotificationsPopup = !this.showNotificationsPopup;
+  }
+
+  async markNotificationAsRead(notificationId: string): Promise<void> {
+    const target = this.notifications.find((n) => n.id === notificationId);
+    if (!target) return;
+
+    try {
+      if (target.source === 'offer') {
+        const offer = target.payload || {};
+        const offerId = this.getExt(offer.offer_id || target.sourceId);
+        if (!offerId) return;
+
+        await this.heroService.updateOfferById(offerId, {
+          candidate_id: this.getExt(offer.candidate_id),
+          jr_id: this.getExt(offer.jr_id),
+          offer_date: this.getExt(offer.offer_date),
+          offer_sent_date: this.getExt(offer.offer_sent_date),
+          candidate_response_date: this.getExt(offer.candidate_response_date),
+          date_of_joining: this.getExt(offer.date_of_joining),
+          salary_offered: this.getExt(offer.salary_offered),
+          offer_letter_path: this.getExt(offer.offer_letter_path),
+          offer_status: this.getExt(offer.offer_status),
+          approval_status: this.getExt(offer.approval_status),
+          temp1: this.getExt(offer.temp1),
+          temp2: 'SEEN'
+        });
+      } else {
+        const job = target.payload || {};
+        const jrId = this.getExt(job.jr_id || target.sourceId);
+        if (!jrId) return;
+
+        await this.heroService.updateJobRequisition(jrId, {
+          job_title: this.getExt(job.job_title),
+          department: this.getExt(job.department),
+          location: this.getExt(job.location),
+          job_description: this.getExt(job.job_description),
+          required_skills: this.getExt(job.required_skills),
+          min_experience: this.getExt(job.min_experience),
+          max_experience: this.getExt(job.max_experience),
+          salary_range: this.getExt(job.salary_range),
+          no_of_positions: this.getExt(job.no_of_positions),
+          priority: this.getExt(job.priority),
+          status: this.getExt(job.status),
+          approval_status: this.getExt(job.approval_status),
+          closing_date: this.getExt(job.closing_date),
+          temp1: this.getExt(job.temp1),
+          temp2: 'SEEN'
+        });
+      }
+
+      this.notifications = this.notifications.filter((n) => n.id !== notificationId);
+      this.refreshNotificationsFromTemp1();
+    } catch (e) {
+      console.error('[HrPanel] Failed to mark notification as read:', e);
+      this.showToast('Failed to mark notification as read.', 'error');
+    }
+  }
+
+  @HostListener('document:click')
+  closeNotificationsOnOutsideClick(): void {
+    this.showNotificationsPopup = false;
+  }
+
+  private startNotificationsPolling(): void {
+    this.refreshNotificationsFromTemp1();
+    this.notificationPollingHandle = setInterval(() => {
+      this.refreshNotificationsFromTemp1();
+    }, this.notificationPollMs);
+  }
+
+  private async refreshNotificationsFromTemp1(): Promise<void> {
+    try {
+      const [jobsResp, offersResp] = await Promise.all([
+        this.heroService.showAllJobRequisition(),
+        this.heroService.getOffers()
+      ]);
+
+      const jobNotifications = this.extractJobNotifications(jobsResp);
+      const offerNotifications = this.extractOfferNotifications(offersResp);
+      this.notifications = [...offerNotifications, ...jobNotifications]
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 100);
+    } catch (e) {
+      console.warn('[HrPanel] Notification polling failed:', e);
+    }
+  }
+
+  private extractJobNotifications(resp: any): HrNotificationItem[] {
+    let data = this.heroService.xmltojson(resp, 'job_requisition');
+    if (!data) data = this.heroService.xmltojson(resp, 'tuple');
+    if (!data) return [];
+
+    const arr = Array.isArray(data) ? data : [data];
+    const result: HrNotificationItem[] = [];
+
+    for (const item of arr) {
+      const record = item.old?.job_requisition || item.new?.job_requisition || item.job_requisition || item;
+      const id = this.getExt(record?.jr_id || record?.requisition_id || record?.id);
+      if (!id) continue;
+      const temp1 = this.getExt(record?.temp1).trim();
+      const temp2 = this.getExt(record?.temp2).trim().toUpperCase();
+      if (!temp1 || temp2 !== 'NOTIFIED') continue;
+
+      result.push({
+        id: `job-${id}`,
+        source: 'job_requisition',
+        sourceId: id,
+        message: `Job remark: ${temp1}`,
+        temp1Value: temp1,
+        createdAt: this.getExt(record?.modified_at || record?.created_at) || new Date().toISOString(),
+        payload: record
+      });
+    }
+    return result;
+  }
+
+  private extractOfferNotifications(resp: any): HrNotificationItem[] {
+    let data = this.heroService.xmltojson(resp, 'offer');
+    if (!data) data = this.heroService.xmltojson(resp, 'tuple');
+    if (!data) return [];
+
+    const arr = Array.isArray(data) ? data : [data];
+    const result: HrNotificationItem[] = [];
+
+    for (const item of arr) {
+      const record = item.old?.offer || item.new?.offer || item.offer || item;
+      const offerId = this.getExt(record?.offer_id || record?.Offer_id || record?.id);
+      const candidateId = this.getExt(record?.candidate_id || record?.Candidate_id);
+      const jrId = this.getExt(record?.jr_id || record?.Jr_id);
+      const createdAt = this.getExt(record?.created_at || record?.offer_date);
+      const id = offerId || [candidateId, jrId, createdAt].filter(Boolean).join('-');
+      if (!id) continue;
+      const temp1 = this.getExt(record?.temp1).trim();
+      const temp2 = this.getExt(record?.temp2).trim().toUpperCase();
+      if (!temp1 || temp2 !== 'NOTIFIED') continue;
+
+      result.push({
+        id: `offer-${id}`,
+        source: 'offer',
+        sourceId: id,
+        message: `Offer remark: ${temp1}`,
+        temp1Value: temp1,
+        createdAt: this.getExt(record?.modified_at || record?.created_at || record?.offer_date) || new Date().toISOString(),
+        payload: record
+      });
+    }
+    return result;
   }
 
   // --- Dynamic Dashboard Data ---
@@ -2414,6 +2592,8 @@ export class HrPanelComponent implements OnInit {
       }
 
       console.log('[HrPanel] Loaded all offers:', this.allOfferRecords.length, 'Approved:', this.approvedOffers.length, 'Changes Suggested:', this.changesSuggestedOffers.length);
+      // Ensure notification state reflects latest temp1 changes
+      this.refreshNotificationsFromTemp1();
     } catch (e) {
       console.error('[HrPanel] Error loading all offers:', e);
     } finally {

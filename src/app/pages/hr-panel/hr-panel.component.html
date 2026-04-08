@@ -73,7 +73,37 @@
         <span class="text-active">{{ activeTab }}</span>
       </div>
       <div class="nav-actions">
-        <button class="icon-btn"><i class="far fa-bell"></i></button>
+        <div class="notification-wrapper" (click)="$event.stopPropagation()">
+          <button class="icon-btn notification-btn" (click)="toggleNotifications($event)">
+            <i class="far fa-bell"></i>
+            <span class="notification-count-badge" *ngIf="unreadNotificationCount > 0">
+              {{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}
+            </span>
+          </button>
+
+          <div class="notification-dropdown" *ngIf="showNotificationsPopup">
+            <div class="notification-dropdown-header">
+              <h4>Notifications</h4>
+              <span class="notification-total" *ngIf="unreadNotificationCount > 0">{{ unreadNotificationCount }}</span>
+            </div>
+
+            <div class="notification-empty" *ngIf="notifications.length === 0">
+              No new notifications.
+            </div>
+
+            <div class="notification-list" *ngIf="notifications.length > 0">
+              <div class="notification-item" *ngFor="let notification of notifications">
+                <div class="notification-message">{{ notification.message }}</div>
+                <div class="notification-meta">
+                  <span>{{ notification.createdAt | date:'short' }}</span>
+                  <button class="notification-read-btn" (click)="markNotificationAsRead(notification.id)">
+                    Mark as read
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -1997,8 +2027,8 @@
                   <input type="date" class="form-input" [(ngModel)]="offerForm.date_of_joining" name="doj">
                 </div>
                 <div class="form-group mb-0">
-                  <label>Salary Offered (â‚¹) <span class="text-red-500">*</span></label>
-                  <input type="text" class="form-input" [(ngModel)]="offerForm.salary_offered" name="salary" placeholder="e.g. â‚¹ 8,00,000" required>
+                  <label>Salary Offered (Rs.) <span class="text-red-500">*</span></label>
+                  <input type="text" class="form-input" [(ngModel)]="offerForm.salary_offered" name="salary" placeholder="e.g. Rs. 8,00,000" required>
                 </div>
               </div>
               
@@ -2023,7 +2053,7 @@
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 0.95rem;">
                 <div><span style="color: #64748B; display: block; font-size: 0.8rem; text-transform: uppercase;">Candidate Name</span><strong style="color: #1E293B;">{{ getExt(selectedOfferCandidate?.raw?.candidate_name) }}</strong></div>
                 <div><span style="color: #64748B; display: block; font-size: 0.8rem; text-transform: uppercase;">Role</span><strong style="color: #1E293B;">{{ selectedOfferJob?.job_title }}</strong></div>
-                <div><span style="color: #64748B; display: block; font-size: 0.8rem; text-transform: uppercase;">Salary</span><strong style="color: #10B981;">â‚¹ {{ offerForm.salary_offered }}</strong></div>
+                <div><span style="color: #64748B; display: block; font-size: 0.8rem; text-transform: uppercase;">Salary</span><strong style="color: #10B981;">Rs. {{ offerForm.salary_offered }}</strong></div>
                 <div><span style="color: #64748B; display: block; font-size: 0.8rem; text-transform: uppercase;">Joining Date</span><strong style="color: #1E293B;">{{ offerForm.date_of_joining || 'TBD' }}</strong></div>
               </div>
             </div>

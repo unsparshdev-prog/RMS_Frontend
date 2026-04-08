@@ -266,7 +266,8 @@ export class LeadershipDashboardService {
       ...offerData,
       approval_status: 'CHANGES_SUGGESTED',
       offer_status: 'CHANGES_SUGGESTED',
-      temp1: suggestions
+      temp1: suggestions,
+      temp2: 'NOTIFIED'
     });
   }
 

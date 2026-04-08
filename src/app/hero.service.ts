@@ -336,6 +336,8 @@ export class HeroService {
             status: data.status || '',
             approval_status: data.approval_status || '',
             closing_date: data.closing_date || '',
+            ...('temp1' in data ? { temp1: data.temp1 || '' } : {}),
+            ...('temp2' in data ? { temp2: data.temp2 || '' } : {}),
             modified_at: data.modified_at || '',
             modified_by: sessionStorage.getItem('displayName') || 'HR'
           }
@@ -1332,7 +1334,8 @@ export class HeroService {
             offer_letter_path: data.offer_letter_path || '',
             offer_status: data.offer_status || '',
             approval_status: data.approval_status || 'PENDING',
-            ...('temp1' in data ? { temp1: data.temp1 || '' } : {})
+            ...('temp1' in data ? { temp1: data.temp1 || '' } : {}),
+            ...('temp2' in data ? { temp2: data.temp2 || '' } : {})
           }
         }
       }

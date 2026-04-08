@@ -943,7 +943,7 @@ export class LeadershipDashboardComponent implements OnInit {
   async rejectRequisition(jr: JobRequisition, remarks: string = ''): Promise<void> {
     try {
       const oldData = { ...jr };
-      const newData = { ...jr, status: 'INACTIVE', approval_status: 'REJECTED', temp1: remarks };
+      const newData = { ...jr, status: 'INACTIVE', approval_status: 'REJECTED', temp1: remarks, temp2: 'NOTIFIED' };
       await this.dashboardService.updateJobRequisition(oldData, newData);
 
       // Update local state immediately
