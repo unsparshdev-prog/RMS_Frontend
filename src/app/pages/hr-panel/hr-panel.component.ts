@@ -1543,6 +1543,8 @@ export class HrPanelComponent implements OnInit, OnDestroy {
   candidates: any[] = [];
 
   pipelineSearchQuery = '';
+  pipelineSkillFilters: string[] = ['All', 'OpenText ECM', 'OpenText AppWorks', 'MEAN/MERN', 'Python', 'Java'];
+  selectedPipelineSkillFilters = new Set<string>();
   selectedCandidate: any = null;
   showKanbanModal = false;
   selectedCandidateMaxVisibleRound: number | null = null;
@@ -1557,10 +1559,56 @@ export class HrPanelComponent implements OnInit, OnDestroy {
   showAddInterviewStageModal = false;
   pendingMove: { candidate: any; fromStage: string; toStage: string } | null = null;
 
+  isPipelineSkillSelected(skill: string): boolean {
+    if (skill === 'All') {
+      return this.selectedPipelineSkillFilters.size === 0;
+    }
+    return this.selectedPipelineSkillFilters.has(skill);
+  }
+
+  selectPipelineSkillFilter(skill: string): void {
+    if (skill === 'All') {
+      this.selectedPipelineSkillFilters.clear();
+      this.pipelineCurrentPage = 1;
+      return;
+    }
+
+    if (this.selectedPipelineSkillFilters.has(skill)) {
+      this.selectedPipelineSkillFilters.delete(skill);
+    } else {
+      this.selectedPipelineSkillFilters.add(skill);
+    }
+    this.pipelineCurrentPage = 1;
+  }
+
   get filteredCandidates() {
-    if (!this.pipelineSearchQuery.trim()) return this.candidates;
+    let result = this.candidates;
+
+    // Skill bubble filter (multi-select; OR match across selected skills)
+    if (this.selectedPipelineSkillFilters.size > 0) {
+      const selectedSkills = Array.from(this.selectedPipelineSkillFilters).map(s => s.toLowerCase());
+      result = result.filter(c => {
+        const skills = Array.isArray(c.skills) ? c.skills : [];
+        return selectedSkills.some((selected) => {
+          return skills.some((s: string) => {
+            const normalized = (s || '').toLowerCase();
+            if (selected === 'mean/mern') {
+              return normalized.includes('mean') || normalized.includes('mern');
+            }
+            if (selected === 'java') {
+              // Avoid false positives like "javascript"
+              return normalized === 'java' || normalized.startsWith('java ');
+            }
+            return normalized.includes(selected);
+          });
+        });
+      });
+    }
+
+    // Search bar filter
+    if (!this.pipelineSearchQuery.trim()) return result;
     const q = this.pipelineSearchQuery.toLowerCase();
-    return this.candidates.filter(c =>
+    return result.filter(c =>
       c.name.toLowerCase().includes(q) ||
       c.role.toLowerCase().includes(q) ||
       c.department.toLowerCase().includes(q) ||
@@ -1590,6 +1638,10 @@ export class HrPanelComponent implements OnInit, OnDestroy {
     if (newPage >= 1 && newPage <= this.pipelineTotalPages) {
       this.pipelineCurrentPage = newPage;
     }
+  }
+
+  onPipelineSearchChange(): void {
+    this.pipelineCurrentPage = 1;
   }
 
   // Helper for Candidate Comparison

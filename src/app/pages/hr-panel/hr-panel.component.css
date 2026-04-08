@@ -1807,6 +1807,37 @@ textarea.form-input {
 }
 
 /* ================ CANDIDATE PIPELINE ================ */
+.pipeline-skill-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0 18px;
+}
+
+.pipeline-skill-bubble {
+  border: 1px solid #CBD5E1;
+  background: #FFFFFF;
+  color: #334155;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pipeline-skill-bubble:hover {
+  border-color: #00C4F0;
+  color: #0B2265;
+}
+
+.pipeline-skill-bubble.active {
+  background: #0B2265;
+  border-color: #0B2265;
+  color: #FFFFFF;
+  box-shadow: 0 6px 14px rgba(11, 34, 101, 0.25);
+}
+
 .pipeline-candidates-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));

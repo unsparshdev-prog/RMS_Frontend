@@ -1166,7 +1166,7 @@
               </button>
               <div class="search-bar">
                 <i class="fas fa-search"></i>
-                <input type="text" placeholder="Search candidates..." [(ngModel)]="pipelineSearchQuery">
+                <input type="text" placeholder="Search candidates..." [(ngModel)]="pipelineSearchQuery" (ngModelChange)="onPipelineSearchChange()">
               </div>
             </div>
           </div>
@@ -1182,6 +1182,18 @@
                 <div class="panel-stat-label">{{ stage.name }}</div>
               </div>
             </div>
+          </div>
+
+          <!-- Skill Sorting / Filter Bubbles -->
+          <div class="pipeline-skill-filter-row">
+            <button
+              type="button"
+              class="pipeline-skill-bubble"
+              *ngFor="let skill of pipelineSkillFilters"
+              [class.active]="isPipelineSkillSelected(skill)"
+              (click)="selectPipelineSkillFilter(skill)">
+              {{ skill }}
+            </button>
           </div>
 
           <!-- Candidate Cards Grid -->
