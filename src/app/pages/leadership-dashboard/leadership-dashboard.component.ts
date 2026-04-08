@@ -188,11 +188,13 @@ export class LeadershipDashboardComponent implements OnInit {
   showJrConfirmModal = false;
   jrConfirmAction: 'approve' | 'reject' = 'approve';
   selectedRequisition: JobRequisition | null = null;
+  jrRejectRemarks = '';
 
   // Offer letter confirmation modal
   showOfferConfirmModal = false;
-  offerConfirmAction: 'approve' | 'reject' = 'approve';
+  offerConfirmAction: 'approve' | 'suggest_changes' = 'approve';
   selectedOfferForConfirm: any = null;
+  offerSuggestChangesText = '';
 
   ngOnInit(): void {
     this.loadAllData();
@@ -891,25 +893,32 @@ export class LeadershipDashboardComponent implements OnInit {
   openJrConfirmModal(jr: JobRequisition, action: 'approve' | 'reject') {
     this.selectedRequisition = jr;
     this.jrConfirmAction = action;
+    this.jrRejectRemarks = '';
     this.showJrConfirmModal = true;
   }
 
   closeJrConfirmModal() {
     this.showJrConfirmModal = false;
     this.selectedRequisition = null;
+    this.jrRejectRemarks = '';
   }
 
   async confirmJrAction(): Promise<void> {
     if (!this.selectedRequisition) return;
+    if (this.jrConfirmAction === 'reject' && !this.jrRejectRemarks.trim()) {
+      this.showToast2('Please provide remarks for rejection.', 'error');
+      return;
+    }
     const jr = this.selectedRequisition;
     this.showJrConfirmModal = false;
 
     if (this.jrConfirmAction === 'approve') {
       await this.approveRequisition(jr);
     } else {
-      await this.rejectRequisition(jr);
+      await this.rejectRequisition(jr, this.jrRejectRemarks.trim());
     }
     this.selectedRequisition = null;
+    this.jrRejectRemarks = '';
   }
 
   async approveRequisition(jr: JobRequisition): Promise<void> {
@@ -931,10 +940,10 @@ export class LeadershipDashboardComponent implements OnInit {
     }
   }
 
-  async rejectRequisition(jr: JobRequisition): Promise<void> {
+  async rejectRequisition(jr: JobRequisition, remarks: string = ''): Promise<void> {
     try {
       const oldData = { ...jr };
-      const newData = { ...jr, status: 'INACTIVE', approval_status: 'REJECTED' };
+      const newData = { ...jr, status: 'INACTIVE', approval_status: 'REJECTED', temp1: remarks };
       await this.dashboardService.updateJobRequisition(oldData, newData);
 
       // Update local state immediately
@@ -1052,74 +1061,36 @@ export class LeadershipDashboardComponent implements OnInit {
   }
 
   async confirmApproveOffer() {
-    // Close the confirmation modal and show the loader
     this.showApproveConfirmModal = false;
     this.showOfferDetailModal = false;
-    this.isApprovalLoading = true;
-    this.approvalLoadingMessage = 'Updating offer status...';
 
     try {
-      // 1. Update offer status to APPROVED via UpdateOffer WS (old/new tuple pattern)
       const offerId = this.selectedOffer.offer_id;
       if (!offerId) {
-        this.isApprovalLoading = false;
         this.showToast2('Offer ID not found. Cannot update status.', 'error');
         return;
       }
-      const todayDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      const todayDate = new Date().toISOString().split('T')[0];
       await this.dashboardService.approveOfferStatus(offerId, 'APPROVED', todayDate);
 
-      let emailSent = false;
-      // 2. Generate PDF and send offer letter email with attachment
-      if (this.selectedOffer.email) {
-        try {
-          this.approvalLoadingMessage = 'Generating offer letter PDF...';
-          const pdfBase64 = this.generateOfferLetterPDFBase64(this.selectedOffer);
-          const htmlBody = this.buildOfferLetterHTML(this.selectedOffer);
-          const jobTitle = (this.selectedOffer.job_title || 'Position').replace(/[^a-zA-Z0-9]/g, '_');
-          const attachmentName = `OfferLetter_${jobTitle}_AdnateITSolution.pdf`;
-
-          this.approvalLoadingMessage = 'Sending offer letter with PDF attachment...';
-          await this.dashboardService.sendOfferEmailWithAttachment(
-            this.selectedOffer.email,
-            this.selectedOffer.candidate_name,
-            `Offer Letter - ${this.selectedOffer.job_title} | Adnate IT Solutions`,
-            htmlBody,
-            pdfBase64,
-            attachmentName
-          );
-          emailSent = true;
-        } catch (mailError) {
-          console.warn('[Leadership] Failed to send offer letter email:', mailError);
-        }
-      }
-
-      // 3. Update local state
+      // Update local state
       this.selectedOffer.approval_status = 'APPROVED';
       this.selectedOffer.offer_status = 'APPROVED';
-      this.offeredCandidates = this.offeredCandidates.filter(c => c.offer_id !== offerId);
+      this.offeredCandidates = this.offeredCandidates.filter((c: any) => c.offer_id !== offerId);
 
-      // 4. Hide loader and show success toast
-      this.isApprovalLoading = false;
-      if (emailSent) {
-        this.showToast2('Offer approved and email with PDF attachment sent successfully!', 'success');
-      } else {
-        this.showToast2('Offer approved! (Email could not be sent — check recipient address)', 'success');
-      }
+      this.showToast2('Offer approved! HR will send the offer letter to the candidate.', 'success');
       this.selectedOffer = null;
-      // We removed it locally so no need to reload unless explicitly wanted, but it ensures exact match if done.
-      // this.loadAllData();
     } catch (e) {
       console.error('[Leadership] Error approving offer:', e);
-      this.isApprovalLoading = false;
       this.showToast2('Failed to approve offer. Please try again.', 'error');
     }
   }
 
   // ─── Offer Confirm Modal Actions ───
-  openOfferConfirmModal(offer: any, action: 'approve' | 'reject') {
+  openOfferConfirmModal(offer: any, action: 'approve' | 'suggest_changes') {
     this.selectedOfferForConfirm = offer;
     this.offerConfirmAction = action;
+    this.offerSuggestChangesText = '';
     this.showOfferConfirmModal = true;
   }
 
@@ -1130,86 +1101,57 @@ export class LeadershipDashboardComponent implements OnInit {
 
   async confirmOfferAction() {
     if (!this.selectedOfferForConfirm) return;
+
+    if (this.offerConfirmAction === 'suggest_changes' && !this.offerSuggestChangesText.trim()) {
+      this.showToast2('Please provide your suggested changes.', 'error');
+      return;
+    }
+
     const offer = this.selectedOfferForConfirm;
     this.showOfferConfirmModal = false;
 
     if (this.offerConfirmAction === 'approve') {
       this.selectedOffer = offer;
-      this.confirmApproveOffer();
+      await this.confirmApproveOffer();
     } else {
       this.selectedOffer = offer;
-      this.rejectOffer();
+      await this.suggestOfferChanges();
     }
     this.selectedOfferForConfirm = null;
+    this.offerSuggestChangesText = '';
   }
 
-  async rejectOffer() {
+  async suggestOfferChanges() {
     if (!this.selectedOffer || this.isProcessingOffer) return;
     this.isProcessingOffer = true;
 
     try {
       const offerId = this.selectedOffer.offer_id;
       if (!offerId) {
-        this.showToast2('Offer ID not found. Cannot reject.', 'error');
+        this.showToast2('Offer ID not found.', 'error');
         this.isProcessingOffer = false;
         return;
       }
-      await this.dashboardService.updateOffer(offerId, {
+      await this.dashboardService.suggestOfferChanges(offerId, this.offerSuggestChangesText.trim(), {
         candidate_id: this.selectedOffer.candidate_id,
         jr_id: this.selectedOffer.jr_id,
         offer_date: this.selectedOffer.offer_date || '',
         date_of_joining: this.selectedOffer.date_of_joining || '',
         salary_offered: this.selectedOffer.salary_offered || '',
-        offer_letter_path: '',
-        offer_status: 'REJECTED',
-        approval_status: 'REJECTED',
+        offer_letter_path: this.selectedOffer.offer_letter_path || '',
         offer_sent_date: '',
         candidate_response_date: ''
       });
 
-      let emailSent = false;
-      // Send rejection notification if email exists
-      if (this.selectedOffer.email) {
-        try {
-          await this.dashboardService.sendOfferEmail(
-            this.selectedOffer.email,
-            this.selectedOffer.candidate_name,
-            `Application Update - ${this.selectedOffer.job_title} | Adnate IT Solutions`,
-            `<div style="font-family:'Inter',Arial,sans-serif;max-width:600px;margin:0 auto;padding:40px 24px;">
-              <div style="background:#0B2265;padding:24px 32px;border-radius:12px 12px 0 0;text-align:center;">
-                <h1 style="color:#fff;margin:0;font-size:20px;">Adnate IT Solutions</h1>
-              </div>
-              <div style="background:#fff;padding:32px;border:1px solid #e1e8ed;border-top:none;border-radius:0 0 12px 12px;">
-                <h2 style="color:#0B2265;margin-top:0;">Dear ${this.selectedOffer.candidate_name},</h2>
-                <p style="color:#4a5d75;line-height:1.7;">Thank you for your interest in the position of <strong>${this.selectedOffer.job_title}</strong> at Adnate IT Solutions.</p>
-                <p style="color:#4a5d75;line-height:1.7;">After careful review, we regret to inform you that we will not be moving forward with the offer at this time.</p>
-                <p style="color:#4a5d75;line-height:1.7;">We appreciate the time you invested and encourage you to apply for future openings.</p>
-                <br>
-                <p style="color:#4a5d75;">Best regards,<br><strong>HR Team</strong><br>Adnate IT Solutions</p>
-              </div>
-            </div>`
-          );
-          emailSent = true;
-        } catch (mailError) {
-          console.warn('[Leadership] Failed to send rejection email due to invalid/test address:', mailError);
-        }
-      }
-
-      this.selectedOffer.approval_status = 'REJECTED';
-      this.selectedOffer.offer_status = 'REJECTED';
+      this.selectedOffer.approval_status = 'CHANGES_SUGGESTED';
+      this.selectedOffer.offer_status = 'CHANGES_SUGGESTED';
       this.offeredCandidates = this.offeredCandidates.filter((c: any) => c.offer_id !== offerId);
 
-      if (emailSent) {
-        this.showToast2('Offer rejected successfully and the candidate was notified.', 'success');
-      } else {
-        this.showToast2('Offer rejected! (Rejection email could not be sent to test/invalid address)', 'success');
-      }
-      
+      this.showToast2('Suggested changes sent to HR successfully.', 'success');
       this.closeOfferDetailModal();
-      // this.loadAllData(); // Instead of reloading, we already filtered it out
     } catch (e) {
-      console.error('[Leadership] Error rejecting offer:', e);
-      this.showToast2('Failed to reject offer. Please try again.', 'error');
+      console.error('[Leadership] Error suggesting changes:', e);
+      this.showToast2('Failed to suggest changes. Please try again.', 'error');
     } finally {
       this.isProcessingOffer = false;
     }

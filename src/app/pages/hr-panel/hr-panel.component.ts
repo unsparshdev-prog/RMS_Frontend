@@ -191,6 +191,7 @@ export class HrPanelComponent implements OnInit {
     this.loadInterviewsAndPanels();
     this.loadReferrals();
     this.loadOfferedApplications();
+    this.loadAllOffers();
   }
 
   private readonly RESUME_DOWNLOAD_BASE = 'http://43.242.214.239:81/home/training2025/MAHINDRA_UPLOADS/Intern_Uploads';
@@ -971,6 +972,120 @@ export class HrPanelComponent implements OnInit {
             }
           }
 
+          // Send interview scheduled email to candidate
+          if (candidate?.candidate_email) {
+            try {
+              const candidateName = candidate.candidate_name || 'Candidate';
+              const selectedJob = this.jobsList.find(j => j.jr_id === this.selectedJobId);
+              const jobTitle = selectedJob?.job_title || selectedJob?.title || 'the applied position';
+              const interviewDate = this.interviewSchedule.scheduled_date
+                ? new Date(this.interviewSchedule.scheduled_date).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+                : 'To be confirmed';
+              const interviewTime = this.interviewSchedule.scheduled_time || 'To be confirmed';
+              const meetingLink = this.interviewSchedule.meeting_link || '';
+              const round = this.interviewSchedule.round || 'Interview';
+              const interviewerNames = this.selectedInterviewerIds.map(id => {
+                const emp = this.employeesList.find(e => e.employee_id === id);
+                return emp?.employee_name || id;
+              }).join(', ');
+
+              const meetingLinkSection = meetingLink
+                ? `<tr>
+                    <td style="padding:10px 16px;color:#64748B;font-size:0.85rem;border-bottom:1px solid #F1F5F9;width:140px;">Meeting Link</td>
+                    <td style="padding:10px 16px;border-bottom:1px solid #F1F5F9;">
+                      <a href="${meetingLink}" style="color:#3B82F6;text-decoration:none;font-weight:600;word-break:break-all;">${meetingLink}</a>
+                    </td>
+                  </tr>`
+                : '';
+
+              const emailBody = `
+<div style="font-family:'Inter','Segoe UI',Arial,sans-serif;max-width:600px;margin:0 auto;padding:0;">
+  <div style="background:linear-gradient(135deg,#0B2265 0%,#1E3A8A 100%);padding:32px;border-radius:12px 12px 0 0;text-align:center;">
+    <h1 style="color:#ffffff;margin:0 0 6px 0;font-size:22px;font-weight:700;letter-spacing:-0.3px;">Adnate IT Solutions</h1>
+    <p style="color:#93C5FD;margin:0;font-size:0.85rem;">Recruitment Management System</p>
+  </div>
+
+  <div style="background:#ffffff;padding:32px;border:1px solid #E2E8F0;border-top:none;">
+    <h2 style="color:#0F172A;margin:0 0 6px 0;font-size:1.2rem;">Hi ${candidateName},</h2>
+    <p style="color:#475569;line-height:1.7;margin:8px 0 24px 0;font-size:0.95rem;">
+      We're pleased to inform you that your interview for the position of <strong style="color:#0B2265;">${jobTitle}</strong> has been scheduled. Please find the details below.
+    </p>
+
+    <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;overflow:hidden;margin-bottom:24px;">
+      <div style="background:linear-gradient(90deg,#0B2265,#1E3A8A);padding:12px 16px;">
+        <span style="color:#fff;font-weight:700;font-size:0.9rem;"><span style="margin-right:8px;">📋</span>Interview Details</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+        <tr>
+          <td style="padding:10px 16px;color:#64748B;font-size:0.85rem;border-bottom:1px solid #F1F5F9;width:140px;">Position</td>
+          <td style="padding:10px 16px;color:#0F172A;font-weight:600;border-bottom:1px solid #F1F5F9;">${jobTitle}</td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;color:#64748B;font-size:0.85rem;border-bottom:1px solid #F1F5F9;">Round</td>
+          <td style="padding:10px 16px;color:#0F172A;font-weight:600;border-bottom:1px solid #F1F5F9;">${round}</td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;color:#64748B;font-size:0.85rem;border-bottom:1px solid #F1F5F9;">Date</td>
+          <td style="padding:10px 16px;color:#0F172A;font-weight:600;border-bottom:1px solid #F1F5F9;">${interviewDate}</td>
+        </tr>
+        <tr>
+          <td style="padding:10px 16px;color:#64748B;font-size:0.85rem;border-bottom:1px solid #F1F5F9;">Time</td>
+          <td style="padding:10px 16px;color:#0F172A;font-weight:600;border-bottom:1px solid #F1F5F9;">${interviewTime}</td>
+        </tr>
+        ${meetingLinkSection}
+        <tr>
+          <td style="padding:10px 16px;color:#64748B;font-size:0.85rem;">Interviewer(s)</td>
+          <td style="padding:10px 16px;color:#0F172A;font-weight:600;">${interviewerNames}</td>
+        </tr>
+      </table>
+    </div>
+
+    ${meetingLink ? `
+    <div style="text-align:center;margin-bottom:24px;">
+      <a href="${meetingLink}" style="display:inline-block;background:linear-gradient(135deg,#3B82F6,#2563EB);color:#fff;text-decoration:none;padding:14px 36px;border-radius:8px;font-weight:700;font-size:0.95rem;letter-spacing:0.3px;">
+        Join Meeting
+      </a>
+    </div>
+    ` : ''}
+
+    <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:14px 16px;margin-bottom:24px;">
+      <p style="margin:0;color:#92400E;font-size:0.85rem;line-height:1.6;">
+        <strong>⚡ Important:</strong> Please ensure you join the meeting 5 minutes before the scheduled time. Keep your resume and any relevant documents handy.
+      </p>
+    </div>
+
+    <p style="color:#475569;font-size:0.9rem;line-height:1.7;margin:0 0 8px 0;">
+      If you have any questions or need to reschedule, please reach out to us at
+      <a href="mailto:hr@adnateitsolutions.com" style="color:#3B82F6;text-decoration:none;font-weight:600;">hr@adnateitsolutions.com</a>.
+    </p>
+    <p style="color:#475569;font-size:0.9rem;margin:16px 0 0 0;">Best of luck! 🎯</p>
+    <p style="color:#64748B;font-size:0.9rem;margin:8px 0 0 0;">
+      Warm regards,<br>
+      <strong style="color:#0F172A;">HR Team</strong><br>
+      Adnate IT Solutions
+    </p>
+  </div>
+
+  <div style="background:#F8FAFC;padding:16px;border-radius:0 0 12px 12px;border:1px solid #E2E8F0;border-top:none;text-align:center;">
+    <p style="margin:0;color:#94A3B8;font-size:0.75rem;">This is an automated notification from Adnate IT Solutions – Recruitment Management System.</p>
+  </div>
+</div>`;
+
+              await this.heroService.setEmailProfile();
+              await this.heroService.sendMail(
+                candidate.candidate_email,
+                candidateName,
+                '', '',
+                `Interview Scheduled – ${jobTitle} | ${round} | Adnate IT Solutions`,
+                emailBody
+              );
+              console.log('[HrPanel] Interview email sent to:', candidate.candidate_email);
+            } catch (mailErr) {
+              console.warn('[HrPanel] Failed to send interview email to candidate:', candidateId, mailErr);
+              // Don't fail the flow if email fails
+            }
+          }
+
           successCount++;
         } catch (e) {
           console.error('[HrPanel] Error creating interview for candidate:', candidateId, e);
@@ -1161,6 +1276,10 @@ export class HrPanelComponent implements OnInit {
 
   setActiveTab(tabName: string) {
     this.activeTab = tabName;
+    if (tabName === 'Offer Tracker') {
+      this.loadOfferedApplications();
+      this.loadAllOffers();
+    }
   }
 
   toggleSidebar() {
@@ -1298,10 +1417,10 @@ export class HrPanelComponent implements OnInit {
   // Helper for Candidate Comparison
   getLatestFeedbackAndRating(candidateId: string) {
     if (!this.allInterviews || !this.allPanelRecords) {
-      return { feedback: 'Pending', rating: 'N/A' };
+      return { feedback: 'Pending', rating: 'N/A', technicalSkills: '', communicationSkills: '', culturalFit: '', anotherInterviewRequired: '', panels: [] };
     }
     const candidateInterviews = this.allInterviews.filter((i: any) => i.candidate_id === candidateId);
-    if (!candidateInterviews.length) return { feedback: 'Pending', rating: 'N/A' };
+    if (!candidateInterviews.length) return { feedback: 'Pending', rating: 'N/A', technicalSkills: '', communicationSkills: '', culturalFit: '', anotherInterviewRequired: '', panels: [] };
     
     // Sort interviews by date descending
     candidateInterviews.sort((a: any, b: any) => new Date(b.scheduled_date).getTime() - new Date(a.scheduled_date).getTime());
@@ -1325,10 +1444,27 @@ export class HrPanelComponent implements OnInit {
         })
         .join(' | ');
 
-      return { feedback, rating: String(avg) };
+      // Aggregate additional feedback parameters
+      const technicalSkills = submitted.map((p: any) => p.temp2).filter(Boolean).join(', ');
+      const communicationSkills = submitted.map((p: any) => p.temp3).filter(Boolean).join(', ');
+      const culturalFit = submitted.map((p: any) => p.temp4).filter(Boolean).join(', ');
+      const anotherInterviewRequired = submitted.some((p: any) => (p.temp5 || '').toLowerCase() === 'yes') ? 'Yes' : 'No';
+
+      // Build detailed panels array for expanded view
+      const detailedPanels = submitted.map((p: any) => ({
+        name: p.interviewer_name || p.interviewer_id || 'Interviewer',
+        feedback: p.feedback || '',
+        rating: p.rating || '',
+        technicalSkills: p.temp2 || '',
+        communicationSkills: p.temp3 || '',
+        culturalFit: p.temp4 || '',
+        anotherInterviewRequired: p.temp5 || ''
+      }));
+
+      return { feedback, rating: String(avg), technicalSkills, communicationSkills, culturalFit, anotherInterviewRequired, panels: detailedPanels };
     }
 
-    return { feedback: 'Pending', rating: 'N/A' };
+    return { feedback: 'Pending', rating: 'N/A', technicalSkills: '', communicationSkills: '', culturalFit: '', anotherInterviewRequired: '', panels: [] };
   }
 
 
@@ -1923,6 +2059,34 @@ export class HrPanelComponent implements OnInit {
   selectedOfferJob: any = null;
   createdOfferId: string = '';
 
+  // --- Leadership-reviewed offers ---
+  allOfferRecords: any[] = [];
+  isLoadingAllOffers = false;
+
+  get approvedOffers(): any[] {
+    return this.allOfferRecords.filter(o => (this.getExt(o.approval_status) || '').toUpperCase() === 'APPROVED'
+      && (this.getExt(o.offer_status) || '').toUpperCase() !== 'SENT');
+  }
+
+  get changesSuggestedOffers(): any[] {
+    return this.allOfferRecords.filter(o => (this.getExt(o.approval_status) || '').toUpperCase() === 'CHANGES_SUGGESTED');
+  }
+
+  // --- Send Approved Offer Modal ---
+  showSendOfferModal = false;
+  selectedApprovedOffer: any = null;
+  isSendingOffer = false;
+
+  // --- Edit Suggested Changes Modal ---
+  showEditSuggestedOfferModal = false;
+  selectedSuggestedOffer: any = null;
+  editOfferForm = {
+    salary_offered: '',
+    date_of_joining: '',
+    offer_date: ''
+  };
+  isResubmittingOffer = false;
+
   offerForm = {
     offer_date: '',
     offer_sent_date: '',
@@ -2221,6 +2385,231 @@ export class HrPanelComponent implements OnInit {
     } catch (e) {
       console.error('Error sending offer for approval:', e);
       this.showToast('Failed to send offer for approval.', 'error');
+    }
+  }
+
+  // --- Load All Offer Records (Approved / Changes Suggested) ---
+  async loadAllOffers() {
+    this.isLoadingAllOffers = true;
+    try {
+      const resp = await this.heroService.getOffers();
+      let data = this.heroService.xmltojson(resp, 'tuple');
+      if (!data) data = this.heroService.xmltojson(resp, 'offer');
+      if (!data) data = [];
+      const arr = Array.isArray(data) ? data : [data];
+      this.allOfferRecords = arr.map((t: any) => {
+        const o = t.old?.offer || t.new?.offer || t.offer || t;
+        return o;
+      }).filter((o: any) => o && Object.keys(o).length > 0);
+
+      // Enrich with candidate names and job titles
+      for (const offer of this.allOfferRecords) {
+        const candId = this.getExt(offer.candidate_id);
+        const jrId = this.getExt(offer.jr_id);
+        const matchCandidate = this.candidates.find((c: any) => c.candidate_id === candId);
+        const matchJob = this.jobsList.find((j: any) => j.jr_id === jrId || j.id === jrId);
+        offer._candidate_name = matchCandidate?.name || `Candidate ${candId}`;
+        offer._candidate_email = matchCandidate?.email || '';
+        offer._job_title = matchJob?.job_title || matchJob?.title || `Job ${jrId}`;
+      }
+
+      console.log('[HrPanel] Loaded all offers:', this.allOfferRecords.length, 'Approved:', this.approvedOffers.length, 'Changes Suggested:', this.changesSuggestedOffers.length);
+    } catch (e) {
+      console.error('[HrPanel] Error loading all offers:', e);
+    } finally {
+      this.isLoadingAllOffers = false;
+    }
+  }
+
+  // --- Send Approved Offer ---
+  openSendOfferModal(offer: any) {
+    this.selectedApprovedOffer = offer;
+    this.showSendOfferModal = true;
+  }
+
+  closeSendOfferModal() {
+    this.showSendOfferModal = false;
+    this.selectedApprovedOffer = null;
+  }
+
+  async sendApprovedOfferEmail() {
+    if (!this.selectedApprovedOffer || this.isSendingOffer) return;
+    this.isSendingOffer = true;
+    try {
+      const offer = this.selectedApprovedOffer;
+      const offerId = this.getExt(offer.offer_id);
+      const candidateName = offer._candidate_name || 'Candidate';
+      const candidateEmail = offer._candidate_email;
+      const jobTitle = offer._job_title || 'Position';
+      const salary = this.getExt(offer.salary_offered) || 'as discussed';
+      const doj = this.getExt(offer.date_of_joining)
+        ? new Date(this.getExt(offer.date_of_joining)).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })
+        : 'a date to be decided';
+      const offerDateStr = this.getExt(offer.offer_date)
+        ? new Date(this.getExt(offer.offer_date)).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })
+        : new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
+
+      let emailSent = false;
+      if (candidateEmail) {
+        try {
+          // Generate PDF
+          const doc = new jsPDF();
+          const primaryColor: [number, number, number] = [11, 34, 101];
+          const secondaryColor: [number, number, number] = [0, 196, 240];
+
+          doc.setFillColor(248, 250, 255);
+          doc.rect(0, 0, 210, 297, 'F');
+          doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+          doc.triangle(0, 0, 90, 0, 0, 60, 'F');
+          doc.setFillColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+          doc.triangle(0, 60, 0, 65, 8, 60, 'F');
+          doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+          doc.triangle(210, 297, 120, 297, 210, 237, 'F');
+          doc.setFillColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+          doc.triangle(210, 237, 210, 232, 202, 237, 'F');
+
+          doc.setFontSize(22);
+          doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+          doc.text('Adnate IT Solutions', 190, 25, { align: 'right' });
+          doc.setFontSize(10);
+          doc.setTextColor(100, 100, 100);
+          doc.text('2nd Floor, SLC Building, Amrapali Circle, Vaishali Nagar, Jaipur, Rajasthan, India', 190, 35, { align: 'right' });
+          doc.text('Email: hr@adnateitsolutions.com | Phone: +91-800-123-4567', 190, 40, { align: 'right' });
+          doc.setDrawColor(200, 200, 200);
+          doc.line(20, 48, 190, 48);
+          doc.setFontSize(11);
+          doc.setTextColor(0, 0, 0);
+          doc.text(`Date: ${offerDateStr}`, 20, 60);
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold');
+          doc.text(`To: ${candidateName}`, 20, 72);
+          doc.text(`Subject: Offer of Employment - ${jobTitle}`, 20, 84);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(11);
+          const bodyLines = [
+            `Dear ${candidateName},`, '',
+            `We are thrilled to formally offer you the position of ${jobTitle} at Adnate IT Solutions.`,
+            `Based on our discussions and your interviews, we are confident you will be a great addition`,
+            `to our team.`, '',
+            `Position: ${jobTitle}`,
+            `Start Date: ${doj}`,
+            `Compensation: Your annual Total Target Cash (TTC) compensation will be Rs. ${salary}/-.`, '',
+            `This offer is contingent upon the successful completion of a background check, reference`,
+            `checks, and verification of your employment eligibility.`, '',
+            `We are excited to welcome you aboard and look forward to building great products together.`, '',
+            `Sincerely,`, '', `Human Resources`, `Adnate IT Solutions`
+          ];
+          doc.text(bodyLines, 20, 100);
+          doc.setFontSize(9);
+          doc.setTextColor(150, 150, 150);
+          doc.text('This is a highly confidential document and is electronically generated.', 105, 280, { align: 'center' });
+
+          const pdfBase64 = doc.output('datauristring').split(',')[1];
+          const safeJobTitle = jobTitle.replace(/[^a-zA-Z0-9]/g, '_');
+          const attachmentName = `OfferLetter_${safeJobTitle}_AdnateITSolution.pdf`;
+
+          const htmlBody = `<div style="font-family:'Inter',Arial,sans-serif;max-width:600px;margin:0 auto;padding:40px 24px;">
+            <div style="background:#0B2265;padding:24px 32px;border-radius:12px 12px 0 0;text-align:center;">
+              <h1 style="color:#fff;margin:0;font-size:20px;">Adnate IT Solutions</h1>
+            </div>
+            <div style="background:#fff;padding:32px;border:1px solid #e1e8ed;border-top:none;border-radius:0 0 12px 12px;">
+              <h2 style="color:#0B2265;margin-top:0;">Dear ${candidateName},</h2>
+              <p style="color:#4a5d75;line-height:1.7;">We are pleased to offer you the position of <strong>${jobTitle}</strong> at Adnate IT Solutions.</p>
+              <p style="color:#4a5d75;line-height:1.7;">Please find the attached offer letter for your review.</p>
+              <p style="color:#4a5d75;line-height:1.7;">We look forward to having you on our team!</p>
+              <br>
+              <p style="color:#4a5d75;">Best regards,<br><strong>HR Team</strong><br>Adnate IT Solutions</p>
+            </div>
+          </div>`;
+
+          try { await this.heroService.setEmailProfile(); } catch (e) { console.warn('Email profile set failed:', e); }
+          await this.heroService.sendMailWithAttachment(
+            candidateEmail, candidateName,
+            `Offer Letter - ${jobTitle} | Adnate IT Solutions`,
+            htmlBody, pdfBase64, attachmentName
+          );
+          emailSent = true;
+        } catch (mailError) {
+          console.warn('[HrPanel] Failed to send offer letter email:', mailError);
+        }
+      }
+
+      // Update offer status to SENT
+      await this.heroService.updateOfferById(offerId, {
+        candidate_id: this.getExt(offer.candidate_id),
+        jr_id: this.getExt(offer.jr_id),
+        offer_date: this.getExt(offer.offer_date),
+        offer_sent_date: new Date().toISOString().split('T')[0],
+        date_of_joining: this.getExt(offer.date_of_joining),
+        salary_offered: this.getExt(offer.salary_offered),
+        offer_letter_path: this.getExt(offer.offer_letter_path),
+        offer_status: 'SENT',
+        approval_status: 'APPROVED',
+        candidate_response_date: ''
+      });
+
+      if (emailSent) {
+        this.showToast('Offer letter sent successfully with PDF attachment!', 'success');
+      } else {
+        this.showToast('Offer status updated to SENT! (Email could not be sent — check address)', 'success');
+      }
+      this.closeSendOfferModal();
+      this.loadAllOffers();
+    } catch (e) {
+      console.error('[HrPanel] Error sending approved offer:', e);
+      this.showToast('Failed to send offer letter.', 'error');
+    } finally {
+      this.isSendingOffer = false;
+    }
+  }
+
+  // --- Edit Offer with Suggested Changes ---
+  openEditSuggestedOfferModal(offer: any) {
+    this.selectedSuggestedOffer = offer;
+    this.editOfferForm = {
+      salary_offered: this.getExt(offer.salary_offered),
+      date_of_joining: this.getExt(offer.date_of_joining),
+      offer_date: this.getExt(offer.offer_date) || new Date().toISOString().split('T')[0]
+    };
+    this.showEditSuggestedOfferModal = true;
+  }
+
+  closeEditSuggestedOfferModal() {
+    this.showEditSuggestedOfferModal = false;
+    this.selectedSuggestedOffer = null;
+  }
+
+  async resubmitEditedOffer() {
+    if (!this.selectedSuggestedOffer || this.isResubmittingOffer) return;
+    if (!this.editOfferForm.salary_offered) {
+      this.showToast('Salary is required.', 'error');
+      return;
+    }
+    this.isResubmittingOffer = true;
+    try {
+      const offerId = this.getExt(this.selectedSuggestedOffer.offer_id);
+      await this.heroService.updateOfferById(offerId, {
+        candidate_id: this.getExt(this.selectedSuggestedOffer.candidate_id),
+        jr_id: this.getExt(this.selectedSuggestedOffer.jr_id),
+        offer_date: this.editOfferForm.offer_date,
+        date_of_joining: this.editOfferForm.date_of_joining,
+        salary_offered: this.editOfferForm.salary_offered,
+        offer_letter_path: this.getExt(this.selectedSuggestedOffer.offer_letter_path),
+        offer_status: 'PENDING',
+        approval_status: 'PENDING',
+        offer_sent_date: '',
+        candidate_response_date: '',
+        temp1: '' // Clear the suggestions
+      });
+
+      this.showToast('Offer updated and resubmitted for approval!', 'success');
+      this.closeEditSuggestedOfferModal();
+      this.loadAllOffers();
+    } catch (e) {
+      console.error('[HrPanel] Error resubmitting offer:', e);
+      this.showToast('Failed to resubmit offer.', 'error');
+    } finally {
+      this.isResubmittingOffer = false;
     }
   }
 

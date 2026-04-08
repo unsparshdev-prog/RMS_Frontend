@@ -1640,6 +1640,58 @@
   box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
   transform: translateY(-1px);
 }
+.btn-confirm-reject:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── JR Rejection Remarks ── */
+.jr-remarks-section {
+  text-align: left;
+  margin-bottom: 20px;
+}
+.jr-remarks-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #0B2265;
+  margin-bottom: 8px;
+}
+.required-star {
+  color: #e74c3c;
+  font-weight: 700;
+}
+.jr-remarks-textarea {
+  width: 100%;
+  border: 1.5px solid #d1d5db;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: #0f1f3d;
+  background: #fafbfc;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+.jr-remarks-textarea:focus {
+  border-color: #e74c3c;
+  box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+  background: #fff;
+}
+.jr-remarks-textarea::placeholder {
+  color: #94a3b8;
+}
+.jr-remarks-hint {
+  display: block;
+  font-size: 0.72rem;
+  color: #e74c3c;
+  margin-top: 6px;
+  font-weight: 500;
+}
 
 /* ========== LOADER OVERLAY ========== */
 .loader-overlay {

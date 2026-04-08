@@ -589,15 +589,29 @@
               <!-- Interviewers for this interview -->
               <div style="margin-top: 10px;">
                 <div style="font-size: 0.8rem; color: #64748B; font-weight: 600; margin-bottom: 8px; text-transform: uppercase;">Interviewers</div>
-                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                  <div *ngFor="let panel of getPanelsForInterview(group.interview_id)" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: white; border: 1px solid #E2E8F0; border-radius: 20px;">
-                    <div style="width: 28px; height: 28px; border-radius: 50%; background: #0B2265; color: white; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 600;">
-                      {{ getInitials(panel.interviewer_name || panel.interviewer_id) }}
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <div *ngFor="let panel of getPanelsForInterview(group.interview_id)" style="padding: 10px 14px; background: white; border: 1px solid #E2E8F0; border-radius: 10px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                      <div style="width: 28px; height: 28px; border-radius: 50%; background: #0B2265; color: white; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 600;">
+                        {{ getInitials(panel.interviewer_name || panel.interviewer_id) }}
+                      </div>
+                      <span style="font-size: 0.85rem; color: #334155; font-weight: 600;">{{ panel.interviewer_name || panel.interviewer_id }}</span>
+                      <span *ngIf="panel.rating" class="badge" style="background: #D1FAE5; color: #065F46; font-size: 0.7rem; padding: 2px 6px; margin-left: auto;">
+                        <i class="fas fa-star" style="font-size: 0.55rem;"></i> {{ panel.rating }}
+                      </span>
+                      <span *ngIf="!panel.feedback && !panel.rating" class="badge" style="background: #FEF3C7; color: #92400E; font-size: 0.7rem; padding: 2px 6px; margin-left: auto;">Pending</span>
                     </div>
-                    <span style="font-size: 0.85rem; color: #334155;">{{ panel.interviewer_name || panel.interviewer_id }}</span>
-                    <span *ngIf="panel.feedback" class="badge" [style.background]="panel.rating ? '#D1FAE5' : '#FEF3C7'" [style.color]="panel.rating ? '#065F46' : '#92400E'" style="font-size: 0.7rem; padding: 2px 6px;">
-                      {{ panel.rating || 'Pending' }}
-                    </span>
+                    <!-- Feedback text -->
+                    <div *ngIf="panel.feedback" style="font-size: 0.8rem; color: #475569; line-height: 1.4; margin-bottom: 6px; font-style: italic; padding-left: 36px;">
+                      "{{ panel.feedback }}"
+                    </div>
+                    <!-- Feedback parameters -->
+                    <div *ngIf="panel.temp2 || panel.temp3 || panel.temp4 || panel.temp5" style="display: flex; flex-wrap: wrap; gap: 5px; padding-left: 36px;">
+                      <span *ngIf="panel.temp2" class="badge" style="background: #DBEAFE; color: #1E40AF; font-size: 0.68rem; padding: 2px 6px;"><i class="fas fa-code" style="font-size: 0.55rem; margin-right: 2px;"></i> {{ panel.temp2 }}</span>
+                      <span *ngIf="panel.temp3" class="badge" style="background: #E0E7FF; color: #3730A3; font-size: 0.68rem; padding: 2px 6px;"><i class="fas fa-comments" style="font-size: 0.55rem; margin-right: 2px;"></i> {{ panel.temp3 }}</span>
+                      <span *ngIf="panel.temp4" class="badge" style="background: #FEF3C7; color: #92400E; font-size: 0.68rem; padding: 2px 6px;"><i class="fas fa-handshake" style="font-size: 0.55rem; margin-right: 2px;"></i> {{ panel.temp4 }}</span>
+                      <span *ngIf="panel.temp5" class="badge" [style.background]="panel.temp5.toLowerCase() === 'yes' ? '#FEE2E2' : '#D1FAE5'" [style.color]="panel.temp5.toLowerCase() === 'yes' ? '#991B1B' : '#065F46'" style="font-size: 0.68rem; padding: 2px 6px;"><i class="fas fa-redo" style="font-size: 0.55rem; margin-right: 2px;"></i> {{ panel.temp5 }}</span>
+                    </div>
                   </div>
                   <div *ngIf="getPanelsForInterview(group.interview_id).length === 0" style="font-size: 0.85rem; color: #94A3B8; font-style: italic;">
                     No interviewers assigned yet
@@ -893,13 +907,17 @@
               </div>
 
               <h4 style="margin: 0 0 10px 0; font-size: 1rem; color: #1E293B;">Panelists Overview</h4>
-              <div class="panel-table-wrapper" style="border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden; background: white;">
-                <table class="panel-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+              <div class="panel-table-wrapper" style="border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden; background: white; overflow-x: auto;">
+                <table class="panel-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; min-width: 750px;">
                   <thead style="background: #F1F5F9; border-bottom: 1px solid #E2E8F0;">
                     <tr>
                       <th style="padding: 10px 15px; color: #475569; font-weight: 600;">Interviewer</th>
                       <th style="padding: 10px 15px; color: #475569; font-weight: 600;">Feedback</th>
                       <th style="padding: 10px 15px; color: #475569; font-weight: 600; white-space: nowrap;">Rating</th>
+                      <th style="padding: 10px 15px; color: #475569; font-weight: 600; white-space: nowrap;">Technical</th>
+                      <th style="padding: 10px 15px; color: #475569; font-weight: 600; white-space: nowrap;">Communication</th>
+                      <th style="padding: 10px 15px; color: #475569; font-weight: 600; white-space: nowrap;">Cultural Fit</th>
+                      <th style="padding: 10px 15px; color: #475569; font-weight: 600; white-space: nowrap;">Follow-up</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -912,14 +930,31 @@
                           {{ panel.interviewer_name || panel.interviewer_id }}
                         </div>
                       </td>
-                      <td style="padding: 10px 15px; color: #334155; max-width: 300px; word-wrap: break-word;">{{ panel.feedback || 'Pending' }}</td>
+                      <td style="padding: 10px 15px; color: #334155; max-width: 220px; word-wrap: break-word;">{{ panel.feedback || 'Pending' }}</td>
                       <td style="padding: 10px 15px;">
                         <span *ngIf="panel.rating" class="badge" [style.background]="'#D1FAE5'" [style.color]="'#065F46'">{{ panel.rating }}</span>
                         <span *ngIf="!panel.rating" class="text-muted" style="font-style: italic; font-size: 0.85rem;">Pending</span>
                       </td>
+                      <td style="padding: 10px 15px;">
+                        <span *ngIf="panel.temp2" class="badge" style="background: #DBEAFE; color: #1E40AF; font-size: 0.75rem;">{{ panel.temp2 }}</span>
+                        <span *ngIf="!panel.temp2" class="text-muted" style="font-style: italic; font-size: 0.8rem;">—</span>
+                      </td>
+                      <td style="padding: 10px 15px;">
+                        <span *ngIf="panel.temp3" class="badge" style="background: #E0E7FF; color: #3730A3; font-size: 0.75rem;">{{ panel.temp3 }}</span>
+                        <span *ngIf="!panel.temp3" class="text-muted" style="font-style: italic; font-size: 0.8rem;">—</span>
+                      </td>
+                      <td style="padding: 10px 15px;">
+                        <span *ngIf="panel.temp4" class="badge" style="background: #FEF3C7; color: #92400E; font-size: 0.75rem;">{{ panel.temp4 }}</span>
+                        <span *ngIf="!panel.temp4" class="text-muted" style="font-style: italic; font-size: 0.8rem;">—</span>
+                      </td>
+                      <td style="padding: 10px 15px;">
+                        <span *ngIf="panel.temp5 && panel.temp5.toLowerCase() === 'yes'" class="badge" style="background: #FEE2E2; color: #991B1B; font-size: 0.75rem;">Yes</span>
+                        <span *ngIf="panel.temp5 && panel.temp5.toLowerCase() === 'no'" class="badge" style="background: #D1FAE5; color: #065F46; font-size: 0.75rem;">No</span>
+                        <span *ngIf="!panel.temp5" class="text-muted" style="font-style: italic; font-size: 0.8rem;">—</span>
+                      </td>
                     </tr>
                     <tr *ngIf="selectedInterviewPanels.length === 0">
-                      <td colspan="3" style="padding: 15px; text-align: center; color: #64748B;">No panelists assigned yet.</td>
+                      <td colspan="7" style="padding: 15px; text-align: center; color: #64748B;">No panelists assigned yet.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1314,7 +1349,7 @@
 
           <!-- Active Candidates Grid -->
           <div class="pipeline-candidates-grid">
-            <div class="pipeline-candidate-card" *ngFor="let candidate of filteredComparisonCandidates">
+            <div class="pipeline-candidate-card" *ngFor="let candidate of filteredComparisonCandidates" style="display: flex; flex-direction: column;">
               <div class="pipeline-card-top">
                 <div class="pipeline-card-avatar" [style.background]="getStageColor(candidate.stage)">{{ candidate.avatar }}</div>
                 <div class="pipeline-card-info">
@@ -1326,9 +1361,6 @@
                     <i class="fas fa-star" style="color: #F59E0B; font-size: 0.75rem;" *ngIf="getLatestFeedbackAndRating(candidate.candidate_id).rating !== 'N/A'"></i>
                     {{ getLatestFeedbackAndRating(candidate.candidate_id).rating !== 'N/A' ? getLatestFeedbackAndRating(candidate.candidate_id).rating : 'Pending' }}
                   </div>
-                  <div style="color: #64748B; font-size: 0.75rem; max-width: 90px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right;" [title]="getLatestFeedbackAndRating(candidate.candidate_id).feedback">
-                    {{ getLatestFeedbackAndRating(candidate.candidate_id).feedback !== 'Pending' ? getLatestFeedbackAndRating(candidate.candidate_id).feedback : 'Awaiting Feedback' }}
-                  </div>
                 </div>
               </div>
               <div class="pipeline-card-meta">
@@ -1337,7 +1369,61 @@
                 </span>
                 <span class="pipeline-dept-badge">{{ candidate.department }}</span>
               </div>
-              <div class="pipeline-card-footer" style="padding-top: 10px; border-top: 1px solid #E2E8F0;">
+
+              <!-- All Feedback Parameters -->
+              <div style="padding: 10px 0; border-top: 1px solid #F1F5F9; margin-top: 8px;" *ngIf="getLatestFeedbackAndRating(candidate.candidate_id).rating !== 'N/A'">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-size: 0.78rem;">
+                  <div style="display: flex; align-items: center; gap: 4px;" *ngIf="getLatestFeedbackAndRating(candidate.candidate_id).technicalSkills">
+                    <i class="fas fa-code" style="color: #1E40AF; font-size: 0.65rem;"></i>
+                    <span style="color: #64748B;">Technical:</span>
+                    <span class="badge" style="background: #DBEAFE; color: #1E40AF; font-size: 0.7rem; padding: 1px 6px;">{{ getLatestFeedbackAndRating(candidate.candidate_id).technicalSkills }}</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 4px;" *ngIf="getLatestFeedbackAndRating(candidate.candidate_id).communicationSkills">
+                    <i class="fas fa-comments" style="color: #3730A3; font-size: 0.65rem;"></i>
+                    <span style="color: #64748B;">Communication:</span>
+                    <span class="badge" style="background: #E0E7FF; color: #3730A3; font-size: 0.7rem; padding: 1px 6px;">{{ getLatestFeedbackAndRating(candidate.candidate_id).communicationSkills }}</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 4px;" *ngIf="getLatestFeedbackAndRating(candidate.candidate_id).culturalFit">
+                    <i class="fas fa-handshake" style="color: #92400E; font-size: 0.65rem;"></i>
+                    <span style="color: #64748B;">Cultural Fit:</span>
+                    <span class="badge" style="background: #FEF3C7; color: #92400E; font-size: 0.7rem; padding: 1px 6px;">{{ getLatestFeedbackAndRating(candidate.candidate_id).culturalFit }}</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 4px;" *ngIf="getLatestFeedbackAndRating(candidate.candidate_id).anotherInterviewRequired">
+                    <i class="fas fa-redo" style="color: #64748B; font-size: 0.65rem;"></i>
+                    <span style="color: #64748B;">Follow-up:</span>
+                    <span class="badge" [style.background]="getLatestFeedbackAndRating(candidate.candidate_id).anotherInterviewRequired === 'Yes' ? '#FEE2E2' : '#D1FAE5'" [style.color]="getLatestFeedbackAndRating(candidate.candidate_id).anotherInterviewRequired === 'Yes' ? '#991B1B' : '#065F46'" style="font-size: 0.7rem; padding: 1px 6px;">{{ getLatestFeedbackAndRating(candidate.candidate_id).anotherInterviewRequired }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Per-Interviewer Feedback Breakdown -->
+              <div style="padding: 8px 0; border-top: 1px solid #F1F5F9;" *ngIf="getLatestFeedbackAndRating(candidate.candidate_id).panels.length > 0">
+                <div style="font-size: 0.72rem; color: #64748B; font-weight: 600; text-transform: uppercase; margin-bottom: 6px;">
+                  <i class="fas fa-user-tie" style="margin-right: 4px;"></i> Interviewer Feedback ({{ getLatestFeedbackAndRating(candidate.candidate_id).panels.length }})
+                </div>
+                <div *ngFor="let panel of getLatestFeedbackAndRating(candidate.candidate_id).panels" style="padding: 6px 8px; margin-bottom: 4px; background: #F8FAFC; border-radius: 6px; border: 1px solid #F1F5F9;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+                    <span style="font-weight: 600; font-size: 0.78rem; color: #1E293B;">{{ panel.name }}</span>
+                    <span *ngIf="panel.rating" style="font-size: 0.72rem; color: #F59E0B; font-weight: 600;">
+                      <i class="fas fa-star" style="font-size: 0.6rem;"></i> {{ panel.rating }}
+                    </span>
+                  </div>
+                  <div style="font-size: 0.75rem; color: #475569; line-height: 1.4; margin-bottom: 4px;" *ngIf="panel.feedback">
+                    "{{ panel.feedback }}"
+                  </div>
+                  <div style="display: flex; flex-wrap: wrap; gap: 4px;" *ngIf="panel.technicalSkills || panel.communicationSkills || panel.culturalFit || panel.anotherInterviewRequired">
+                    <span *ngIf="panel.technicalSkills" class="badge" style="background: #DBEAFE; color: #1E40AF; font-size: 0.65rem; padding: 1px 5px;">Tech: {{ panel.technicalSkills }}</span>
+                    <span *ngIf="panel.communicationSkills" class="badge" style="background: #E0E7FF; color: #3730A3; font-size: 0.65rem; padding: 1px 5px;">Comm: {{ panel.communicationSkills }}</span>
+                    <span *ngIf="panel.culturalFit" class="badge" style="background: #FEF3C7; color: #92400E; font-size: 0.65rem; padding: 1px 5px;">Culture: {{ panel.culturalFit }}</span>
+                    <span *ngIf="panel.anotherInterviewRequired" class="badge" [style.background]="panel.anotherInterviewRequired.toLowerCase() === 'yes' ? '#FEE2E2' : '#D1FAE5'" [style.color]="panel.anotherInterviewRequired.toLowerCase() === 'yes' ? '#991B1B' : '#065F46'" style="font-size: 0.65rem; padding: 1px 5px;">Follow-up: {{ panel.anotherInterviewRequired }}</span>
+                  </div>
+                </div>
+              </div>
+              <div *ngIf="getLatestFeedbackAndRating(candidate.candidate_id).rating === 'N/A'" style="padding: 8px 0; text-align: center; color: #94A3B8; font-size: 0.8rem; font-style: italic;">
+                Awaiting interviewer feedback
+              </div>
+
+              <div class="pipeline-card-footer" style="padding-top: 10px; border-top: 1px solid #E2E8F0; margin-top: auto;">
                 <button 
                   class="btn btn-outline-sm" 
                   style="width: 100%; display: flex; justify-content: center; gap: 8px;"
@@ -1380,13 +1466,7 @@
                     <div [style.color]="getStageColor(c.stage)" style="font-weight: 600;">{{ getStageName(c.stage) }}</div>
                   </div>
                   <div class="detail-row">
-                    <strong style="color: #64748B; font-size: 0.8rem; text-transform: uppercase;">Feedback</strong>
-                    <div style="font-weight: 500; font-size: 0.95rem; color: #1E293B; max-height: 4.5em; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical;" [title]="getLatestFeedbackAndRating(c.candidate_id).feedback">
-                      {{ getLatestFeedbackAndRating(c.candidate_id).feedback }}
-                    </div>
-                  </div>
-                  <div class="detail-row">
-                    <strong style="color: #64748B; font-size: 0.8rem; text-transform: uppercase;">Rating</strong>
+                    <strong style="color: #64748B; font-size: 0.8rem; text-transform: uppercase;">Avg Rating</strong>
                     <div style="font-weight: bold; font-size: 1.1rem; color: #F59E0B;" *ngIf="getLatestFeedbackAndRating(c.candidate_id).rating !== 'N/A'">
                       <i class="fas fa-star" style="font-size: 0.9rem;"></i> {{ getLatestFeedbackAndRating(c.candidate_id).rating }}
                     </div>
@@ -1394,6 +1474,54 @@
                       Pending
                     </div>
                   </div>
+
+                  <!-- Aggregated Parameters Summary -->
+                  <div class="detail-row" *ngIf="getLatestFeedbackAndRating(c.candidate_id).rating !== 'N/A'" style="background: #F8FAFC; border-radius: 8px; padding: 10px;">
+                    <strong style="color: #64748B; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 6px; display: block;">Assessment Summary</strong>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                      <div *ngIf="getLatestFeedbackAndRating(c.candidate_id).technicalSkills" style="display: flex; align-items: center; gap: 4px;">
+                        <i class="fas fa-code" style="color: #1E40AF; font-size: 0.65rem;"></i>
+                        <span class="badge" style="background: #DBEAFE; color: #1E40AF; font-size: 0.75rem;">{{ getLatestFeedbackAndRating(c.candidate_id).technicalSkills }}</span>
+                      </div>
+                      <div *ngIf="getLatestFeedbackAndRating(c.candidate_id).communicationSkills" style="display: flex; align-items: center; gap: 4px;">
+                        <i class="fas fa-comments" style="color: #3730A3; font-size: 0.65rem;"></i>
+                        <span class="badge" style="background: #E0E7FF; color: #3730A3; font-size: 0.75rem;">{{ getLatestFeedbackAndRating(c.candidate_id).communicationSkills }}</span>
+                      </div>
+                      <div *ngIf="getLatestFeedbackAndRating(c.candidate_id).culturalFit" style="display: flex; align-items: center; gap: 4px;">
+                        <i class="fas fa-handshake" style="color: #92400E; font-size: 0.65rem;"></i>
+                        <span class="badge" style="background: #FEF3C7; color: #92400E; font-size: 0.75rem;">{{ getLatestFeedbackAndRating(c.candidate_id).culturalFit }}</span>
+                      </div>
+                      <div *ngIf="getLatestFeedbackAndRating(c.candidate_id).anotherInterviewRequired" style="display: flex; align-items: center; gap: 4px;">
+                        <i class="fas fa-redo" style="color: #64748B; font-size: 0.65rem;"></i>
+                        <span class="badge" [style.background]="getLatestFeedbackAndRating(c.candidate_id).anotherInterviewRequired === 'Yes' ? '#FEE2E2' : '#D1FAE5'" [style.color]="getLatestFeedbackAndRating(c.candidate_id).anotherInterviewRequired === 'Yes' ? '#991B1B' : '#065F46'" style="font-size: 0.75rem;">{{ getLatestFeedbackAndRating(c.candidate_id).anotherInterviewRequired }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Per-Interviewer Breakdown -->
+                  <div class="detail-row" *ngIf="getLatestFeedbackAndRating(c.candidate_id).panels.length > 0">
+                    <strong style="color: #64748B; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 6px; display: block;">
+                      <i class="fas fa-user-tie" style="margin-right: 3px;"></i> Interviewer Details ({{ getLatestFeedbackAndRating(c.candidate_id).panels.length }})
+                    </strong>
+                    <div *ngFor="let panel of getLatestFeedbackAndRating(c.candidate_id).panels" style="padding: 8px 10px; margin-bottom: 6px; background: #FAFBFC; border-radius: 6px; border-left: 3px solid #0B2265;">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <span style="font-weight: 600; font-size: 0.85rem; color: #1E293B;">{{ panel.name }}</span>
+                        <span *ngIf="panel.rating" style="font-size: 0.8rem; color: #F59E0B; font-weight: 700;">
+                          <i class="fas fa-star" style="font-size: 0.7rem;"></i> {{ panel.rating }}
+                        </span>
+                      </div>
+                      <div style="font-size: 0.82rem; color: #475569; line-height: 1.5; margin-bottom: 6px; font-style: italic;" *ngIf="panel.feedback">
+                        "{{ panel.feedback }}"
+                      </div>
+                      <div style="display: flex; flex-wrap: wrap; gap: 4px;" *ngIf="panel.technicalSkills || panel.communicationSkills || panel.culturalFit || panel.anotherInterviewRequired">
+                        <span *ngIf="panel.technicalSkills" class="badge" style="background: #DBEAFE; color: #1E40AF; font-size: 0.7rem; padding: 2px 6px;">Tech: {{ panel.technicalSkills }}</span>
+                        <span *ngIf="panel.communicationSkills" class="badge" style="background: #E0E7FF; color: #3730A3; font-size: 0.7rem; padding: 2px 6px;">Comm: {{ panel.communicationSkills }}</span>
+                        <span *ngIf="panel.culturalFit" class="badge" style="background: #FEF3C7; color: #92400E; font-size: 0.7rem; padding: 2px 6px;">Culture: {{ panel.culturalFit }}</span>
+                        <span *ngIf="panel.anotherInterviewRequired" class="badge" [style.background]="panel.anotherInterviewRequired.toLowerCase() === 'yes' ? '#FEE2E2' : '#D1FAE5'" [style.color]="panel.anotherInterviewRequired.toLowerCase() === 'yes' ? '#991B1B' : '#065F46'" style="font-size: 0.7rem; padding: 2px 6px;">Follow-up: {{ panel.anotherInterviewRequired }}</span>
+                      </div>
+                    </div>
+                  </div>
+
                   <div class="detail-row">
                     <strong style="color: #64748B; font-size: 0.8rem; text-transform: uppercase;">Experience</strong>
                     <div>{{ c.experience }}</div>
@@ -1626,6 +1754,214 @@
             <div class="empty-state" *ngIf="filteredOffers.length === 0">
               <i class="fas fa-file-signature"></i>
               <p>No offered candidates found matching your criteria.</p>
+            </div>
+          </div>
+        </div>
+
+          <!-- ═══ APPROVED OFFERS SECTION ═══ -->
+          <div style="margin-top: 28px;" *ngIf="approvedOffers.length > 0">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+              <div style="width: 4px; height: 28px; background: linear-gradient(180deg, #10B981, #059669); border-radius: 4px;"></div>
+              <h2 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #0F172A;">Approved Offers</h2>
+              <span style="background: #D1FAE5; color: #065F46; font-size: 0.75rem; font-weight: 700; padding: 4px 12px; border-radius: 20px;">{{ approvedOffers.length }}</span>
+            </div>
+            <p style="color: #64748B; font-size: 0.9rem; margin: 0 0 16px 16px;">These offers have been approved by leadership. Send the offer letter to the candidate.</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px;">
+              <div *ngFor="let offer of approvedOffers" style="background: #fff; border: 1px solid #E2E8F0; border-radius: 12px; padding: 20px; position: relative; overflow: hidden; transition: box-shadow 0.2s, transform 0.2s;" class="panel-row">
+                <!-- Approved ribbon -->
+                <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #10B981, #34D399);"></div>
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px;">
+                  <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #D1FAE5, #A7F3D0); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; color: #065F46;">
+                      {{ (offer._candidate_name || 'C').charAt(0) }}
+                    </div>
+                    <div>
+                      <h4 style="margin: 0; font-size: 1rem; font-weight: 600; color: #0F172A;">{{ offer._candidate_name || 'Candidate' }}</h4>
+                      <span style="font-size: 0.8rem; color: #64748B;">{{ offer._job_title || 'Position' }}</span>
+                    </div>
+                  </div>
+                  <span style="background: #D1FAE5; color: #065F46; font-size: 0.7rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; letter-spacing: 0.5px;">
+                    <i class="fas fa-check-circle" style="margin-right: 4px;"></i>APPROVED
+                  </span>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+                  <div style="background: #F8FAFC; border-radius: 8px; padding: 10px;">
+                    <span style="display: block; font-size: 0.7rem; text-transform: uppercase; color: #94A3B8; letter-spacing: 0.5px;">Salary</span>
+                    <span style="font-weight: 600; color: #10B981; font-size: 0.95rem;">₹ {{ getExt(offer.salary_offered) || 'N/A' }}</span>
+                  </div>
+                  <div style="background: #F8FAFC; border-radius: 8px; padding: 10px;">
+                    <span style="display: block; font-size: 0.7rem; text-transform: uppercase; color: #94A3B8; letter-spacing: 0.5px;">Joining Date</span>
+                    <span style="font-weight: 600; color: #1E293B; font-size: 0.95rem;">{{ getExt(offer.date_of_joining) || 'TBD' }}</span>
+                  </div>
+                </div>
+                <button class="btn btn-primary-blue" style="width: 100%; justify-content: center; padding: 10px; font-size: 0.95rem;"
+                  (click)="openSendOfferModal(offer)">
+                  <i class="fas fa-paper-plane" style="margin-right: 8px;"></i> Send Offer Letter
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ═══ CHANGES SUGGESTED BY LEADERSHIP ═══ -->
+          <div style="margin-top: 28px;" *ngIf="changesSuggestedOffers.length > 0">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+              <div style="width: 4px; height: 28px; background: linear-gradient(180deg, #F59E0B, #D97706); border-radius: 4px;"></div>
+              <h2 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #0F172A;">Changes Suggested</h2>
+              <span style="background: #FEF3C7; color: #92400E; font-size: 0.75rem; font-weight: 700; padding: 4px 12px; border-radius: 20px;">{{ changesSuggestedOffers.length }}</span>
+            </div>
+            <p style="color: #64748B; font-size: 0.9rem; margin: 0 0 16px 16px;">Leadership has suggested changes to these offers. Review, edit, and resubmit for approval.</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px;">
+              <div *ngFor="let offer of changesSuggestedOffers" style="background: #fff; border: 1px solid #E2E8F0; border-radius: 12px; padding: 20px; position: relative; overflow: hidden; transition: box-shadow 0.2s, transform 0.2s;" class="panel-row">
+                <!-- Amber ribbon -->
+                <div style="position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #F59E0B, #FBBF24);"></div>
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px;">
+                  <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #FEF3C7, #FDE68A); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; color: #92400E;">
+                      {{ (offer._candidate_name || 'C').charAt(0) }}
+                    </div>
+                    <div>
+                      <h4 style="margin: 0; font-size: 1rem; font-weight: 600; color: #0F172A;">{{ offer._candidate_name || 'Candidate' }}</h4>
+                      <span style="font-size: 0.8rem; color: #64748B;">{{ offer._job_title || 'Position' }}</span>
+                    </div>
+                  </div>
+                  <span style="background: #FEF3C7; color: #92400E; font-size: 0.7rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; letter-spacing: 0.5px;">
+                    <i class="fas fa-pen" style="margin-right: 4px;"></i>CHANGES SUGGESTED
+                  </span>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                  <div style="background: #F8FAFC; border-radius: 8px; padding: 10px;">
+                    <span style="display: block; font-size: 0.7rem; text-transform: uppercase; color: #94A3B8; letter-spacing: 0.5px;">Current Salary</span>
+                    <span style="font-weight: 600; color: #1E293B; font-size: 0.95rem;">₹ {{ getExt(offer.salary_offered) || 'N/A' }}</span>
+                  </div>
+                  <div style="background: #F8FAFC; border-radius: 8px; padding: 10px;">
+                    <span style="display: block; font-size: 0.7rem; text-transform: uppercase; color: #94A3B8; letter-spacing: 0.5px;">Joining Date</span>
+                    <span style="font-weight: 600; color: #1E293B; font-size: 0.95rem;">{{ getExt(offer.date_of_joining) || 'TBD' }}</span>
+                  </div>
+                </div>
+                <!-- Leadership Suggestions Callout -->
+                <div style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <i class="fas fa-comment-dots" style="color: #D97706; font-size: 0.9rem;"></i>
+                    <span style="font-weight: 700; font-size: 0.85rem; color: #92400E;">Leadership Suggestions</span>
+                  </div>
+                  <p style="margin: 0; font-size: 0.9rem; color: #78350F; line-height: 1.6; white-space: pre-wrap;">{{ getExt(offer.temp1) || 'No details provided.' }}</p>
+                </div>
+                <button class="btn" style="width: 100%; justify-content: center; padding: 10px; font-size: 0.95rem; background: linear-gradient(135deg, #F59E0B, #D97706); color: white; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: opacity 0.2s;"
+                  (click)="openEditSuggestedOfferModal(offer)">
+                  <i class="fas fa-edit"></i> Edit & Resubmit
+                </button>
+              </div>
+            </div>
+          </div>
+
+        <!-- SEND APPROVED OFFER MODAL -->
+        <div class="modal-backdrop" *ngIf="showSendOfferModal" (click)="closeSendOfferModal()">
+          <div class="modal-dialog" style="max-width: 550px;" (click)="$event.stopPropagation()">
+            <div class="modal-header-row" style="margin-bottom: 20px;">
+              <h3><i class="fas fa-paper-plane" style="color: #10B981; margin-right: 8px;"></i>Send Offer Letter</h3>
+              <button class="modal-close-btn" (click)="closeSendOfferModal()"><i class="fas fa-times"></i></button>
+            </div>
+
+            <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                <i class="fas fa-check-circle" style="color: #10B981;"></i>
+                <span style="font-weight: 700; color: #065F46; font-size: 0.9rem;">Approved by Leadership</span>
+              </div>
+              <p style="margin: 0; font-size: 0.85rem; color: #166534;">This offer has been approved and is ready to be sent to the candidate.</p>
+            </div>
+
+            <div style="background: #F8FAFC; padding: 20px; border-radius: 10px; border: 1px solid #E2E8F0; margin-bottom: 20px;">
+              <h4 style="margin: 0 0 14px 0; color: #0F172A; font-weight: 600; font-size: 1.05rem;">Offer Summary</h4>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; font-size: 0.9rem;">
+                <div>
+                  <span style="color: #64748B; display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Candidate</span>
+                  <strong style="color: #1E293B;">{{ selectedApprovedOffer?._candidate_name || 'Candidate' }}</strong>
+                </div>
+                <div>
+                  <span style="color: #64748B; display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Position</span>
+                  <strong style="color: #1E293B;">{{ selectedApprovedOffer?._job_title || 'Position' }}</strong>
+                </div>
+                <div>
+                  <span style="color: #64748B; display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Salary</span>
+                  <strong style="color: #10B981;">₹ {{ getExt(selectedApprovedOffer?.salary_offered) }}</strong>
+                </div>
+                <div>
+                  <span style="color: #64748B; display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Joining Date</span>
+                  <strong style="color: #1E293B;">{{ getExt(selectedApprovedOffer?.date_of_joining) || 'TBD' }}</strong>
+                </div>
+                <div *ngIf="selectedApprovedOffer?._candidate_email">
+                  <span style="color: #64748B; display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">Email</span>
+                  <strong style="color: #1E293B;">{{ selectedApprovedOffer?._candidate_email }}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-actions" style="display: flex; gap: 12px; justify-content: flex-end;">
+              <button class="btn btn-outline-sm" (click)="closeSendOfferModal()">Cancel</button>
+              <button class="btn" style="background: #10B981; color: white; border: none; border-radius: 8px; padding: 10px 24px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;"
+                (click)="sendApprovedOfferEmail()" [disabled]="isSendingOffer">
+                <i class="fas fa-spinner fa-spin" *ngIf="isSendingOffer"></i>
+                <i class="fas fa-paper-plane" *ngIf="!isSendingOffer"></i>
+                {{ isSendingOffer ? 'Sending…' : 'Generate PDF & Send' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- EDIT SUGGESTED OFFER MODAL -->
+        <div class="modal-backdrop" *ngIf="showEditSuggestedOfferModal" (click)="closeEditSuggestedOfferModal()">
+          <div class="modal-dialog" style="max-width: 620px;" (click)="$event.stopPropagation()">
+            <div class="modal-header-row" style="margin-bottom: 16px;">
+              <h3><i class="fas fa-edit" style="color: #D97706; margin-right: 8px;"></i>Edit Offer — Suggested Changes</h3>
+              <button class="modal-close-btn" (click)="closeEditSuggestedOfferModal()"><i class="fas fa-times"></i></button>
+            </div>
+
+            <!-- Leadership Suggestions Callout -->
+            <div style="background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <i class="fas fa-comment-dots" style="color: #D97706; font-size: 0.95rem;"></i>
+                <span style="font-weight: 700; font-size: 0.9rem; color: #92400E;">Leadership Suggestions</span>
+              </div>
+              <p style="margin: 0; font-size: 0.9rem; color: #78350F; line-height: 1.7; white-space: pre-wrap;">{{ getExt(selectedSuggestedOffer?.temp1) || 'No details provided.' }}</p>
+            </div>
+
+            <p class="text-muted" style="font-size: 0.9rem; margin-bottom: 16px;">Update the offer details below based on leadership feedback, then resubmit for approval.</p>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 8px;">
+              <div class="form-group mb-0" style="margin-bottom: 14px;">
+                <label style="display: block; font-weight: 600; color: #334155; margin-bottom: 6px; font-size: 0.85rem;">Candidate</label>
+                <input type="text" class="form-input" readonly [value]="selectedSuggestedOffer?._candidate_name || 'Candidate'" style="background: #F1F5F9; cursor: not-allowed;">
+              </div>
+              <div class="form-group mb-0" style="margin-bottom: 14px;">
+                <label style="display: block; font-weight: 600; color: #334155; margin-bottom: 6px; font-size: 0.85rem;">Position</label>
+                <input type="text" class="form-input" readonly [value]="selectedSuggestedOffer?._job_title || 'Position'" style="background: #F1F5F9; cursor: not-allowed;">
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 8px;">
+              <div class="form-group mb-0" style="margin-bottom: 14px;">
+                <label style="display: block; font-weight: 600; color: #334155; margin-bottom: 6px; font-size: 0.85rem;">Salary Offered (₹) <span style="color: #EF4444;">*</span></label>
+                <input type="text" class="form-input" [(ngModel)]="editOfferForm.salary_offered" placeholder="e.g. 8,00,000">
+              </div>
+              <div class="form-group mb-0" style="margin-bottom: 14px;">
+                <label style="display: block; font-weight: 600; color: #334155; margin-bottom: 6px; font-size: 0.85rem;">Date of Joining</label>
+                <input type="date" class="form-input" [(ngModel)]="editOfferForm.date_of_joining">
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 20px;">
+              <label style="display: block; font-weight: 600; color: #334155; margin-bottom: 6px; font-size: 0.85rem;">Offer Date</label>
+              <input type="date" class="form-input" [(ngModel)]="editOfferForm.offer_date" style="max-width: 300px;">
+            </div>
+
+            <div class="form-actions" style="display: flex; gap: 12px; justify-content: flex-end; border-top: 1px solid #E2E8F0; padding-top: 16px;">
+              <button class="btn btn-outline-sm" (click)="closeEditSuggestedOfferModal()">Cancel</button>
+              <button class="btn" style="background: linear-gradient(135deg, #F59E0B, #D97706); color: white; border: none; border-radius: 8px; padding: 10px 24px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;"
+                (click)="resubmitEditedOffer()" [disabled]="isResubmittingOffer">
+                <i class="fas fa-spinner fa-spin" *ngIf="isResubmittingOffer"></i>
+                <i class="fas fa-redo" *ngIf="!isResubmittingOffer"></i>
+                {{ isResubmittingOffer ? 'Resubmitting…' : 'Resubmit for Approval' }}
+              </button>
             </div>
           </div>
         </div>

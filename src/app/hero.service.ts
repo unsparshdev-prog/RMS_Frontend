@@ -1244,6 +1244,26 @@ export class HeroService {
   }
 
   /**
+   * Get all offer records (for HR panel to display approved / changes-suggested offers).
+   */
+  getOffers(): Promise<any> {
+    return this.ajax('GetOfferObjects', 'http://schemas.cordys.com/RMS_DB_Metadata', {
+      preserveSpace: 'no',
+      qAccess: '0',
+      qValues: '',
+      cursor: {
+        '@id': '0',
+        '@position': '0',
+        '@numRows': '',
+        '@maxRows': '99999',
+        '@sameConnection': 'false'
+      },
+      fromOffer_id: '0',
+      toOffer_id: 'zzzzzzzzzz'
+    });
+  }
+
+  /**
    * CREATE a new offer row (INSERT — new-only tuple).
    * Use this only when creating the offer for the first time.
    */
@@ -1311,7 +1331,8 @@ export class HeroService {
             salary_offered: data.salary_offered || '',
             offer_letter_path: data.offer_letter_path || '',
             offer_status: data.offer_status || '',
-            approval_status: data.approval_status || 'PENDING'
+            approval_status: data.approval_status || 'PENDING',
+            ...('temp1' in data ? { temp1: data.temp1 || '' } : {})
           }
         }
       }

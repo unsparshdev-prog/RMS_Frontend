@@ -260,6 +260,16 @@ export class LeadershipDashboardService {
     return this.hero.updateOfferById(offerId, data);
   }
 
+  // ─── Suggest Changes on Offer (stores suggestions in temp1) ───
+  async suggestOfferChanges(offerId: string, suggestions: string, offerData: any): Promise<any> {
+    return this.hero.updateOfferById(offerId, {
+      ...offerData,
+      approval_status: 'CHANGES_SUGGESTED',
+      offer_status: 'CHANGES_SUGGESTED',
+      temp1: suggestions
+    });
+  }
+
   // ─── Approve/Reject Offer by offer_id (old/new tuple pattern) ───
   async approveOfferStatus(offerId: string, approvalStatus: string, offerSentDate: string): Promise<any> {
     return this.hero.approveOfferStatus(offerId, approvalStatus, offerSentDate);
