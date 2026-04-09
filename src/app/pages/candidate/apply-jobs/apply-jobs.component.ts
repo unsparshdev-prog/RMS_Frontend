@@ -21,6 +21,11 @@ export class ApplyJobsComponent implements OnInit {
   expectedSalary: string = '';
   relevantSkills: string = '';
   preferredLocation: string = '';
+  currentCtc: string = '';
+  experience: string = '';
+  noticePeriod: string = '';
+  willingToRelocate: boolean = false;
+  
   availableLocations: string[] = [];
   selectedJobDetails: any = null;
 
@@ -157,6 +162,10 @@ export class ApplyJobsComponent implements OnInit {
     
     // Reset form fields
     this.expectedSalary = '';
+    this.currentCtc = '';
+    this.experience = '';
+    this.noticePeriod = '';
+    this.willingToRelocate = false;
     this.relevantSkills = '';
     this.preferredLocation = '';
     this.hasReferral = false;
@@ -173,6 +182,18 @@ export class ApplyJobsComponent implements OnInit {
           this.expectedSalary = appObj.temp1 || '';
           this.relevantSkills = appObj.temp2 || '';
           this.preferredLocation = appObj.temp3 || '';
+          
+          if (appObj.temp4) {
+            try {
+              const extraData = JSON.parse(appObj.temp4);
+              this.currentCtc = extraData.currentCtc || '';
+              this.experience = extraData.experience || '';
+              this.noticePeriod = extraData.noticePeriod || '';
+              this.willingToRelocate = extraData.willingToRelocate || false;
+            } catch (e) {
+              console.warn('Could not parse temp4 JSON', e);
+            }
+          }
           
           // If the previously selected location isn't in the job's defined locations, add it to options to avoid breaking the UI
           if (this.preferredLocation && !this.availableLocations.includes(this.preferredLocation)) {
@@ -197,8 +218,8 @@ export class ApplyJobsComponent implements OnInit {
 
   confirmApply(): void {
     // Validate form
-    if (!this.expectedSalary || !this.relevantSkills || !this.preferredLocation) {
-      this.toast.warning('Please provide your expected salary, relevant skills, and preferred location.');
+    if (!this.expectedSalary || !this.currentCtc || !this.experience || !this.noticePeriod || !this.relevantSkills || !this.preferredLocation) {
+      this.toast.warning('Please provide all required fields including CTC, experience, and notice period.');
       return;
     }
 
@@ -219,10 +240,21 @@ export class ApplyJobsComponent implements OnInit {
     const isReferral = this.hasReferral;
     const refEmployeeId = this.referralEmployeeId.trim();
 
+    const extraData = {
+      currentCtc: this.currentCtc,
+      experience: this.experience,
+      noticePeriod: this.noticePeriod,
+      willingToRelocate: this.willingToRelocate
+    };
+    
     this.confirmJobId = '';
     this.confirmJobTitle = '';
     this.confirmApplicationId = '';
     this.expectedSalary = '';
+    this.currentCtc = '';
+    this.experience = '';
+    this.noticePeriod = '';
+    this.willingToRelocate = false;
     this.relevantSkills = '';
     this.preferredLocation = '';
     this.hasReferral = false;
@@ -238,7 +270,8 @@ export class ApplyJobsComponent implements OnInit {
       stage: 'Applied',
       temp1: salary,
       temp2: skills,
-      temp3: location
+      temp3: location,
+      temp4: JSON.stringify(extraData)
     };
 
     const jobTitleForEmail = this.confirmJobTitle;
