@@ -250,7 +250,7 @@
                   </div>
                 </div>
                 <button class="badge-btn badge-blue-light text-xs border-none cursor-pointer p-1"
-                  style="font-weight: 600;" *ngIf="aiScreeningReadyCount > 0" (click)="setActiveTab('Candidate Pipeline')">Review</button>
+                  style="font-weight: 600;" *ngIf="aiScreeningReadyCount > 0" (click)="setActiveTab('AI Screening')">Review</button>
                 <i class="fas fa-check-circle" style="color: #10B981;" *ngIf="aiScreeningReadyCount === 0"></i>
               </div>
 
@@ -435,21 +435,21 @@
                   </td>
                   <td class="px-6 py-4 align-middle">
                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm border"
-                          [class.bg-emerald-100]="job.status === 'Open' || job.status === 'APPROVED' || job.status === 'ACTIVE'"
-                          [class.text-emerald-700]="job.status === 'Open' || job.status === 'APPROVED' || job.status === 'ACTIVE'"
-                          [class.border-emerald-200]="job.status === 'Open' || job.status === 'APPROVED' || job.status === 'ACTIVE'"
+                          [class.bg-emerald-100]="job.status === 'ACTIVE'"
+                          [class.text-emerald-700]="job.status === 'ACTIVE'"
+                          [class.border-emerald-200]="job.status === 'ACTIVE'"
                           
-                          [class.bg-rose-100]="job.status === 'Closed' || job.status === 'CLOSED' || job.status === 'INACTIVE' || job.status === 'REJECTED'"
-                          [class.text-rose-700]="job.status === 'Closed' || job.status === 'CLOSED' || job.status === 'INACTIVE' || job.status === 'REJECTED'"
-                          [class.border-rose-200]="job.status === 'Closed' || job.status === 'CLOSED' || job.status === 'INACTIVE' || job.status === 'REJECTED'"
+                          [class.bg-rose-100]="job.status === 'CLOSED' || job.status === 'INACTIVE'"
+                          [class.text-rose-700]="job.status === 'CLOSED' || job.status === 'INACTIVE'"
+                          [class.border-rose-200]="job.status === 'CLOSED' || job.status === 'INACTIVE'"
                           
-                          [class.bg-amber-100]="job.status === 'On Hold' || job.status === 'PENDING' || job.status === 'PAUSED'"
-                          [class.text-amber-700]="job.status === 'On Hold' || job.status === 'PENDING' || job.status === 'PAUSED'"
-                          [class.border-amber-200]="job.status === 'On Hold' || job.status === 'PENDING' || job.status === 'PAUSED'">
+                          [class.bg-amber-100]="job.status === 'PENDING' || job.status === 'PAUSED'"
+                          [class.text-amber-700]="job.status === 'PENDING' || job.status === 'PAUSED'"
+                          [class.border-amber-200]="job.status === 'PENDING' || job.status === 'PAUSED'">
                       <span class="w-1.5 h-1.5 rounded-full"
-                            [class.bg-emerald-500]="job.status === 'Open' || job.status === 'APPROVED' || job.status === 'ACTIVE'"
-                            [class.bg-rose-500]="job.status === 'Closed' || job.status === 'CLOSED' || job.status === 'INACTIVE' || job.status === 'REJECTED'"
-                            [class.bg-amber-500]="job.status === 'On Hold' || job.status === 'PENDING' || job.status === 'PAUSED'"></span>
+                            [class.bg-emerald-500]="job.status === 'ACTIVE'"
+                            [class.bg-rose-500]="job.status === 'CLOSED' || job.status === 'INACTIVE'"
+                            [class.bg-amber-500]="job.status === 'PENDING' || job.status === 'PAUSED'"></span>
                       {{ job.status }}
                     </span>
                   </td>
@@ -1291,10 +1291,18 @@
                   <i class="fas fa-circle" style="font-size: 6px;"></i> {{ getStageName(candidate.stage) }}
                 </span>
                 <span class="pipeline-dept-badge">{{ candidate.department }}</span>
+                <span *ngIf="candidate.isReferral" style="display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 0.68rem; font-weight: 600; background: #EDE9FE; color: #7C3AED; border: 1px solid #DDD6FE;">
+                  <i class="fas fa-user-friends" style="font-size: 7px;"></i> Referral
+                </span>
               </div>
               <div class="pipeline-card-footer">
                 <span class="text-xs text-muted"><i class="far fa-calendar-alt"></i> Applied {{ candidate.appliedDate }}</span>
-                <span class="pipeline-view-link"><i class="fas fa-external-link-alt"></i> View Pipeline</span>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                  <button (click)="$event.stopPropagation(); rejectCandidate(candidate)" style="background: none; border: none; color: #EF4444; font-size: 0.78rem; font-weight: 600; cursor: pointer; padding: 0;">
+                    <i class="fas fa-times"></i> Reject
+                  </button>
+                  <span class="pipeline-view-link"><i class="fas fa-external-link-alt"></i> View</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1480,16 +1488,53 @@
                     </select>
                   </div>
 
-                  <!-- Expected Salary -->
-                  <div class="form-group" style="margin-bottom: 12px;">
-                    <label style="font-size: 0.8rem; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">Expected Salary (Annual)</label>
-                    <input type="text" class="form-input" placeholder="e.g. ₹ 15,00,000" [(ngModel)]="newCandidateForm.expectedSalary" name="candSalary">
+                  <!-- Expected Salary & Current CTC -->
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 12px;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label style="font-size: 0.8rem; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">Current CTC</label>
+                      <input type="text" class="form-input" placeholder="e.g. ₹ 10,00,000" [(ngModel)]="newCandidateForm.currentCtc" name="candCurrentCtc">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label style="font-size: 0.8rem; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">Expected Salary (Annual)</label>
+                      <input type="text" class="form-input" placeholder="e.g. ₹ 15,00,000" [(ngModel)]="newCandidateForm.expectedSalary" name="candSalary">
+                    </div>
+                  </div>
+
+                  <!-- Notice Period & Willing to Relocate -->
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 12px;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label style="font-size: 0.8rem; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">Notice Period (Days)</label>
+                      <input type="number" class="form-input" placeholder="e.g. 30" min="0" step="1" [(ngModel)]="newCandidateForm.noticePeriod" name="candNoticePeriod">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label style="font-size: 0.8rem; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">Willing to Relocate</label>
+                      <div style="display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; height: 42px;">
+                        <label style="position: relative; display: inline-flex; align-items: center; cursor: pointer; margin: 0;">
+                          <input type="checkbox" [(ngModel)]="newCandidateForm.willingToRelocate" name="candRelocate" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;">
+                          <div style="width: 44px; height: 24px; border-radius: 12px; transition: all 0.3s ease; position: relative;"
+                               [style.background]="newCandidateForm.willingToRelocate ? 'linear-gradient(135deg, #0B2265, #00C4F0)' : '#CBD5E1'">
+                            <div style="width: 20px; height: 20px; border-radius: 50%; background: white; position: absolute; top: 2px; transition: all 0.3s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.15);"
+                                 [style.left]="newCandidateForm.willingToRelocate ? '22px' : '2px'"></div>
+                          </div>
+                        </label>
+                        <span style="font-size: 0.82rem; color: #475569; font-weight: 500;">{{ newCandidateForm.willingToRelocate ? 'Yes' : 'No' }}</span>
+                      </div>
+                    </div>
                   </div>
 
                   <!-- Relevant Skills -->
                   <div class="form-group" style="margin-bottom: 12px;">
                     <label style="font-size: 0.8rem; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">Relevant Skills for this Role</label>
                     <textarea class="form-input" rows="3" placeholder="Briefly describe the candidate's relevant skills for this role..." [(ngModel)]="newCandidateForm.relevantSkills" name="candRelSkills" style="resize: none;"></textarea>
+                  </div>
+
+                  <!-- Application Source -->
+                  <div class="form-group" style="margin-bottom: 12px;">
+                    <label style="font-size: 0.8rem; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">Application Source</label>
+                    <select class="form-input" [(ngModel)]="newCandidateForm.applicationSource" name="candSource">
+                      <option value="" disabled selected>-- How did candidate hear about this job? --</option>
+                      <option *ngFor="let src of applicationSourceOptions" [value]="src">{{ src }}</option>
+                    </select>
                   </div>
 
                   <!-- Referral Section -->
@@ -1564,6 +1609,14 @@
                   <span><i class="fas fa-phone"></i> {{ selectedCandidate.phone }}</span>
                   <span><i class="fas fa-briefcase"></i> {{ selectedCandidate.experience }}</span>
                 </div>
+                <button *ngIf="selectedCandidate?.resume_path || selectedCandidate?.raw?.candidate?.resume_path"
+                  class="btn btn-outline-sm" style="color: #0284C7; border-color: #BAE6FD; background: #F0F9FF; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;"
+                  (click)="openCandidateResume(selectedCandidate)" [disabled]="isDownloadingResume">
+                  <i class="fas" [ngClass]="isDownloadingResume ? 'fa-spinner fa-spin' : 'fa-file-pdf'" style="color: #EF4444;"></i> View Resume
+                </button>
+                <button class="btn btn-outline-sm" style="color: #EF4444; border-color: #FECACA; background: #FEF2F2;" (click)="rejectCandidate(selectedCandidate)">
+                  <i class="fas fa-times"></i> Reject
+                </button>
                 <button class="modal-close-btn" (click)="closeKanbanModal()"><i class="fas fa-times"></i></button>
               </div>
               <ng-template #pipelineOverviewHeader>
@@ -1613,6 +1666,9 @@
                     </div>
                     <div class="kanban-card-tags">
                       <span class="kanban-tag" *ngFor="let sk of c.skills.slice(0, 2)">{{ sk }}</span>
+                      <span *ngIf="c.isReferral" style="display: inline-flex; align-items: center; gap: 3px; padding: 1px 7px; border-radius: 999px; font-size: 0.65rem; font-weight: 600; background: #EDE9FE; color: #7C3AED; border: 1px solid #DDD6FE;">
+                        <i class="fas fa-user-friends" style="font-size: 6px;"></i> Referral
+                      </span>
                     </div>
                     <div class="kanban-card-bottom">
                       <span class="kanban-card-date"><i class="far fa-clock"></i> {{ c.appliedDate }}</span>
@@ -1761,12 +1817,18 @@
                 Awaiting interviewer feedback
               </div>
 
-              <div class="pipeline-card-footer" style="padding-top: 10px; border-top: 1px solid #E2E8F0; margin-top: auto;">
+              <div class="pipeline-card-footer" style="padding-top: 10px; border-top: 1px solid #E2E8F0; margin-top: auto; display: flex; gap: 8px;">
                 <button 
                   class="btn btn-outline-sm" 
-                  style="width: 100%; display: flex; justify-content: center; gap: 8px;"
+                  style="flex: 1; display: flex; justify-content: center; gap: 6px; color: #EF4444; border-color: #FECACA; background: #FEF2F2;"
+                  (click)="rejectCandidate(candidate)">
+                  <i class="fas fa-times"></i> Reject
+                </button>
+                <button 
+                  class="btn btn-outline-sm" 
+                  style="flex: 1; display: flex; justify-content: center; gap: 6px;"
                   (click)="addToComparator(candidate)">
-                  <i class="fas fa-plus"></i> Add to Compare
+                  <i class="fas fa-plus"></i> Add
                 </button>
               </div>
             </div>
@@ -1870,8 +1932,11 @@
                       <span class="pipeline-skill-tag" *ngFor="let sk of c.skills" style="background: #F1F5F9; border: 1px solid #E2E8F0;">{{ sk }}</span>
                     </div>
                   </div>
-                  <div class="detail-row" style="margin-top: 10px;">
-                    <a [href]="'mailto:' + c.email" class="btn btn-outline-sm" style="display: block; text-align: center; text-decoration: none;"><i class="fas fa-envelope"></i> Contact</a>
+                  <div class="detail-row" style="margin-top: 10px; display: flex; gap: 8px;">
+                    <a [href]="'mailto:' + c.email" class="btn btn-outline-sm" style="flex: 1; text-align: center; text-decoration: none;"><i class="fas fa-envelope"></i> Contact</a>
+                    <button class="btn btn-outline-sm" style="flex: 1; display: flex; justify-content: center; gap: 6px; color: #EF4444; border-color: #FECACA; background: #FEF2F2;" (click)="rejectCandidate(c); removeFromComparator(c.application_id)">
+                      <i class="fas fa-times"></i> Reject
+                    </button>
                   </div>
                 </div>
               </div>
@@ -2005,7 +2070,7 @@
             <div class="ref-candidate-list">
               <div *ngFor="let ref of selectedReferralCandidates" class="ref-candidate-card">
                 <div class="ref-candidate-top">
-                  <div class="mi-avatar">{{ ref.candidate_name?.charAt(0) || '?' }}</div>
+                  <div class="mi-avatar">{{ (ref.candidate_name || '').charAt(0) || '?' }}</div>
                   <div class="ref-candidate-info">
                     <h4 class="ref-candidate-name">{{ ref.candidate_name }}</h4>
                     <span class="mi-candidate-id">{{ ref.candidate_id }}</span>
@@ -2407,7 +2472,7 @@
             <div *ngFor="let req of hrPendingRequests" class="mi-card" style="cursor: default;">
               <div class="mi-card-top">
                 <div class="mi-candidate">
-                  <div class="mi-avatar">{{ req.candidate_name?.charAt(0) || '?' }}</div>
+                  <div class="mi-avatar">{{ (req.candidate_name || '').charAt(0) || '?' }}</div>
                   <div>
                     <h3 class="mi-candidate-name">{{ req.candidate_name || 'Unnamed Candidate' }}</h3>
                     <span class="mi-candidate-id">{{ req.candidate_email }}</span>
@@ -2494,7 +2559,7 @@
             <div *ngFor="let iv of myHrInterviews" class="mi-card" (click)="openMyInterviewDetail(iv)">
               <div class="mi-card-top">
                 <div class="mi-candidate">
-                  <div class="mi-avatar">{{ iv.candidate_name?.charAt(0) || '?' }}</div>
+                  <div class="mi-avatar">{{ (iv.candidate_name || '').charAt(0) || '?' }}</div>
                   <div>
                     <h3 class="mi-candidate-name">{{ iv.candidate_name }}</h3>
                     <span class="mi-candidate-id">{{ iv.candidate_id }}</span>
@@ -2584,7 +2649,7 @@
           <h3 class="mi-section-title"><i class="fas fa-user"></i> Candidate</h3>
           <div class="mi-candidate-detail-card">
             <div class="mi-candidate-detail-top">
-              <div class="mi-avatar lg">{{ selectedMyInterview?.candidate_name?.charAt(0) || '?' }}</div>
+              <div class="mi-avatar lg">{{ (selectedMyInterview?.candidate_name || '').charAt(0) || '?' }}</div>
               <div>
                 <h4>{{ selectedMyInterview?.candidate_name }}</h4>
                 <span class="text-muted">{{ selectedMyInterview?.candidate_email }}</span>
@@ -2601,10 +2666,12 @@
                 <span class="mi-value">{{ selectedMyInterview.candidate_skills }}</span>
               </div>
             </div>
-            <a *ngIf="getMySelectedResumeUrl()" [href]="getMySelectedResumeUrl()" target="_blank" class="mi-resume-link">
-              <i class="fas fa-file-alt"></i>
+            <button *ngIf="selectedMyInterview?.candidate_resume_path"
+              (click)="openCandidateResume(selectedMyInterview)" [disabled]="isDownloadingResume"
+              class="mi-resume-link" style="border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fas" [ngClass]="isDownloadingResume ? 'fa-spinner fa-spin' : 'fa-file-alt'"></i>
               View Resume
-            </a>
+            </button>
           </div>
         </div>
 
@@ -2731,12 +2798,200 @@
         </div>
       </div>
 
+      <!-- ==================== AI SCREENING TAB ==================== -->
+      <ng-container *ngIf="activeTab === 'AI Screening'">
+        <div style="display: flex; flex-direction: column; flex-grow: 1; height: 100%;">
+          <!-- Header with filters -->
+          <div class="dashboard-header mb-3">
+            <div>
+              <h1 style="font-size: 1.5rem; display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-robot" style="color: #2563EB;"></i> AI Candidate Screening
+              </h1>
+              <p class="text-muted" style="margin: 0; font-size: 0.9rem;">
+                Automated resume relevance scoring, skill gap analysis, and fast-track shortlisting.
+              </p>
+            </div>
+            <div class="header-actions">
+              <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search candidate, role, skills..." [(ngModel)]="aiScreeningSearchQuery" (ngModelChange)="applyAiScreeningFilters()">
+              </div>
+              <select class="form-input" style="width: auto; padding: 6px 12px; font-size: 0.85rem; height: 38px; border-radius: 8px;"
+                [(ngModel)]="aiScreeningSelectedJob" (ngModelChange)="applyAiScreeningFilters()">
+                <option value="ALL">All Job Roles</option>
+                <option *ngFor="let j of aiScreeningJobRoles" [value]="j">{{ j }}</option>
+              </select>
+              <select class="form-input" style="width: auto; padding: 6px 12px; font-size: 0.85rem; height: 38px; border-radius: 8px;"
+                [(ngModel)]="aiScreeningScoreFilter" (ngModelChange)="applyAiScreeningFilters()">
+                <option value="ALL">All Match Scores</option>
+                <option value="HIGH">Strong Fit (≥ 80%)</option>
+                <option value="MEDIUM">Potential Fit (60 - 79%)</option>
+                <option value="LOW">Review Needed (&lt; 60%)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- KPI Summary Row -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <div class="bg-white rounded-xl p-4 shadow-sm" style="border: 1px solid #E2E8F0; display: flex; align-items: center; gap: 14px;">
+              <div style="width: 44px; height: 44px; border-radius: 10px; background: #EFF6FF; display: flex; align-items: center; justify-content: center; color: #2563EB; font-size: 1.2rem;">
+                <i class="fas fa-users"></i>
+              </div>
+              <div>
+                <div style="font-size: 1.35rem; font-weight: 800; color: #0F172A;">{{ aiScreeningList.length }}</div>
+                <div style="font-size: 0.8rem; color: #64748B; font-weight: 500;">Screening Pool</div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-xl p-4 shadow-sm" style="border: 1px solid #E2E8F0; display: flex; align-items: center; gap: 14px;">
+              <div style="width: 44px; height: 44px; border-radius: 10px; background: #ECFDF5; display: flex; align-items: center; justify-content: center; color: #10B981; font-size: 1.2rem;">
+                <i class="fas fa-bullseye"></i>
+              </div>
+              <div>
+                <div style="font-size: 1.35rem; font-weight: 800; color: #10B981;">{{ aiScreeningHighMatchCount }}</div>
+                <div style="font-size: 0.8rem; color: #64748B; font-weight: 500;">Strong Fits (≥ 80%)</div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-xl p-4 shadow-sm" style="border: 1px solid #E2E8F0; display: flex; align-items: center; gap: 14px;">
+              <div style="width: 44px; height: 44px; border-radius: 10px; background: #FEF3C7; display: flex; align-items: center; justify-content: center; color: #D97706; font-size: 1.2rem;">
+                <i class="fas fa-chart-line"></i>
+              </div>
+              <div>
+                <div style="font-size: 1.35rem; font-weight: 800; color: #0F172A;">{{ aiScreeningAverageScore }}%</div>
+                <div style="font-size: 0.8rem; color: #64748B; font-weight: 500;">Avg Compatibility</div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-xl p-4 shadow-sm" style="border: 1px solid #E2E8F0; display: flex; align-items: center; gap: 14px;">
+              <div style="width: 44px; height: 44px; border-radius: 10px; background: #F3E8FF; display: flex; align-items: center; justify-content: center; color: #9333EA; font-size: 1.2rem;">
+                <i class="fas fa-file-alt"></i>
+              </div>
+              <div>
+                <div style="font-size: 1.35rem; font-weight: 800; color: #0F172A;">{{ jobsList.length }}</div>
+                <div style="font-size: 0.8rem; color: #64748B; font-weight: 500;">Active Requisitions</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty State -->
+          <div *ngIf="aiScreeningList.length === 0" class="bg-white rounded-2xl p-12 text-center shadow-sm" style="border: 1px solid #E2E8F0;">
+            <div style="width: 60px; height: 60px; border-radius: 50%; background: #EFF6FF; color: #2563EB; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 1.5rem;">
+              <i class="fas fa-robot"></i>
+            </div>
+            <h3 style="font-weight: 700; color: #1E293B; margin-bottom: 6px;">No Candidates Found</h3>
+            <p class="text-muted" style="max-width: 450px; margin: 0 auto 16px; font-size: 0.9rem;">
+              No candidates match your current search criteria or role filters.
+            </p>
+            <button class="btn btn-primary-blue" (click)="resetAiScreeningFilters()">
+              Reset Filters
+            </button>
+          </div>
+
+          <!-- Candidates Screening Cards -->
+          <div *ngIf="aiScreeningList.length > 0" style="display: flex; flex-direction: column; gap: 16px;">
+            <div *ngFor="let candidate of aiScreeningList; trackBy: trackByCandidateId" class="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all"
+              style="border: 1px solid #E2E8F0; display: flex; flex-direction: column; gap: 16px;">
+              
+              <!-- Top Row: Candidate details & AI match badge -->
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                  <div style="width: 48px; height: 48px; border-radius: 12px; background: #2563EB; color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; box-shadow: 0 4px 10px rgba(37,99,235,0.2);">
+                    {{ candidate.avatar }}
+                  </div>
+                  <div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <h3 style="font-size: 1.1rem; font-weight: 700; color: #0F172A; margin: 0;">{{ candidate.name }}</h3>
+                      <span *ngIf="candidate.isReferral" style="background: #FEF3C7; color: #B45309; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 9999px;">
+                        Referral
+                      </span>
+                    </div>
+                    <div style="font-size: 0.85rem; color: #64748B; margin-top: 2px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                      <span style="font-weight: 600; color: #334155;">{{ candidate.role }}</span>
+                      <span>•</span>
+                      <span>{{ candidate.department }}</span>
+                      <span>•</span>
+                      <span>Experience: <strong style="color: #0F172A;">{{ candidate.experience }}</strong></span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- AI Score Pill -->
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div style="text-align: right;">
+                    <div style="font-size: 1.3rem; font-weight: 800;"
+                      [style.color]="candidate.aiScore >= 80 ? '#10B981' : (candidate.aiScore >= 60 ? '#2563EB' : '#64748B')">
+                      {{ candidate.aiScore }}%
+                    </div>
+                    <div style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;"
+                      [style.color]="candidate.aiScore >= 80 ? '#059669' : (candidate.aiScore >= 60 ? '#1D4ED8' : '#64748B')">
+                      {{ candidate.aiMatchLevel }}
+                    </div>
+                  </div>
+                  <div style="width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;"
+                    [style.background]="candidate.aiScore >= 80 ? '#ECFDF5' : (candidate.aiScore >= 60 ? '#EFF6FF' : '#F1F5F9')"
+                    [style.color]="candidate.aiScore >= 80 ? '#10B981' : (candidate.aiScore >= 60 ? '#2563EB' : '#64748B')">
+                    <i [class]="candidate.aiScore >= 80 ? 'fas fa-check-circle' : (candidate.aiScore >= 60 ? 'fas fa-thumbs-up' : 'fas fa-info-circle')"></i>
+                  </div>
+                </div>
+              </div>
+
+              <!-- AI Analysis summary bar -->
+              <div style="background: #F8FAFC; border-radius: 10px; padding: 10px 14px; border: 1px solid #EEF2F6; font-size: 0.85rem; color: #475569; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-sparkles" style="color: #6366F1;"></i>
+                <span><strong>AI Insight:</strong> {{ candidate.aiSummary }}</span>
+              </div>
+
+              <!-- Skills tags & Actions row -->
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding-top: 6px; border-top: 1px solid #F1F5F9;">
+                <!-- Skills Chips -->
+                <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                  <span style="font-size: 0.78rem; font-weight: 600; color: #64748B; margin-right: 4px;">Skills:</span>
+                  <span *ngFor="let s of (candidate.skills || []).slice(0, 6)"
+                    style="background: #EFF6FF; color: #1D4ED8; font-size: 0.75rem; font-weight: 600; padding: 3px 8px; border-radius: 6px; border: 1px solid #DBEAFE;">
+                    {{ s }}
+                  </span>
+                  <span *ngIf="candidate.skills && candidate.skills.length > 6" style="font-size: 0.75rem; color: #94A3B8; font-weight: 600;">
+                    +{{ candidate.skills.length - 6 }} more
+                  </span>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 10px; align-items: center; margin-left: auto;">
+                  <button *ngIf="candidate.resume_path || candidate?.raw?.candidate?.resume_path"
+                    (click)="openCandidateResume(candidate)" [disabled]="isDownloadingResume"
+                    class="btn btn-outline-sm" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 0.82rem; cursor: pointer;">
+                    <i class="fas" [ngClass]="isDownloadingResume ? 'fa-spinner fa-spin' : 'fa-file-pdf'" style="color: #EF4444;"></i> Resume
+                  </button>
+                  <button class="btn btn-outline-sm" style="padding: 6px 12px; font-size: 0.82rem; color: #EF4444; border-color: #FECACA;"
+                    (click)="rejectFromAiScreening(candidate)" [disabled]="aiScreeningProcessingId === candidate.candidate_id">
+                    Reject
+                  </button>
+                  <button class="btn btn-primary-blue" style="padding: 6px 14px; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 6px;"
+                    (click)="shortlistFromAiScreening(candidate)" [disabled]="aiScreeningProcessingId === candidate.candidate_id || candidate.stage === 'screened'">
+                    <i class="fas fa-check"></i>
+                    {{ candidate.stage === 'screened' ? 'Shortlisted' : 'Shortlist' }}
+                  </button>
+                  <button class="btn btn-primary-blue" style="background: #10B981; padding: 6px 14px; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 6px;"
+                    (click)="scheduleFromAiScreening(candidate)">
+                    <i class="fas fa-calendar-plus"></i> Schedule Interview
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
       <!-- ==================== FALLBACK FOR OTHER TABS ==================== -->
-      <ng-container *ngIf="activeTab !== 'Dashboard' && activeTab !== 'Job Requisition' && activeTab !== 'Jobs' && activeTab !== 'Interview Panel' && activeTab !== 'Interview Requests' && activeTab !== 'My Interviews' && activeTab !== 'Scheduling' && activeTab !== 'Candidate Pipeline' && activeTab !== 'Candidate Comparison' && activeTab !== 'Referral Tracking' && activeTab !== 'Offer Tracker'">
+      <ng-container *ngIf="activeTab !== 'Dashboard' && activeTab !== 'Job Requisition' && activeTab !== 'Jobs' && activeTab !== 'Interview Panel' && activeTab !== 'Interview Requests' && activeTab !== 'My Interviews' && activeTab !== 'Scheduling' && activeTab !== 'Candidate Pipeline' && activeTab !== 'Candidate Comparison' && activeTab !== 'Referral Tracking' && activeTab !== 'Offer Tracker' && activeTab !== 'AI Screening'">
         <div style="display: flex; flex-direction: column; flex-grow: 1; height: 100%;">
           <div class="dashboard-header">
-            <h1>{{ activeTab }}</h1>
-            <p class="text-muted">This page is currently under construction for the {{ activeTab }} module.</p>
+            <div>
+              <h1>{{ activeTab }}</h1>
+              <p class="text-muted">This page is currently under construction for the {{ activeTab }} module.</p>
+            </div>
           </div>
           <div class="bg-white rounded-lg p-5" style="border: 1px solid #E2E8F0; flex-grow: 1;">
             <p class="text-muted">Content for {{ activeTab }} will be securely loaded here.</p>

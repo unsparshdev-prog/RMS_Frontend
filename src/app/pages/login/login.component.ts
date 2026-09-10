@@ -260,24 +260,29 @@ export class LoginComponent {
                 }
                 return null;
               })
-              .then((allCandidatesResp: any) => {
+              .then(async (allCandidatesResp: any) => {
                 if (!allCandidatesResp) return;
-                
-                // If we reach here, we are doing a manual search for the email
+
+                const extractIdText = (r: any): string => {
+                  if (Array.isArray(r)) r = r[0];
+                  if (!r) return '';
+                  if (typeof r === 'string') return r.trim();
+                  if (r?.text) return r.text.trim();
+                  if (r?.['#text']) return r['#text'].trim();
+                  if (r?.['$t']) return r['$t'].trim();
+                  return String(r).trim();
+                };
+
+                // 1. Search candidate records with robust text & case-insensitive matching
                 try {
                   const candidates = this.heroService.xmltojson(allCandidatesResp, 'candidate');
                   const candList = Array.isArray(candidates) ? candidates : (candidates ? [candidates] : []);
-                  const found = candList.find((c: any) => c.email === email);
-                  
-                  const extractIdText = (r: any): string => {
-                    if (Array.isArray(r)) r = r[0];
-                    if (!r) return '';
-                    if (typeof r === 'string') return r;
-                    if (r?.text) return r.text;
-                    if (r?.['#text']) return r['#text'];
-                    if (r?.['$t']) return r['$t'];
-                    return String(r);
-                  };
+                  const cleanSearch = email.toLowerCase().trim();
+
+                  const found = candList.find((c: any) => {
+                    const cEmail = extractIdText(c.email).toLowerCase();
+                    return cEmail === cleanSearch || (cleanSearch.includes('@') && cEmail === cleanSearch.split('@')[0]);
+                  });
 
                   if (found) {
                     let fallbackId = extractIdText(found.candidate_id) || extractIdText(found.Candidate_id);
@@ -286,23 +291,38 @@ export class LoginComponent {
                     }
                     sessionStorage.setItem('candidate_id', fallbackId);
                     console.log('[CandidateLogin] Found ID via list search:', fallbackId);
-                  } else {
-                    console.error('[CandidateLogin] Email not found in candidate records.');
-                    sessionStorage.setItem('candidate_id', email);
+                    this.auth.setAuthenticated(true);
+                    this.loading = false;
+                    this.router.navigate(['/candidate']);
+                    return;
                   }
                 } catch (e) {
-                  sessionStorage.setItem('candidate_id', email);
+                  console.warn('[CandidateLogin] List search error:', e);
                 }
+
+                // 2. Not found in candidate DB: Check if this user is an Employee/HR logging in via Candidate tab!
+                console.log('[CandidateLogin] Not found in candidate records. Checking if user is an employee/HR user...');
+                const cleanEmpId = email.includes('@') ? email.split('@')[0].trim() : email.trim();
+                try {
+                  await this.fetchEmployeeRolesAndRedirect(cleanEmpId);
+                  return;
+                } catch (empErr) {
+                  console.warn('[CandidateLogin] User is not an employee either:', empErr);
+                }
+
+                // 3. Fallback for new candidate: Navigate to resume-upload so they can initialize profile
+                console.log('[CandidateLogin] Directing new candidate to resume upload to complete profile.');
+                sessionStorage.setItem('candidate_id', email);
                 this.auth.setAuthenticated(true);
                 this.loading = false;
-                this.router.navigate(['/candidate']);
+                this.router.navigate(['/candidate/resume-upload']);
               })
             .catch((err: any) => {
               console.error('[CandidateLogin] Error during ID retrieval process:', err);
               sessionStorage.setItem('candidate_id', email);
               this.auth.setAuthenticated(true);
               this.loading = false;
-              this.router.navigate(['/candidate']);
+              this.router.navigate(['/candidate/resume-upload']);
             });
         })
         .fail((err: any) => {

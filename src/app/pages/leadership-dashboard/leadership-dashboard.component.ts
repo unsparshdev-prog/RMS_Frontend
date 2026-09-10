@@ -239,11 +239,10 @@ export class LeadershipDashboardComponent implements OnInit {
       console.log('[Dashboard] All jobs parsed:', allJobs.length, allJobs);
       console.log('[Dashboard] Job statuses:', allJobs.map(j => ({ jr_id: j.jr_id, status: j.status, approval_status: j.approval_status })));
 
-      // Active jobs: approval_status is APPROVED or status is OPEN/ACTIVE (case-insensitive)
+      // Active jobs: status is ACTIVE (canonical status set by leadership approval)
       this.jobs = allJobs.filter(j => {
-        const approval = (j.approval_status || '').toUpperCase();
         const status = (j.status || '').toUpperCase();
-        return approval === 'APPROVED' || status === 'OPEN' || status === 'ACTIVE';
+        return status === 'ACTIVE';
       });
       this.pendingApprovals = allJobs.filter(j => (j.approval_status || '').toUpperCase() === 'PENDING')
         .sort((a, b) => {

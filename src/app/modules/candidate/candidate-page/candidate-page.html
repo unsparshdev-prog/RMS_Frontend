@@ -1,0 +1,73 @@
+<div class="container mt-4">
+
+<h2>Candidate Portal</h2>
+
+<ul class="nav nav-tabs">
+
+<li class="nav-item">
+<a class="nav-link" 
+   [class.active]="activeTab === 'resume'"
+   (click)="activeTab='resume'">
+   Resume Upload
+</a>
+</li>
+
+<li class="nav-item">
+<a class="nav-link"
+   [class.active]="activeTab === 'apply'"
+   (click)="activeTab='apply'">
+   Apply for Jobs
+</a>
+</li>
+
+<li class="nav-item">
+<a class="nav-link"
+   [class.active]="activeTab === 'data'"
+   (click)="activeTab='data'">
+   Candidate Data
+</a>
+</li>
+
+<li class="nav-item">
+<a class="nav-link"
+   [class.active]="activeTab === 'applied'"
+   (click)="activeTab='applied'">
+   Applied Jobs
+</a>
+</li>
+
+<li class="nav-item">
+<a class="nav-link"
+   [class.active]="activeTab === 'selected'"
+   (click)="activeTab='selected'">
+   Selected Jobs
+</a>
+</li>
+
+</ul>
+
+<div class="tab-content mt-3">
+
+<div *ngIf="activeTab === 'resume'">
+<app-resume-upload></app-resume-upload>
+</div>
+
+<div *ngIf="activeTab === 'apply'">
+<app-apply-jobs></app-apply-jobs>
+</div>
+
+<div *ngIf="activeTab === 'data'">
+<app-candidate-data></app-candidate-data>
+</div>
+
+<div *ngIf="activeTab === 'applied'">
+<app-applied-jobs></app-applied-jobs>
+</div>
+
+<div *ngIf="activeTab === 'selected'">
+<app-selected-jobs></app-selected-jobs>
+</div>
+
+</div>
+
+</div>

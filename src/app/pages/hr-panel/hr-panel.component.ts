@@ -76,7 +76,7 @@ export class HrPanelComponent implements OnInit, OnDestroy {
   // Toast
   showToastMsg = false;
   toastMessage = '';
-  toastType: 'success' | 'error' = 'success';
+  toastType: 'success' | 'error' | 'info' = 'success';
   loggedInAdminName = 'HR';
   loggedInAdminFullName = 'HR Admin';
   loggedInAdminInitial = 'H';
@@ -197,13 +197,14 @@ export class HrPanelComponent implements OnInit, OnDestroy {
     });
   }
 
-  ngOnInit() {
+  async ngOnInit() {
     this.resolveLoggedInUser();
     this.loadJobs();
     this.loadInterviewPanels();
-    this.loadCandidates();
     this.loadInterviewsAndPanels();
-    this.loadReferrals();
+    // Load referrals first so allReferralRecords is populated before loadCandidates checks isReferral
+    await this.loadReferrals();
+    this.loadCandidates();
     this.loadOfferedApplications();
     this.loadAllOffers();
     this.startNotificationsPolling();
@@ -216,7 +217,7 @@ export class HrPanelComponent implements OnInit, OnDestroy {
     }
   }
 
-  private readonly RESUME_DOWNLOAD_BASE = 'http://43.242.214.239:81/home/training2025/MAHINDRA_UPLOADS/Intern_Uploads';
+  private readonly RESUME_DOWNLOAD_BASE = 'http://43.242.214.197:8081/home/Adnate/MAHINDRA_UPLOADS/Intern_Uploads';
 
   async resolveLoggedInUser() {
     let emailOrId = '';
@@ -295,7 +296,7 @@ export class HrPanelComponent implements OnInit, OnDestroy {
     this.router.navigate(['/login']);
   }
 
-  showToast(message: string, type: 'success' | 'error') {
+  showToast(message: string, type: 'success' | 'error' | 'info' = 'success') {
     this.toastMessage = message;
     this.toastType = type;
     this.showToastMsg = true;
@@ -462,7 +463,7 @@ export class HrPanelComponent implements OnInit, OnDestroy {
 
   // --- Dynamic Dashboard Data ---
   get dashboardOpenPositions(): number {
-    return this.jobsList.filter(j => ['OPEN', 'ACTIVE', 'APPROVED'].includes(j.status?.toUpperCase())).length;
+    return this.jobsList.filter(j => j.status?.toUpperCase() === 'ACTIVE').length;
   }
 
   // Cached active jobs list to avoid creating new arrays on every change detection cycle
@@ -1479,6 +1480,10 @@ export class HrPanelComponent implements OnInit, OnDestroy {
       this.loadOfferedApplications();
       this.loadAllOffers();
     }
+    if (tabName === 'AI Screening') {
+      this.updateAiScreeningJobRoles();
+      this.applyAiScreeningFilters();
+    }
   }
 
   toggleSidebar() {
@@ -1544,7 +1549,7 @@ export class HrPanelComponent implements OnInit, OnDestroy {
       no_of_positions: '1',
       priority: 'Medium',
       status: 'PENDING',
-      approval_status: 'Pending',
+      approval_status: 'PENDING',
       closing_date: ''
     };
     this.editingJobId = null;
@@ -1968,9 +1973,29 @@ export class HrPanelComponent implements OnInit, OnDestroy {
     expectedSalary: '',
     relevantSkills: '',
     preferredLocation: '',
+    currentCtc: '',
+    noticePeriod: '',
+    willingToRelocate: false,
+    applicationSource: '',
     hasReferral: false,
     referralEmployeeId: ''
   };
+
+  // Source options for how the candidate found the job
+  applicationSourceOptions: string[] = [
+    'LinkedIn',
+    'Career Portal',
+    'Naukri',
+    'Indeed',
+    'Glassdoor',
+    'Company Website',
+    'Campus Recruitment',
+    'Job Fair',
+    'Social Media',
+    'Newspaper/Print Ad',
+    'Employee Referral',
+    'Other'
+  ];
 
   // Available locations for the selected job (parsed from job's location field)
   candidateJobLocations: string[] = [];
@@ -2101,7 +2126,7 @@ export class HrPanelComponent implements OnInit, OnDestroy {
 
   openAddCandidateModal() {
     this.showAddCandidateModal = true;
-    this.newCandidateForm = { name: '', email: '', phone: '', experience: '', skills: '', jr_id: '', expectedSalary: '', relevantSkills: '', preferredLocation: '', hasReferral: false, referralEmployeeId: '' };
+    this.newCandidateForm = { name: '', email: '', phone: '', experience: '', skills: '', jr_id: '', expectedSalary: '', relevantSkills: '', preferredLocation: '', currentCtc: '', noticePeriod: '', willingToRelocate: false, applicationSource: '', hasReferral: false, referralEmployeeId: '' };
     this.candidateDuplicateCheck = 'idle';
     this.existingCandidateData = null;
     this.candidateFormErrors = {};
@@ -2113,7 +2138,7 @@ export class HrPanelComponent implements OnInit, OnDestroy {
 
   closeAddCandidateModal() {
     this.showAddCandidateModal = false;
-    this.newCandidateForm = { name: '', email: '', phone: '', experience: '', skills: '', jr_id: '', expectedSalary: '', relevantSkills: '', preferredLocation: '', hasReferral: false, referralEmployeeId: '' };
+    this.newCandidateForm = { name: '', email: '', phone: '', experience: '', skills: '', jr_id: '', expectedSalary: '', relevantSkills: '', preferredLocation: '', currentCtc: '', noticePeriod: '', willingToRelocate: false, applicationSource: '', hasReferral: false, referralEmployeeId: '' };
     this.candidateDuplicateCheck = 'idle';
     this.existingCandidateData = null;
     this.candidateFormErrors = {};
@@ -2136,6 +2161,10 @@ export class HrPanelComponent implements OnInit, OnDestroy {
     this.newCandidateForm.preferredLocation = '';
     this.newCandidateForm.expectedSalary = '';
     this.newCandidateForm.relevantSkills = '';
+    this.newCandidateForm.currentCtc = '';
+    this.newCandidateForm.noticePeriod = '';
+    this.newCandidateForm.willingToRelocate = false;
+    this.newCandidateForm.applicationSource = '';
     this.newCandidateForm.hasReferral = false;
     this.newCandidateForm.referralEmployeeId = '';
 
@@ -2314,6 +2343,12 @@ export class HrPanelComponent implements OnInit, OnDestroy {
       if (this.newCandidateForm.jr_id) {
         this.resumeUploadProgress = 'Assigning candidate to job...';
         try {
+          const extraData = {
+            currentCtc: this.newCandidateForm.currentCtc || '',
+            experience: this.newCandidateForm.experience || '',
+            noticePeriod: this.newCandidateForm.noticePeriod || '',
+            willingToRelocate: this.newCandidateForm.willingToRelocate || false
+          };
           await this.heroService.updateCandidateJobApplication({
             candidate_id: candidateId,
             jr_id: this.newCandidateForm.jr_id,
@@ -2321,7 +2356,9 @@ export class HrPanelComponent implements OnInit, OnDestroy {
             stage: 'applied',
             temp1: this.newCandidateForm.expectedSalary || name,
             temp2: this.newCandidateForm.relevantSkills || '',
-            temp3: this.newCandidateForm.preferredLocation || ''
+            temp3: this.newCandidateForm.preferredLocation || '',
+            temp4: JSON.stringify(extraData),
+            temp5: this.newCandidateForm.applicationSource || ''
           });
           console.log('[HrPanel] Assigned candidate', candidateId, 'to job', this.newCandidateForm.jr_id);
 
@@ -2417,6 +2454,21 @@ export class HrPanelComponent implements OnInit, OnDestroy {
         const skillsStr = ext(candidate.skills) || '';
         const skills = skillsStr ? skillsStr.split(',').map((s: string) => s.trim()) : [];
 
+        // Detect application source (temp5) and referral status
+        const applicationSource = ext(app.temp5) || '';
+        const isReferral = applicationSource.toLowerCase() === 'employee referral'
+          || this.allReferralRecords.some((r: any) => r.candidate_id === candidateId);
+
+        // Parse extra application data from temp4 JSON (experience, currentCtc, etc.)
+        let appExperience = '';
+        try {
+          const temp4Raw = ext(app.temp4);
+          if (temp4Raw) {
+            const extraData = JSON.parse(temp4Raw);
+            appExperience = extraData.experience || '';
+          }
+        } catch (e) { /* temp4 not valid JSON, ignore */ }
+
         return {
           application_id: ext(app.application_id),
           candidate_id: candidateId,
@@ -2430,7 +2482,9 @@ export class HrPanelComponent implements OnInit, OnDestroy {
           skills: skills,
           email: ext(candidate.email) || '',
           phone: ext(candidate.phone) || '',
-          experience: ext(candidate.experience) || '0 years',
+          experience: appExperience || ext(candidate.experience) || '0 years',
+          isReferral: isReferral,
+          applicationSource: applicationSource,
           raw: { candidate, application: app }
         };
       }).filter((c: any) => c.candidate_id && c.name);
@@ -2439,6 +2493,10 @@ export class HrPanelComponent implements OnInit, OnDestroy {
       console.log('[HrPanel] Loaded candidates:', this.candidates);
       this.calculateApplicantCounts();
       this.renderHiringChart();
+      this.updateAiScreeningJobRoles();
+      if (this.activeTab === 'AI Screening') {
+        this.applyAiScreeningFilters();
+      }
     } catch (e) {
       console.error('[HrPanel] Error loading candidates:', e);
       this.showToast('Failed to load candidates from server.', 'error');
@@ -2492,15 +2550,254 @@ export class HrPanelComponent implements OnInit, OnDestroy {
   }
 
 
+  // --- AI Screening Module ---
+  aiScreeningSearchQuery = '';
+  aiScreeningSelectedJob = 'ALL';
+  aiScreeningScoreFilter = 'ALL';
+  aiScreeningProcessingId: string | null = null;
+  aiScreeningList: any[] = [];
+  aiScreeningHighMatchCount = 0;
+  aiScreeningAverageScore = 0;
+  aiScreeningJobRoles: string[] = [];
+
+  get uniqueJobRoles(): string[] {
+    return this.aiScreeningJobRoles;
+  }
+
+  get aiScreeningCandidates(): any[] {
+    return this.aiScreeningList;
+  }
+
+  trackByCandidateId(index: number, item: any): any {
+    return item?.application_id || item?.candidate_id || index;
+  }
+
+  updateAiScreeningJobRoles() {
+    const set = new Set<string>();
+    (this.candidates || []).forEach(c => {
+      if (c.role && c.role !== 'Not specified') set.add(c.role);
+    });
+    (this.jobsList || []).forEach(j => {
+      if (j.title) set.add(j.title);
+    });
+    this.aiScreeningJobRoles = Array.from(set).sort();
+  }
+
+  computeAiMatch(candidate: any) {
+    const job = (this.jobsList || []).find(j => j.title && j.title.toLowerCase() === (candidate.role || '').toLowerCase());
+    const jobSkillsStr = job?.raw?.skills || job?.raw?.required_skills || job?.raw?.skill_set || '';
+    const jobSkills: string[] = jobSkillsStr ? jobSkillsStr.split(',').map((s: string) => s.trim().toLowerCase()).filter(Boolean) : [];
+
+    const candSkills: string[] = (candidate.skills || []).map((s: string) => s.toLowerCase());
+
+    const matched: string[] = [];
+    const missing: string[] = [];
+
+    if (jobSkills.length > 0) {
+      jobSkills.forEach((js: string) => {
+        if (candSkills.some((cs: string) => cs.includes(js) || js.includes(cs))) {
+          matched.push(js);
+        } else {
+          missing.push(js);
+        }
+      });
+    }
+
+    let score = 70;
+    if (jobSkills.length > 0) {
+      const matchRatio = matched.length / jobSkills.length;
+      score = Math.round(matchRatio * 65 + (candSkills.length > 2 ? 25 : 15));
+    } else {
+      const skillBonus = Math.min((candidate.skills || []).length * 8, 45);
+      const expNum = parseFloat(String(candidate.experience).replace(/[^\d.]/g, '')) || 0;
+      const expBonus = Math.min(expNum * 7, 35);
+      score = Math.min(96, Math.max(45, Math.round(20 + skillBonus + expBonus)));
+    }
+
+    score = Math.min(99, Math.max(35, score));
+
+    let level = 'Review Needed';
+    let summary = 'Candidate profile shows partial alignment. Additional manual screening recommended.';
+    if (score >= 80) {
+      level = 'Strong Match';
+      summary = 'High skills overlap and relevant professional background. Recommended for interview.';
+    } else if (score >= 60) {
+      level = 'Potential Match';
+      summary = 'Foundational skills match job domain with good potential for role requirements.';
+    }
+
+    return {
+      score,
+      level,
+      matchedSkills: matched.length > 0 ? matched : (candidate.skills || []).slice(0, 4),
+      missingSkills: missing.slice(0, 3),
+      summary
+    };
+  }
+
+  applyAiScreeningFilters() {
+    if (!this.candidates || this.candidates.length === 0) {
+      this.aiScreeningList = [];
+      this.aiScreeningHighMatchCount = 0;
+      this.aiScreeningAverageScore = 0;
+      return;
+    }
+
+    // Filter active candidates for screening pool (exclude joined, revoked, withdrawn)
+    const baseCandidates = this.candidates.filter(c => !['joined', 'revoked', 'withdrawn'].includes(c.stage));
+
+    let list = baseCandidates.map(c => {
+      if (!c._aiMatch) {
+        c._aiMatch = this.computeAiMatch(c);
+      }
+      return {
+        ...c,
+        aiScore: c._aiMatch.score,
+        aiMatchLevel: c._aiMatch.level,
+        aiMatchedSkills: c._aiMatch.matchedSkills,
+        aiMissingSkills: c._aiMatch.missingSkills,
+        aiSummary: c._aiMatch.summary
+      };
+    });
+
+    if (this.aiScreeningSelectedJob && this.aiScreeningSelectedJob !== 'ALL') {
+      const selected = this.aiScreeningSelectedJob.toLowerCase();
+      list = list.filter(c => (c.role || '').toLowerCase() === selected);
+    }
+
+    if (this.aiScreeningScoreFilter === 'HIGH') {
+      list = list.filter(c => c.aiScore >= 80);
+    } else if (this.aiScreeningScoreFilter === 'MEDIUM') {
+      list = list.filter(c => c.aiScore >= 60 && c.aiScore < 80);
+    } else if (this.aiScreeningScoreFilter === 'LOW') {
+      list = list.filter(c => c.aiScore < 60);
+    }
+
+    if (this.aiScreeningSearchQuery && this.aiScreeningSearchQuery.trim()) {
+      const q = this.aiScreeningSearchQuery.toLowerCase().trim();
+      list = list.filter(c =>
+        (c.name || '').toLowerCase().includes(q) ||
+        (c.role || '').toLowerCase().includes(q) ||
+        (c.department || '').toLowerCase().includes(q) ||
+        (c.skills && c.skills.some((s: string) => s.toLowerCase().includes(q)))
+      );
+    }
+
+    list.sort((a, b) => b.aiScore - a.aiScore);
+
+    this.aiScreeningList = list;
+    this.aiScreeningHighMatchCount = list.filter(c => c.aiScore >= 80).length;
+    if (list.length > 0) {
+      const sum = list.reduce((acc, c) => acc + c.aiScore, 0);
+      this.aiScreeningAverageScore = Math.round(sum / list.length);
+    } else {
+      this.aiScreeningAverageScore = 0;
+    }
+  }
+
+  getCandidateResumeUrl(candidate: any): string {
+    const path = candidate?.raw?.candidate?.resume_path || candidate?.resume_path || candidate?.candidate_resume_path;
+    if (!path) return '';
+    const cleanName = path.split(/[/\\]/).pop() || path;
+    return `${this.RESUME_DOWNLOAD_BASE}/${cleanName}`;
+  }
+
+  isDownloadingResume = false;
+
+  async openCandidateResume(candidateOrPath: any) {
+    const rawPath = typeof candidateOrPath === 'string'
+      ? candidateOrPath
+      : (candidateOrPath?.raw?.candidate?.resume_path || candidateOrPath?.resume_path || candidateOrPath?.candidate_resume_path || '');
+
+    if (!rawPath) {
+      this.showToast('No resume file associated with this candidate.', 'error');
+      return;
+    }
+
+    const fileName = rawPath.split(/[/\\]/).pop()?.trim() || rawPath;
+    this.isDownloadingResume = true;
+    this.showToast(`Loading resume (${fileName})...`, 'info');
+
+    try {
+      const base64Data = await this.heroService.downloadDocumentRMS(fileName);
+      if (!base64Data) {
+        throw new Error('Resume content returned empty from server.');
+      }
+      this.heroService.openBase64Document(base64Data, fileName);
+    } catch (err: any) {
+      console.error('[HrPanel] DownloadDocument_RMS error, attempting HTTP fallback:', err);
+      // Fallback: Attempt opening via HTTP URL
+      const fallbackUrl = `${this.RESUME_DOWNLOAD_BASE}/${fileName}`;
+      window.open(fallbackUrl, '_blank');
+    } finally {
+      this.isDownloadingResume = false;
+    }
+  }
+
+  async shortlistFromAiScreening(candidate: any) {
+    this.aiScreeningProcessingId = candidate.candidate_id;
+    try {
+      const oldApp = candidate.raw?.application || candidate;
+      await this.heroService.updateCandidateApplication(oldApp, { application_status: 'SCREENED', stage: 'screened' });
+      candidate.stage = 'screened';
+      const idx = this.candidates.findIndex(c => c.application_id === candidate.application_id);
+      if (idx !== -1) {
+        this.candidates[idx].stage = 'screened';
+      }
+      this.showToast(`Candidate ${candidate.name} shortlisted successfully!`, 'success');
+      this.applyAiScreeningFilters();
+    } catch (e) {
+      console.error('[HrPanel] Shortlist error:', e);
+      this.showToast('Failed to shortlist candidate.', 'error');
+    } finally {
+      this.aiScreeningProcessingId = null;
+    }
+  }
+
+  scheduleFromAiScreening(candidate: any) {
+    this.activeTab = 'Scheduling';
+    this.teamsMeeting.subject = `Interview with ${candidate.name} - ${candidate.role}`;
+    this.teamsMeeting.attendees = candidate.email;
+    this.showToast(`Scheduling interview for ${candidate.name}`, 'success');
+  }
+
+  async rejectFromAiScreening(candidate: any) {
+    this.aiScreeningProcessingId = candidate.candidate_id;
+    try {
+      const oldApp = candidate.raw?.application || candidate;
+      await this.heroService.updateCandidateApplication(oldApp, { application_status: 'REJECTED', stage: 'rejected' });
+      candidate.stage = 'rejected';
+      const idx = this.candidates.findIndex(c => c.application_id === candidate.application_id);
+      if (idx !== -1) {
+        this.candidates[idx].stage = 'rejected';
+      }
+      this.showToast(`Candidate ${candidate.name} marked as rejected.`, 'success');
+      this.applyAiScreeningFilters();
+    } catch (e) {
+      console.error('[HrPanel] Reject error:', e);
+      this.showToast('Failed to update candidate.', 'error');
+    } finally {
+      this.aiScreeningProcessingId = null;
+    }
+  }
+
+  resetAiScreeningFilters() {
+    this.aiScreeningSearchQuery = '';
+    this.aiScreeningSelectedJob = 'ALL';
+    this.aiScreeningScoreFilter = 'ALL';
+    this.applyAiScreeningFilters();
+  }
+
   // --- Candidate Comparison ---
   comparatorList: any[] = [];
   showComparatorModal = false;
   comparisonSearchQuery = '';
 
   get filteredComparisonCandidates() {
-    if (!this.comparisonSearchQuery.trim()) return this.activeCandidates;
+    const pool = this.candidates.filter(c => !['joined', 'revoked', 'withdrawn'].includes(c.stage));
+    if (!this.comparisonSearchQuery.trim()) return pool;
     const q = this.comparisonSearchQuery.toLowerCase();
-    return this.activeCandidates.filter(c =>
+    return pool.filter(c =>
       c.name.toLowerCase().includes(q) ||
       c.role.toLowerCase().includes(q) ||
       c.department.toLowerCase().includes(q)
@@ -3333,7 +3630,7 @@ export class HrPanelComponent implements OnInit, OnDestroy {
             title: ext(record.job_title),
             department: ext(record.department),
             location: ext(record.location) || 'Remote',
-            status: ext(record.status) || 'Open',
+            status: (ext(record.status) || 'ACTIVE').toUpperCase(),
             applicants: 0,
             datePosted: ext(record.closing_date),
             raw: record
@@ -3372,8 +3669,8 @@ export class HrPanelComponent implements OnInit, OnDestroy {
       salary_range: ext(job.raw.salary_range),
       no_of_positions: ext(job.raw.no_of_positions) || '1',
       priority: ext(job.raw.priority) || 'Medium',
-      status: ext(job.raw.status) || 'Open',
-      approval_status: ext(job.raw.approval_status) || 'PENDING',
+      status: (ext(job.raw.status) || 'ACTIVE').toUpperCase(),
+      approval_status: (ext(job.raw.approval_status) || 'PENDING').toUpperCase(),
       closing_date: ext(job.raw.closing_date)
     };
     this.showToast(`Switched to editing mode for ${job.title}`, 'success');
@@ -3441,7 +3738,7 @@ export class HrPanelComponent implements OnInit, OnDestroy {
       this.closeResumeJobModal();
       return;
     }
-    this._updateJobStatus(job, 'Open', `Job "${job.title}" has been resumed.`);
+    this._updateJobStatus(job, 'ACTIVE', `Job "${job.title}" has been resumed.`);
     this.closeResumeJobModal();
   }
 
@@ -3501,9 +3798,9 @@ export class HrPanelComponent implements OnInit, OnDestroy {
       salary_range: ext(job.raw.salary_range),
       no_of_positions: ext(job.raw.no_of_positions),
       priority: ext(job.raw.priority),
-      approval_status: ext(job.raw.approval_status),
+      approval_status: 'PENDING',  // Reset so it goes for leadership approval again
       closing_date: new Date().toISOString().split('T')[0], // Reset posted date to today
-      status: 'Open',
+      status: 'PENDING',  // Must be PENDING until leadership approves
       modified_at: new Date().toISOString()
     };
     this.isLoadingJobs = true;

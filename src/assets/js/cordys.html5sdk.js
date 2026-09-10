@@ -108,7 +108,9 @@
     } else {
       // Change to root/org if we have not launched using the /cordys URL
       // Get the Base URL Prefix, safely handle if match is null (e.g. localhost angular dev server)
-      var matchResult = window.location.href.match(
+      // Use origin + pathname (not href) to avoid hash fragments (e.g. /#/candidate/) being parsed as org path
+      var locationWithoutHash = window.location.origin + window.location.pathname;
+      var matchResult = locationWithoutHash.match(
         /[^:]+:[/\\]+[^/\\]+([/\\][^/\\]+[/\\][^/\\]+[/\\])/
       );
       var baseURLPrefix = matchResult ? matchResult[1] : '';
@@ -842,20 +844,8 @@
       console.log("For SOAP Calls, remove the dataType or set it to '* json'.");
     }
 
-    if (true) {
-      var ctCookie = $.cordys.getCookieObject('\\w*_ct');
-      if (ctCookie) {
-        opts.url = $.cordys.addURLParameter(
-          '/com.eibus.web.soap.Gateway.wcp',
-          ctCookie.key,
-          ctCookie.value
-        );
-        opts.url = $.cordys.addURLParameter(opts.url, 'timeout', 180000);
-      }
-    } else {
-      opts.url = configureGatewayUrl(opts.url, opts);
-      if (!opts.url) return null;
-    }
+    opts.url = configureGatewayUrl(opts.url, opts);
+    if (!opts.url) return null;
     var dataStrings = [];
 
     if (opts.request) {
@@ -1443,7 +1433,7 @@
       contentType: 'text/xml; charset="utf-8"',
       type: 'get',
       dataType: 'xml',
-      url: $.cordys.authentication.defaults.preloginGatewayURL,
+      url: $.cordys.addOrganizationContextToURL($.cordys.authentication.defaults.preloginGatewayURL),
       cache: false,
       headers: {'cache-control': 'no-cache'},
     };
@@ -1469,7 +1459,7 @@
       type: 'post',
       dataType: '* json',
       data: getUserDetailsRequest(),
-      url: 'com.eibus.web.soap.Gateway.wcp',
+      url: $.cordys.addOrganizationContextToURL('com.eibus.web.soap.Gateway.wcp'),
       async: false,
     }).done(function (userDetails) {
       var organizationObjects = $.cordys.json.findObjects(
@@ -1883,7 +1873,7 @@
       contentType: 'text/xml; charset="utf-8"',
       type: 'POST',
       dataType: 'xml',
-      url: $.cordys.authentication.sso.defaults.loginGatewayURL,
+      url: $.cordys.addOrganizationContextToURL($.cordys.authentication.sso.defaults.loginGatewayURL),
       cache: false,
       headers: {'cache-control': 'no-cache'},
     };
@@ -2029,7 +2019,7 @@
 
   // Get the request gateway URL with ct
   function getGatewayURL() {
-    var url = $.cordys.authentication.sso.defaults.loginGatewayURL,
+    var url = $.cordys.addOrganizationContextToURL($.cordys.authentication.sso.defaults.loginGatewayURL),
       ctCookie = $.cordys.getCookieObject('\\w*_ct');
 
     // Add the ct name in the request URL

@@ -37,6 +37,7 @@
           },
           "configurations": {
             "production": {
+              "baseHref": "/home/training2025/RMS/",
               "fileReplacements": [
                 {
                   "replace": "src/environments/environment.ts",

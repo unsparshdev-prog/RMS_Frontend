@@ -1,0 +1,33 @@
+<div class="bg-card p-6 rounded-lg border border-border">
+	<h3 class="text-lg font-semibold mb-3">Upload your resume</h3>
+
+	<div class="mb-3">
+		<input type="file" (change)="onFileSelected($event)" accept=".txt,.pdf,text/plain,application/pdf" />
+	</div>
+
+	<div *ngIf="fileName" class="mb-3 text-sm">
+		<strong>Selected:</strong> {{ fileName }}
+	</div>
+
+	<div *ngIf="isParsing" class="mb-2 text-sm">Parsing…</div>
+	<div *ngIf="message && !isParsing" class="mb-3 text-sm">{{ message }}</div>
+
+	<div *ngIf="!isParsing">
+		<label class="block text-xs text-muted-foreground">Name</label>
+		<input class="w-full p-2 border rounded mb-2" [(ngModel)]="parsed.name" />
+
+		<label class="block text-xs text-muted-foreground">Email</label>
+		<input class="w-full p-2 border rounded mb-2" [(ngModel)]="parsed.email" />
+
+		<label class="block text-xs text-muted-foreground">Phone</label>
+		<input class="w-full p-2 border rounded mb-2" [(ngModel)]="parsed.phone" />
+
+		<label class="block text-xs text-muted-foreground">Skills (comma separated)</label>
+		<input class="w-full p-2 border rounded mb-3" [(ngModel)]="parsed.skills" />
+
+		<div class="flex gap-2">
+			<button class="px-4 py-2 bg-primary text-white rounded" (click)="submitProfile()">Save Profile</button>
+			<button class="px-4 py-2 border rounded" (click)="clear()">Clear</button>
+		</div>
+	</div>
+</div>

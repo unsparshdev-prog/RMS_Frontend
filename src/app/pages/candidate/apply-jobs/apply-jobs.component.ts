@@ -25,8 +25,24 @@ export class ApplyJobsComponent implements OnInit {
   experience: string = '';
   noticePeriod: string = '';
   willingToRelocate: boolean = false;
+  applicationSource: string = '';
   
   availableLocations: string[] = [];
+
+  // Source options for how the candidate found the job
+  applicationSourceOptions: string[] = [
+    'LinkedIn',
+    'Career Portal',
+    'Naukri',
+    'Indeed',
+    'Glassdoor',
+    'Company Website',
+    'Campus Recruitment',
+    'Job Fair',
+    'Social Media',
+    'Newspaper/Print Ad',
+    'Other'
+  ];
   selectedJobDetails: any = null;
 
   // Referral fields
@@ -78,7 +94,7 @@ export class ApplyJobsComponent implements OnInit {
               applicationStatus: '',
               isRevoked: false
             };
-          }).filter((j: any) => j.id && j.type?.toLowerCase() === 'active'); // Filter for Active marks
+          }).filter((j: any) => j.id && j.type?.toUpperCase() === 'ACTIVE'); // Only show ACTIVE jobs to candidates
 
           const candidateId = this.authService.getCandidateId();
           if (candidateId) {
@@ -166,6 +182,7 @@ export class ApplyJobsComponent implements OnInit {
     this.experience = '';
     this.noticePeriod = '';
     this.willingToRelocate = false;
+    this.applicationSource = '';
     this.relevantSkills = '';
     this.preferredLocation = '';
     this.hasReferral = false;
@@ -193,6 +210,11 @@ export class ApplyJobsComponent implements OnInit {
             } catch (e) {
               console.warn('Could not parse temp4 JSON', e);
             }
+          }
+
+          // Read source from temp5
+          if (appObj.temp5) {
+            this.applicationSource = appObj.temp5;
           }
           
           // If the previously selected location isn't in the job's defined locations, add it to options to avoid breaking the UI
@@ -223,6 +245,12 @@ export class ApplyJobsComponent implements OnInit {
       return;
     }
 
+    // Validate source
+    if (!this.applicationSource) {
+      this.toast.warning('Please select how you found about this job.');
+      return;
+    }
+
     // Validate referral employee ID if referral is checked
     if (this.hasReferral && !this.referralEmployeeId.trim()) {
       this.toast.warning('Please enter the referring employee\'s Employee ID.');
@@ -237,6 +265,7 @@ export class ApplyJobsComponent implements OnInit {
     const salary = this.expectedSalary;
     const skills = this.relevantSkills;
     const location = this.preferredLocation;
+    const source = this.applicationSource;
     const isReferral = this.hasReferral;
     const refEmployeeId = this.referralEmployeeId.trim();
 
@@ -255,6 +284,7 @@ export class ApplyJobsComponent implements OnInit {
     this.experience = '';
     this.noticePeriod = '';
     this.willingToRelocate = false;
+    this.applicationSource = '';
     this.relevantSkills = '';
     this.preferredLocation = '';
     this.hasReferral = false;
@@ -271,7 +301,8 @@ export class ApplyJobsComponent implements OnInit {
       temp1: salary,
       temp2: skills,
       temp3: location,
-      temp4: JSON.stringify(extraData)
+      temp4: JSON.stringify(extraData),
+      temp5: source
     };
 
     const jobTitleForEmail = this.confirmJobTitle;

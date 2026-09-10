@@ -445,7 +445,7 @@
         <div *ngFor="let req of myInterviewRequests" class="request-card">
           <div class="request-card-header">
             <div class="request-candidate-info">
-              <div class="candidate-avatar">{{ req.candidate_name?.charAt(0) || '?' }}</div>
+              <div class="candidate-avatar">{{ (req.candidate_name || '').charAt(0) || '?' }}</div>
               <div>
                 <h3 class="candidate-name">{{ req.candidate_name || 'Unnamed Candidate' }}</h3>
                 <span class="candidate-email">{{ req.candidate_email }}</span>
@@ -510,7 +510,7 @@
         <div *ngFor="let iv of myAcceptedInterviews" class="interview-card" (click)="openInterviewDetail(iv)">
           <div class="interview-card-top">
             <div class="interview-candidate">
-              <div class="candidate-avatar">{{ iv.candidate_name?.charAt(0) || '?' }}</div>
+              <div class="candidate-avatar">{{ (iv.candidate_name || '').charAt(0) || '?' }}</div>
               <div>
                 <h3 class="candidate-name">{{ iv.candidate_name }}</h3>
                 <span class="candidate-id-text">{{ iv.candidate_id }}</span>
@@ -602,7 +602,7 @@
     </h3>
     <div class="candidate-detail-card">
       <div class="candidate-detail-top">
-        <div class="candidate-avatar lg">{{ selectedInterview?.candidate_name?.charAt(0) || '?' }}</div>
+        <div class="candidate-avatar lg">{{ (selectedInterview?.candidate_name || '').charAt(0) || '?' }}</div>
         <div>
           <h4>{{ selectedInterview?.candidate_name }}</h4>
           <span class="text-muted">{{ selectedInterview?.candidate_email }}</span>

@@ -3,6 +3,17 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HeroService } from '../../../hero.service';
 import { Router } from '@angular/router';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configure pdfjs worker to local assets
+if (typeof window !== 'undefined') {
+  try {
+    (pdfjsLib as any).GlobalWorkerOptions.workerSrc = './assets/js/pdf.worker.min.js';
+  } catch (e) {
+    console.warn('pdfjs worker configuration:', e);
+  }
+}
+
 
 @Component({
   selector: 'app-resume-upload',
@@ -48,7 +59,7 @@ export class ResumeUploadComponent implements OnInit {
   workflowSteps = ['Upload', 'Parse', 'Review', 'Upload to Server', 'Save to DB', 'Done'];
 
   // --- Constants ---
-  private readonly DOWNLOAD_BASE = 'http://43.242.214.239:81/home/training2025/MAHINDRA_UPLOADS/Intern_Uploads';
+  private readonly DOWNLOAD_BASE = 'http://43.242.214.197:8081/home/Adnate/MAHINDRA_UPLOADS/Intern_Uploads';
 
   constructor(private heroService: HeroService, private router: Router) {}
 
@@ -157,57 +168,46 @@ export class ResumeUploadComponent implements OnInit {
     this.currentStep = 0;
     this.showToast('File selected: ' + file.name, 'info');
 
-    this.parseResumeWithAffinda(file);
+    this.parseResume(file);
   }
 
   // =====================================================================
-  //  RESUME PARSING via Affinda  (Step 1)
+  //  RESUME PARSING (Step 1) - 100% Free & Local via pdfjs-dist
   // =====================================================================
-  async parseResumeWithAffinda(file: File) {
+  async parseResume(file: File) {
     this.isParsing = true;
     this.parsedData = null;
     this.currentStep = 1;
 
     try {
-      this.showToast('Submitting resume to Affinda AI...', 'info');
+      this.showToast('Extracting resume details locally...', 'info');
 
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch('/api/affinda/parse-resume', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!response.ok) {
-        let errorMessage = 'Failed to submit resume for parsing.';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorData.message || errorMessage;
-        } catch {
-          // Ignore response parsing failure and keep default message.
-        }
-        throw new Error(errorMessage);
+      let text = '';
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        text = await this.extractTextFromPdf(file);
+      } else {
+        text = await file.text();
       }
 
-      const affindaResponse = await response.json();
-      const documentData = affindaResponse?.data || affindaResponse;
+      if (!text || text.trim().length === 0) {
+        throw new Error('Could not extract readable text from file. Please ensure it is a digital PDF or text file.');
+      }
 
       const mappedData = {
-        name: this.extractAffindaName(documentData),
-        email: this.extractAffindaEmail(documentData),
-        phone: this.extractAffindaPhone(documentData),
-        skills: this.extractAffindaSkills(documentData),
-        experience: this.extractAffindaExperience(documentData),
-        education: this.extractAffindaEducation(documentData)
+        name: this.extractNameFromText(text),
+        email: this.extractEmailFromText(text),
+        phone: this.extractPhoneFromText(text),
+        skills: this.extractSkillsFromText(text),
+        experience: this.extractExperienceFromText(text),
+        education: this.extractEducationFromText(text)
       };
 
       this.parsedData = this.normalizeNulls(mappedData);
       this.currentStep = 2;
-      this.showToast('Resume parsed successfully with Affinda AI!', 'success');
+      this.showToast('Resume parsed successfully!', 'success');
 
     } catch (err: any) {
-      console.error('Affinda parse error:', err);
+      console.error('Resume parse error:', err);
       this.showToast('Failed to parse Resume: ' + (err.message || err), 'error');
       this.parsedData = { name: null, email: null, phone: null, skills: null, experience: null, education: null };
       this.currentStep = 2;
@@ -218,11 +218,39 @@ export class ResumeUploadComponent implements OnInit {
   }
 
   // =====================================================================
-  //  DOWNLOAD URL
+  //  DOWNLOAD RESUME
   // =====================================================================
+  isDownloading = false;
+
   getResumeDownloadUrl(): string {
     if (!this.resumeFileName) return '#';
     return `${this.DOWNLOAD_BASE}/${this.resumeFileName}`;
+  }
+
+  async downloadResume(): Promise<void> {
+    if (!this.resumeFileName) {
+      this.showToast('No active resume found to download.', 'error');
+      return;
+    }
+
+    const fileName = this.bareFileName(this.resumeFileName);
+    this.isDownloading = true;
+    this.showToast(`Fetching resume (${fileName})...`, 'info');
+
+    try {
+      const base64 = await this.heroService.downloadDocumentRMS(fileName);
+      if (!base64) {
+        throw new Error('Resume content returned empty from server.');
+      }
+      this.heroService.openBase64Document(base64, fileName);
+    } catch (err: any) {
+      console.error('[ResumeUpload] downloadResume error:', err);
+      // Fallback: try opening via HTTP URL
+      const fallbackUrl = `${this.DOWNLOAD_BASE}/${fileName}`;
+      window.open(fallbackUrl, '_blank');
+    } finally {
+      this.isDownloading = false;
+    }
   }
 
   // =====================================================================
@@ -387,125 +415,181 @@ export class ResumeUploadComponent implements OnInit {
     return field.text || field['#text'] || '';
   }
 
-  private extractAffindaName(data: any): string | null {
-    const rawName = data?.candidateName || data?.name;
-    if (typeof rawName === 'string') return rawName;
-    if (rawName?.raw) return rawName.raw;
-    if (rawName?.parsed?.firstName?.parsed || rawName?.parsed?.familyName?.parsed) {
-      return [
-        rawName?.parsed?.firstName?.parsed || '',
-        rawName?.parsed?.middleName?.parsed || '',
-        rawName?.parsed?.familyName?.parsed || ''
-      ].filter(Boolean).join(' ').trim();
-    }
-    if (rawName?.text) return rawName.text;
-    return null;
-  }
+  /**
+   * Extracts text page-by-page from a PDF using pdfjs-dist, preserving line structure
+   */
+  private async extractTextFromPdf(file: File): Promise<string> {
+    const arrayBuffer = await file.arrayBuffer();
+    const loadingTask = (pdfjsLib as any).getDocument({
+      data: new Uint8Array(arrayBuffer),
+      useSystemFonts: true
+    });
+    const pdf = await loadingTask.promise;
+    let fullText = '';
 
-  private extractAffindaEmail(data: any): string | null {
-    const email = data?.email?.[0] || data?.email || data?.emails?.[0] || data?.candidateEmail;
-    if (typeof email === 'string') return email;
-    if (email?.parsed) return email.parsed;
-    if (email?.raw) return email.raw;
-    return this.extractRegex(data, /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-  }
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      const pageLines: string[] = [];
+      let currentLine = '';
+      let lastY: number | null = null;
 
-  private extractAffindaPhone(data: any): string | null {
-    const phone = data?.phoneNumber?.[0] || data?.phoneNumber || data?.phone || data?.phoneNumbers?.[0] || data?.candidatePhone;
-    if (typeof phone === 'string') return phone;
-    if (phone?.parsed?.formattedNumber) return phone.parsed.formattedNumber;
-    if (phone?.parsed?.rawText) return phone.parsed.rawText;
-    if (phone?.parsed?.nationalNumber) return phone.parsed.nationalNumber;
-    if (phone?.raw) return phone.raw;
-    return this.extractRegex(data, /\+?\d[\d\s\-\(\)]{8,}/);
-  }
-
-  private extractAffindaExperience(data: any): number | null {
-    const direct = data?.totalYearsExperience?.parsed
-      ?? data?.totalYearsExperience
-      ?? data?.yearsOfExperience
-      ?? data?.years_experience;
-    if (typeof direct === 'number') return Math.floor(direct);
-    if (typeof direct === 'string' && direct.trim() !== '') {
-      const parsed = Number(direct);
-      return Number.isNaN(parsed) ? null : Math.floor(parsed);
-    }
-    return null;
-  }
-
-  private extractAffindaSkills(data: any): string | null {
-    const collected = new Set<string>();
-    const addSkill = (value: any) => {
-      if (!value) return;
-      if (typeof value === 'string') {
-        const trimmed = value.trim();
-        if (trimmed) collected.add(trimmed);
-        return;
+      for (const item of textContent.items as any[]) {
+        if (!item.str) continue;
+        if (lastY === null || Math.abs(item.transform[5] - lastY) < 4) {
+          currentLine += (currentLine ? ' ' : '') + item.str;
+        } else {
+          if (currentLine.trim()) pageLines.push(currentLine.trim());
+          currentLine = item.str;
+        }
+        lastY = item.transform[5];
       }
-      if (value?.name) addSkill(value.name);
-      if (value?.raw) addSkill(value.raw);
-      if (value?.parsed?.name) addSkill(value.parsed.name);
-    };
+      if (currentLine.trim()) pageLines.push(currentLine.trim());
 
-    if (Array.isArray(data?.skill)) {
-      data.skill.forEach((skill: any) => addSkill(skill));
+      fullText += pageLines.join('\n') + '\n';
     }
 
-    if (Array.isArray(data?.skills)) {
-      data.skills.forEach((skill: any) => addSkill(skill));
-    }
-
-    return collected.size > 0 ? Array.from(collected).join(', ') : null;
+    return fullText;
   }
 
-  private extractAffindaEducation(data: any): string | null {
-    const entries = Array.isArray(data?.education) ? data.education : data?.educationQualifications;
-    if (!Array.isArray(entries) || entries.length === 0) return null;
+  private extractNameFromText(text: string): string | null {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const ignoreWords = [
+      'curriculum vitae', 'resume', 'cv', 'bio-data', 'biodata', 'profile',
+      'contact', 'email', 'phone', 'address', 'summary', 'experience', 'education',
+      'personal details', 'objective', 'skills', 'page', 'http', 'https', 'github', 'linkedin'
+    ];
 
-    const formatted = entries
-      .map((entry: any) => {
-        const parsed = entry?.parsed || entry;
-        const degree = parsed?.educationAccreditation?.parsed
-          || parsed?.accreditation?.education
-          || entry?.degree
-          || entry?.degree_type
-          || '';
-        const majors = Array.isArray(parsed?.educationMajor)
-          ? parsed.educationMajor.map((m: any) => m?.parsed || m?.raw || '').filter(Boolean).join(', ')
-          : (parsed?.accreditation?.inputStr || parsed?.specialization_subjects || '');
-        const school = parsed?.educationOrganization?.parsed
-          || parsed?.organization
-          || parsed?.institution_name
-          || parsed?.school_name
-          || '';
-        const year = parsed?.educationDates?.parsed?.end?.year || parsed?.educationDates?.raw || '';
-        return [degree, majors, school, year].filter(Boolean).join(' - ').trim();
-      })
-      .filter(Boolean);
+    for (let i = 0; i < Math.min(lines.length, 12); i++) {
+      const line = lines[i];
+      const lower = line.toLowerCase();
 
-    return formatted.length > 0 ? formatted[0] : null;
-  }
+      if (ignoreWords.some(w => lower.includes(w))) continue;
+      if (line.includes('@') || line.includes('.com') || line.includes('.in')) continue;
+      if (/\d/.test(line)) continue;
+      if (line.length < 3 || line.length > 35) continue;
 
-  private extractRegex(obj: any, regex: RegExp): string | null {
-    if (!obj) return null;
-    if (typeof obj === 'string') {
-      const match = obj.match(regex);
-      return match ? match[0] : null;
-    }
-    if (Array.isArray(obj)) {
-      for (const item of obj) {
-        const found = this.extractRegex(item, regex);
-        if (found) return found;
-      }
-      return null;
-    }
-    if (typeof obj === 'object') {
-      for (const key of Object.keys(obj)) {
-        const found = this.extractRegex(obj[key], regex);
-        if (found) return found;
+      const words = line.split(/\s+/).filter(Boolean);
+      if (words.length >= 1 && words.length <= 4 && /^[a-zA-Z\s.'-]+$/.test(line)) {
+        return words.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
       }
     }
     return null;
+  }
+
+  private extractEmailFromText(text: string): string | null {
+    const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+    return emailMatch ? emailMatch[0].trim() : null;
+  }
+
+  private extractPhoneFromText(text: string): string | null {
+    const matches = text.match(/(?:(?:\+|00)\d{1,3}[\s.-]?)?(?:\(?\d{3,5}\)?[\s.-]?)?\d{3,5}[\s.-]?\d{4,5}/g);
+    if (!matches) return null;
+    for (const raw of matches) {
+      const digitsOnly = raw.replace(/\D/g, '');
+      if (digitsOnly.length >= 10 && digitsOnly.length <= 13) {
+        return raw.trim();
+      }
+    }
+    return null;
+  }
+
+  private extractExperienceFromText(text: string): number | null {
+    const directPatterns = [
+      /(\d+(?:\.\d+)?)\+?\s*(?:years?|yrs?)\s*(?:of)?\s*(?:total|relevant)?\s*experience/i,
+      /(?:total|relevant)?\s*experience\s*[:\-]?\s*(\d+(?:\.\d+)?)\+?\s*(?:years?|yrs?)/i,
+      /(\d+(?:\.\d+)?)\+?\s*(?:years?|yrs?)\s*in\s+(?:software|development|engineering|it|testing|design)/i
+    ];
+
+    for (const pattern of directPatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        const val = parseFloat(match[1]);
+        if (!isNaN(val) && val >= 0 && val <= 50) {
+          return Math.floor(val);
+        }
+      }
+    }
+
+    // Estimate from year ranges in work history
+    const currentYear = new Date().getFullYear();
+    const yearRangeRegex = /\b(19\d{2}|20\d{2})\s*(?:-|–|—|to)\s*(19\d{2}|20\d{2}|present|current)\b/gi;
+    let match: RegExpExecArray | null;
+    let minYear = currentYear;
+    let hasRange = false;
+
+    while ((match = yearRangeRegex.exec(text)) !== null) {
+      const start = parseInt(match[1], 10);
+      if (start >= 1970 && start <= currentYear) {
+        hasRange = true;
+        if (start < minYear) minYear = start;
+      }
+    }
+
+    if (hasRange && minYear < currentYear) {
+      const diff = currentYear - minYear;
+      if (diff > 0 && diff <= 40) {
+        return diff;
+      }
+    }
+
+    return null;
+  }
+
+  private extractSkillsFromText(text: string): string | null {
+    const skillList = [
+      'JavaScript', 'TypeScript', 'Python', 'Java', 'C++', 'C#', 'C', 'PHP', 'Ruby', 'Go', 'Rust', 'Kotlin', 'Swift', 'Dart', 'R',
+      'Angular', 'React', 'Vue', 'Next.js', 'Nuxt', 'Svelte', 'HTML', 'HTML5', 'CSS', 'CSS3', 'Tailwind CSS', 'Tailwind',
+      'Bootstrap', 'Sass', 'SCSS', 'Redux', 'RxJS', 'jQuery', 'Webpack', 'Vite',
+      'Node.js', 'Express.js', 'Express', 'NestJS', 'Django', 'Flask', 'FastAPI', 'Spring', 'Spring Boot', 'Hibernate',
+      'ASP.NET', '.NET Core', '.NET', 'Laravel', 'Rails', 'Ruby on Rails', 'REST API', 'GraphQL', 'Microservices',
+      'SQL', 'MySQL', 'PostgreSQL', 'Oracle', 'MongoDB', 'Redis', 'SQLite', 'MariaDB', 'Cassandra', 'DynamoDB', 'Firebase', 'Elasticsearch',
+      'AWS', 'Azure', 'GCP', 'Google Cloud', 'Docker', 'Kubernetes', 'CI/CD', 'Jenkins', 'GitHub Actions', 'GitLab CI',
+      'Terraform', 'Linux', 'Unix', 'Nginx', 'Apache',
+      'Machine Learning', 'Deep Learning', 'NLP', 'Computer Vision', 'Data Science', 'Pandas', 'NumPy', 'TensorFlow', 'PyTorch', 'Power BI', 'Tableau',
+      'Git', 'GitHub', 'GitLab', 'Jira', 'Postman', 'Jest', 'Jasmine', 'Karma', 'Cypress', 'Selenium', 'Agile', 'Scrum'
+    ];
+
+    const detected = new Set<string>();
+    for (const skill of skillList) {
+      const escaped = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const pattern = new RegExp(`(?:^|[^a-zA-Z0-9_#+])${escaped}(?:$|[^a-zA-Z0-9_#+])`, 'i');
+      if (pattern.test(text)) {
+        detected.add(skill);
+      }
+    }
+
+    return detected.size > 0 ? Array.from(detected).join(', ') : null;
+  }
+
+  private extractEducationFromText(text: string): string | null {
+    const degrees = [
+      'B.Tech', 'Bachelor of Technology',
+      'B.E.', 'Bachelor of Engineering',
+      'M.Tech', 'Master of Technology',
+      'M.E.', 'Master of Engineering',
+      'BCA', 'Bachelor of Computer Applications',
+      'MCA', 'Master of Computer Applications',
+      'B.Sc', 'Bachelor of Science',
+      'M.Sc', 'Master of Science',
+      'B.Com', 'Bachelor of Commerce',
+      'M.Com', 'Master of Commerce',
+      'BBA', 'Bachelor of Business Administration',
+      'MBA', 'Master of Business Administration',
+      'Diploma', 'High School', '12th', '10th'
+    ];
+
+    const found: string[] = [];
+    for (const deg of degrees) {
+      const escaped = deg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const pattern = new RegExp(`(?:^|[^a-zA-Z0-9])${escaped}(?:$|[^a-zA-Z0-9])`, 'i');
+      if (pattern.test(text)) {
+        found.push(deg);
+      }
+    }
+
+    if (found.length === 0) return null;
+    return found.slice(0, 2).join(' / ');
   }
 
   /** Ensure missing parsed fields are explicitly null (not empty string) */

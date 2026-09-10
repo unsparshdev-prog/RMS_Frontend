@@ -1016,6 +1016,109 @@ export class HeroService {
   }
 
   /**
+   * Download a document from RMS storage as Base64.
+   * Maps to: <DownloadDocument_RMS xmlns="http://schemas.cordys.com/RMS_DB_Metadata" preserveSpace="no" qAccess="0" qValues="">
+   */
+  downloadDocumentRMS(fileName: string): Promise<string> {
+    const cleanFileName = (fileName || '').split(/[/\\]/).pop() || fileName;
+    const soapEnvelope = `<SOAP:Envelope xmlns:SOAP="http://schemas.xmlsoap.org/soap/envelope/">
+      <SOAP:Body>
+        <DownloadDocument_RMS xmlns="http://schemas.cordys.com/RMS_DB_Metadata" preserveSpace="no" qAccess="0" qValues="">
+          <FileName>${cleanFileName}</FileName>
+        </DownloadDocument_RMS>
+      </SOAP:Body>
+    </SOAP:Envelope>`;
+
+    let gatewayUrl = '/com.eibus.web.soap.Gateway.wcp';
+    try {
+      const ctCookie = (typeof $ !== 'undefined' && ($ as any).cordys?.getCookieObject)
+        ? ($ as any).cordys.getCookieObject('\\w*_ct')
+        : null;
+      if (ctCookie && ctCookie.key && ctCookie.value) {
+        gatewayUrl += `?${encodeURIComponent(ctCookie.key)}=${encodeURIComponent(ctCookie.value)}&timeout=180000`;
+      }
+    } catch (e) {
+      console.warn('Could not read _ct cookie, proceeding without CSRF token:', e);
+    }
+
+    console.log('DownloadDocument_RMS gateway URL:', gatewayUrl, 'fileName:', cleanFileName);
+
+    return fetch(gatewayUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/xml; charset=utf-8' },
+      credentials: 'include',
+      body: soapEnvelope
+    })
+      .then(response => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        return response.text();
+      })
+      .then(xmlText => {
+        console.log('DownloadDocument_RMS raw XML response length:', xmlText.length);
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+        const fault = xmlDoc.getElementsByTagName('faultstring')[0];
+        if (fault) {
+          throw new Error(fault.textContent || 'SOAP Fault occurred while downloading document');
+        }
+        const el = xmlDoc.getElementsByTagNameNS('*', 'DownloadDocument_RMS')[0]
+          || xmlDoc.getElementsByTagName('DownloadDocument_RMS')[0];
+        if (el && el.textContent) {
+          const content = el.textContent.trim();
+          console.log('DownloadDocument_RMS extracted base64 length:', content.length, 'preview:', content.substring(0, 30));
+          return content;
+        }
+        console.warn('DownloadDocument_RMS element not found or empty in XML:', xmlText.substring(0, 400));
+        return '';
+      });
+  }
+
+  /**
+   * Helper to open or download a Base64-encoded document in the browser.
+   */
+  openBase64Document(base64Content: string, fileName: string): void {
+    if (!base64Content) {
+      throw new Error('File content is empty.');
+    }
+    const cleanBase64 = base64Content.replace(/\s/g, '');
+    console.log('[openBase64Document] fileName:', fileName, 'length:', cleanBase64.length, 'isPDF:', cleanBase64.startsWith('JVBERi'));
+    const byteCharacters = atob(cleanBase64);
+    const byteNumbers = new Uint8Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+
+    const lowerName = (fileName || '').toLowerCase();
+    let mimeType = 'application/pdf';
+    if (lowerName.endsWith('.doc')) {
+      mimeType = 'application/msword';
+    } else if (lowerName.endsWith('.docx')) {
+      mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    } else if (lowerName.endsWith('.png')) {
+      mimeType = 'image/png';
+    } else if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg')) {
+      mimeType = 'image/jpeg';
+    }
+
+    const blob = new Blob([byteNumbers], { type: mimeType });
+    const blobUrl = URL.createObjectURL(blob);
+
+    // Open in a new tab if supported, or trigger download
+    const newTab = window.open(blobUrl, '_blank');
+    if (!newTab || newTab.closed || typeof newTab.closed === 'undefined') {
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileName || 'document.pdf';
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      }, 3000);
+    }
+  }
+
+  /**
    * Check if a candidate has already applied for a specific job requisition.
    */
   getApplicationByCandidateAndJR(candidateId: string, jrId: string): Promise<any> {
@@ -1039,6 +1142,8 @@ export class HeroService {
     temp1?: string;
     temp2?: string;
     temp3?: string;
+    temp4?: string;
+    temp5?: string;
   }): Promise<any> {
     const payload: any = {
       '@reply': 'yes',
@@ -1060,7 +1165,9 @@ export class HeroService {
             stage: data.stage || 'Applied',
             temp1: data.temp1 || '',
             temp2: data.temp2 || '',
-            temp3: data.temp3 || ''
+            temp3: data.temp3 || '',
+            temp4: data.temp4 || '',
+            temp5: data.temp5 || ''
           }
         }
       }

@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { HeroService } from '../../../hero.service';
 
 declare const $: any;
@@ -8,7 +9,7 @@ declare const $: any;
 @Component({
   selector: 'app-candidate-data',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './candidate-data.component.html',
   styleUrls: ['./candidate-data.component.css']
 })
@@ -52,49 +53,89 @@ export class CandidateDataComponent implements OnInit {
     this.loadCandidateData();
   }
 
-  loadCandidateData(): void {
+  async loadCandidateData(): Promise<void> {
     this.loading = true;
     this.error = '';
 
-    this.heroService.getCandidateObject(this.candidateId)
-      .then((response: any) => {
-        console.log(`[CandidateData] Response for ID ${this.candidateId}:`, response);
+    const ext = (field: any): string => {
+      if (!field) return '';
+      if (typeof field === 'string') return field.trim();
+      return (field.text || field['#text'] || field['$t'] || '').trim();
+    };
+
+    try {
+      let candidate: any = null;
+
+      // 1. Try by candidate_id
+      try {
+        const resp = await this.heroService.getCandidateObject(this.candidateId);
+        candidate = this.heroService.xmltojson(resp, 'candidate');
+      } catch (e) {
+        console.warn('[CandidateData] Lookup by ID failed, trying by email...', e);
+      }
+
+      // 2. If not found, try by email
+      if (!candidate && this.candidateId) {
         try {
-          const candidate = this.heroService.xmltojson(response, 'candidate');
-          if (candidate) {
-            this.profile = {
-              candidate_id: candidate.candidate_id || '',
-              name: candidate.name || '',
-              email: candidate.email || '',
-              phone: candidate.phone || '',
-              skills: candidate.skills || '',
-              experience: candidate.experience || '0',
-              education: candidate.education || '',
-              resume_path: candidate.resume_path || '',
-              source: candidate.source || '',
-              ready_to_relocate: String(candidate.ready_to_relocate) === 'true',
-              notice_period: candidate.notice_period || '0',
-              expected_salary: candidate.expected_salary || '0',
-              linkedin_url: candidate.linkedin_url || '',
-              has_referral: String(candidate.has_referral) === 'true',
-              referral_id: candidate.referral_id || '',
-              created_at: candidate.created_at || '',
-              created_by: candidate.created_by || ''
-            };
-          } else {
-            console.warn(`[CandidateData] No candidate node found in response for ID: ${this.candidateId}`);
-            this.error = `No profile data found for your account (ID: ${this.candidateId}). Please complete your profile.`;
-          }
+          const emailResp = await this.heroService.getCandidateByEmail(this.candidateId);
+          candidate = this.heroService.xmltojson(emailResp, 'candidate');
         } catch (e) {
-          console.error('[CandidateData] Error parsing response:', e);
-          this.error = 'Unable to parse profile data.';
+          console.warn('[CandidateData] Lookup by email failed, trying list search...', e);
         }
-        this.loading = false;
-      }).catch((err: any) => {
-        console.error(`[CandidateData] AJAX Error for ID ${this.candidateId}:`, err);
-        this.error = `Connection error while fetching profile (ID: ${this.candidateId}).`;
-        this.loading = false;
-      });
+      }
+
+      // 3. If still not found, search in candidate list
+      if (!candidate && this.candidateId) {
+        try {
+          const allResp = await this.heroService.getCandidateObjects();
+          const candidates = this.heroService.xmltojson(allResp, 'candidate');
+          const list = Array.isArray(candidates) ? candidates : (candidates ? [candidates] : []);
+          const search = this.candidateId.toLowerCase().trim();
+          candidate = list.find((c: any) => {
+            const email = ext(c.email).toLowerCase();
+            const id = ext(c.candidate_id || c.Candidate_id).toLowerCase();
+            return email === search || id === search || (search.includes('@') && email === search.split('@')[0]);
+          });
+        } catch (e) {
+          console.warn('[CandidateData] List search failed...', e);
+        }
+      }
+
+      if (candidate) {
+        const extractedId = ext(candidate.candidate_id || candidate.Candidate_id);
+        if (extractedId) {
+          this.candidateId = extractedId;
+          sessionStorage.setItem('candidate_id', extractedId);
+        }
+
+        this.profile = {
+          candidate_id: extractedId || '',
+          name: ext(candidate.name),
+          email: ext(candidate.email),
+          phone: ext(candidate.phone),
+          skills: ext(candidate.skills),
+          experience: ext(candidate.experience) || '0',
+          education: ext(candidate.education),
+          resume_path: ext(candidate.resume_path),
+          source: ext(candidate.source),
+          ready_to_relocate: String(ext(candidate.ready_to_relocate)) === 'true',
+          notice_period: ext(candidate.notice_period) || '0',
+          expected_salary: ext(candidate.expected_salary) || '0',
+          linkedin_url: ext(candidate.linkedin_url),
+          has_referral: String(ext(candidate.has_referral)) === 'true',
+          referral_id: ext(candidate.referral_id),
+          created_at: ext(candidate.created_at),
+          created_by: ext(candidate.created_by)
+        };
+      } else {
+        this.error = `No profile data found for account (${this.candidateId}). Please upload your resume to complete your candidate profile.`;
+      }
+    } catch (err: any) {
+      console.error('[CandidateData] Error loading candidate data:', err);
+      this.error = 'Unable to fetch profile data. Please try again.';
+    } finally {
+      this.loading = false;
+    }
   }
 
   getInitials(): string {
@@ -145,5 +186,26 @@ export class CandidateDataComponent implements OnInit {
         this.error = 'Failed to save candidate data. Please try again.';
         this.saving = false;
       });
+  }
+
+  isDownloadingResume = false;
+
+  async viewResume(): Promise<void> {
+    if (!this.profile.resume_path) return;
+    const fileName = this.profile.resume_path.split(/[/\\]/).pop() || this.profile.resume_path;
+    this.isDownloadingResume = true;
+    try {
+      const base64 = await this.heroService.downloadDocumentRMS(fileName);
+      if (base64) {
+        this.heroService.openBase64Document(base64, fileName);
+      } else {
+        alert('Resume content is empty.');
+      }
+    } catch (e) {
+      console.error('Failed to download resume:', e);
+      alert('Unable to load resume from server.');
+    } finally {
+      this.isDownloadingResume = false;
+    }
   }
 }

@@ -41,50 +41,7 @@ app.get("/api/apyhub/status/:jobId", async (req, res) => {
   }
 });
 
-// --- Affinda Resume Parser Proxy ---
-app.post("/api/affinda/parse-resume", upload.single("file"), async (req, res) => {
-  const apiKey = process.env.AFFINDA_API_KEY;
-  const workspace = process.env.AFFINDA_WORKSPACE || "GzdypdKa";
-  const documentType = process.env.AFFINDA_DOCUMENT_TYPE || "IuismUKk";
 
-  if (!apiKey) {
-    return res.status(500).json({ error: "Missing AFFINDA_API_KEY environment variable." });
-  }
-
-  if (!req.file) {
-    return res.status(400).json({ error: "Resume file is required." });
-  }
-
-  try {
-    const form = new FormData();
-    form.append("workspace", workspace);
-    form.append("file", req.file.buffer, {
-      filename: req.file.originalname,
-      contentType: req.file.mimetype || "application/octet-stream"
-    });
-
-    if (documentType) {
-      form.append("documentType", documentType);
-    }
-
-    const response = await axios.post("https://api.affinda.com/v3/documents", form, {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        ...form.getHeaders()
-      },
-      maxBodyLength: Infinity,
-      maxContentLength: Infinity
-    });
-
-    res.json(response.data);
-  } catch (err) {
-    if (err.response) {
-      res.status(err.response.status).json(err.response.data);
-    } else {
-      res.status(500).json({ error: err.message });
-    }
-  }
-});
 
 // --- Start server ---
 app.listen(config.server.port, () => {
